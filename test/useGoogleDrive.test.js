@@ -154,12 +154,10 @@ describe('enviarBackup()', () => {
   });
 
   it('lança erro quando não há refresh_token no cofre', async () => {
-    vi.resetModules();
-    const { useGoogleDrive: freshUseGoogleDrive } = await import('../src/hooks/useGoogleDrive');
-
+    // Sobrescreve o beforeEach do describe pai — sem token disponível
     mockElectronAPI.loadToken.mockResolvedValue({ success: false, token: null });
 
-    const { result } = renderHook(() => freshUseGoogleDrive());
+    const { result } = renderHook(() => useGoogleDrive());
     await act(async () => { await vi.runAllTimersAsync(); });
 
     await expect(
