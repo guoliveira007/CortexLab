@@ -17,7 +17,7 @@ const BACKUP_FILE_KEY = 'cortexlab_gdrive_file_id';
 //                   um timestamp de exibição.
 
 /** Cache de acesso em memória — descartado ao fechar o app. */
-const memTokens = {
+export const memTokens = {
   access_token: null,
   expires_at:   0,
 };

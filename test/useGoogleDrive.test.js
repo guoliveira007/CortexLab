@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useGoogleDrive } from '../src/hooks/useGoogleDrive';
+import { useGoogleDrive, memTokens } from '../src/hooks/useGoogleDrive';
 
 // ── Constantes espelhadas do hook (evita importar internals) ─────────────────
 const BACKUP_FILE_KEY = 'cortexlab_gdrive_file_id';
@@ -154,6 +154,9 @@ describe('enviarBackup()', () => {
   });
 
   it('lança erro quando não há refresh_token no cofre', async () => {
+    // Zera o cache em memória do módulo (objeto de escopo global do hook)
+    memTokens.access_token = null;
+    memTokens.expires_at   = 0;
     // Sobrescreve o beforeEach do describe pai — sem token disponível
     mockElectronAPI.loadToken.mockResolvedValue({ success: false, token: null });
 
