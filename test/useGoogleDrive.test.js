@@ -168,17 +168,23 @@ describe('enviarBackup()', () => {
   });
 
   it('lança erro quando não há refresh_token no cofre', async () => {
-    // Sobrescreve: loadToken retorna token nulo (não conectado)
-    mockElectronAPI.loadToken.mockResolvedValue({ success: true, token: null });
+    // Sobrescreve loadToken para simular ausência de refresh_token
+    mockElectronAPI.loadToken.mockImplementation(async () => ({
+      success: true,
+      token: null,
+    }));
+    // Garante que refreshToken não será chamado indevidamente
+    mockElectronAPI.refreshToken.mockRejectedValue(new Error('refresh não deveria ser chamado'));
 
     const { result } = renderHook(() => useGoogleDrive());
     await act(async () => { await vi.runAllTimersAsync(); });
 
+    // fetch não deve ser chamado, pois o erro ocorre antes
     await expect(
       act(async () => { await result.current.enviarBackup('{}'); })
     ).rejects.toThrow('Não conectado');
 
-    expect(result.current.salvando).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('lança erro quando o PATCH falha na API', async () => {
