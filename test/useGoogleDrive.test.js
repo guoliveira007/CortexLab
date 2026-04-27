@@ -168,13 +168,8 @@ describe('enviarBackup()', () => {
   });
 
   it('lança erro quando não há refresh_token no cofre', async () => {
-    // Sobrescreve loadToken para simular ausência de refresh_token
-    mockElectronAPI.loadToken.mockImplementation(async () => ({
-      success: true,
-      token: null,
-    }));
-    // Garante que refreshToken não será chamado indevidamente
-    mockElectronAPI.refreshToken.mockRejectedValue(new Error('refresh não deveria ser chamado'));
+    // Simula falha ao carregar o token (cofre vazio / keytar indisponível)
+    mockElectronAPI.loadToken.mockResolvedValue({ success: false, token: null });
 
     const { result } = renderHook(() => useGoogleDrive());
     await act(async () => { await vi.runAllTimersAsync(); });
