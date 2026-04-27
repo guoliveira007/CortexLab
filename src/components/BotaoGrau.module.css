@@ -1,0 +1,23 @@
+.botao {
+  flex: 1;
+  padding: 12px 8px;
+  border: 2px solid transparent;
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  font-family: var(--font-display);
+  background: transparent; /* será sobrescrito pelo style */
+}
+
+.emoji {
+  font-size: 22px;
+}
+
+.label {
+  font-weight: 700;
+  font-size: 13px;
+}

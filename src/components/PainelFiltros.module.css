@@ -1,0 +1,244 @@
+/* Container principal */
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Linha de busca */
+.buscaLinha {
+  margin-bottom: 12px;
+}
+
+/* Label da busca */
+.buscaLabel {
+  composes: field-label from global;
+}
+
+/* Input de busca */
+.buscaInput {
+  composes: input-modern from global;
+}
+
+/* Grid dos dropdowns */
+.dropdownGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+  overflow: visible;
+}
+
+/* Container de cada dropdown */
+.dropdownContainer {
+  position: relative;
+}
+
+/* Label do dropdown */
+.dropdownLabel {
+  composes: field-label from global;
+}
+
+/* Botão do dropdown (substitui o estilo inline principal) */
+.dropdownButton {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--r-md);
+  background: white;
+  color: var(--gray-700);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.15s;
+  text-align: left;
+  gap: 6px;
+}
+
+.dropdownButton:disabled {
+  background: var(--gray-50);
+  color: var(--gray-300);
+  cursor: not-allowed;
+}
+
+.dropdownButtonAtivo {
+  border-color: var(--brand-400);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+
+/* Texto dentro do botão */
+.dropdownButtonText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* Container do badge de contagem + seta */
+.dropdownButtonRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Badge de contagem */
+.countBadge {
+  background: var(--brand-500);
+  color: white;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+/* Seta do dropdown */
+.arrow {
+  font-size: 9px;
+  opacity: 0.5;
+}
+
+/* Lista de opções flutuante */
+.opcoesLista {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 9999;
+  background: white;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+  min-width: 100%;
+  max-width: 280px;
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Opção "Limpar seleção" dentro do dropdown */
+.opcaoLimpar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-100);
+  background: #fef2f2;
+  color: var(--accent-red, #ef4444);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+/* Item de opção */
+.opcaoItem {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gray-50);
+  font-size: 13px;
+  font-weight: 400;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.opcaoItemSelecionada {
+  background: var(--brand-50);
+  color: var(--brand-700);
+  font-weight: 600;
+}
+
+/* Checkbox customizado */
+.checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--gray-300);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.checkboxSelecionado {
+  border-color: var(--brand-500);
+  background: var(--brand-500);
+}
+
+/* Chips e barra de filtros ativos */
+.chipsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(99,102,241,0.05);
+  border-radius: var(--r-md);
+  border: 1px solid rgba(99,102,241,0.12);
+  margin-bottom: 10px;
+}
+
+.chipsLabel {
+  font-size: 12px;
+  color: var(--gray-500);
+  font-weight: 600;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1.5px solid var(--brand-200);
+  color: var(--brand-600);
+  padding: 2px 10px;
+  border-radius: var(--r-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chipLabel {
+  color: var(--gray-400);
+  font-weight: 400;
+}
+
+.chipRemove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-400);
+  line-height: 1;
+  padding: 0 2px;
+  font-size: 14px;
+}
+
+.limparTudoBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent-red);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Contador de questões */
+.contador {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.contadorNumero {
+  color: var(--gray-700);
+  font-weight: bold;
+}

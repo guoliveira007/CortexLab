@@ -1,0 +1,22 @@
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);   /* sutil — não parece "página nova" */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wrapper {
+  animation: fadeSlideIn 0.22s ease-out;
+  will-change: opacity, transform;   /* hint para o browser usar GPU */
+}
+
+/* Sem animação para quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .wrapper {
+    animation: none;
+  }
+}

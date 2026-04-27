@@ -1,0 +1,123 @@
+import { useEffect } from 'react';
+
+/**
+ * useAtalhos — Atalhos de teclado globais para o CortexLab.
+ *
+ * Atalhos disponíveis:
+ *   Alt+1  → Dashboard
+ *   Alt+2  → Freestyle
+ *   Alt+3  → Simulados
+ *   Alt+4  → Listas
+ *   Alt+5  → Banco de Questões
+ *   Alt+6  → Desempenho
+ *   Alt+7  → Revisão Espaçada
+ *   Alt+8  → Caderno de Erros
+ *   Alt+R  → Revisão Espaçada (alternativo)
+ *   Alt+F  → Freestyle (alternativo)
+ *   Alt+C  → Chat de Dúvidas
+ *   Alt+P  → Previsão de Revisões
+ *
+ * Compatível com Mac (Alt = Option) e Windows/Linux.
+ */
+
+const ATALHOS = [
+  { tecla: '1', alt: true, tela: 'dashboard',     desc: 'Dashboard' },
+  { tecla: '2', alt: true, tela: 'freestyle',      desc: 'Freestyle' },
+  { tecla: '3', alt: true, tela: 'simulado',       desc: 'Simulados' },
+  { tecla: '4', alt: true, tela: 'listas',         desc: 'Listas' },
+  { tecla: '5', alt: true, tela: 'banco',          desc: 'Banco de Questões' },
+  { tecla: '6', alt: true, tela: 'desempenho',     desc: 'Desempenho' },
+  { tecla: '7', alt: true, tela: 'revisao',        desc: 'Revisão Espaçada' },
+  { tecla: '8', alt: true, tela: 'caderno',        desc: 'Caderno de Erros' },
+  { tecla: 'r', alt: true, tela: 'revisao',        desc: 'Revisão Espaçada' },
+  { tecla: 'f', alt: true, tela: 'freestyle',      desc: 'Freestyle' },
+  { tecla: 'c', alt: true, tela: 'chat',           desc: 'Chat de Dúvidas' },
+  { tecla: 'p', alt: true, tela: 'previsao',       desc: 'Previsão de Revisões' },
+  { tecla: 'b', alt: true, tela: 'backup',         desc: 'Backup & Restauração' },
+  { tecla: 'm', alt: true, tela: 'resumo',         desc: 'Resumo por Matéria' },
+];
+
+export const useAtalhos = (onNavegar) => {
+  useEffect(() => {
+    const handler = (e) => {
+      // Não dispara atalhos quando o usuário está digitando em um input/textarea
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+
+      const atalho = ATALHOS.find(a =>
+        a.tecla === e.key.toLowerCase() &&
+        (!a.alt || e.altKey) &&
+        !e.ctrlKey && !e.metaKey && !e.shiftKey
+      );
+
+      if (atalho) {
+        e.preventDefault();
+        onNavegar(atalho.tela);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onNavegar]);
+};
+
+/**
+ * AjudaAtalhos — Painel de referência rápida dos atalhos.
+ * Mostra/esconde com Alt+? ou por botão.
+ */
+export const AjudaAtalhos = ({ visivel, onFechar }) => {
+  if (!visivel) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 5000,
+        background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onClick={onFechar}
+    >
+      <div
+        style={{
+          background: 'white', borderRadius: 'var(--r-2xl)',
+          padding: '28px', maxWidth: '480px', width: '90%',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700 }}>
+            ⌨️ Atalhos de Teclado
+          </h3>
+          <button onClick={onFechar} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--gray-400)' }}>×</button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {ATALHOS.filter((a, i, arr) => arr.findIndex(b => b.tela === a.tela) === i).map(a => (
+            <div key={a.tela} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '8px 12px', background: 'var(--gray-50)',
+              borderRadius: 'var(--r-md)', border: '1px solid var(--gray-100)',
+            }}>
+              <span style={{ fontSize: '13px', color: 'var(--gray-700)' }}>{a.desc}</span>
+              <kbd style={{
+                background: 'var(--gray-800)', color: 'white',
+                padding: '2px 7px', borderRadius: '5px',
+                fontSize: '11px', fontFamily: 'monospace', fontWeight: 700,
+                boxShadow: '0 2px 0 rgba(0,0,0,0.4)',
+              }}>
+                Alt+{a.tecla.toUpperCase()}
+              </kbd>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginTop: '16px', textAlign: 'center' }}>
+          Atalhos não funcionam quando um campo de texto está em foco. · Pressione Esc para fechar.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default useAtalhos;

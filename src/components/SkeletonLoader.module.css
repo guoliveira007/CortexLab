@@ -1,0 +1,28 @@
+@keyframes shimmer {
+  0%   { background-position: -400% 0; }
+  100% { background-position:  400% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--gray-100) 25%,
+    var(--gray-50)  50%,
+    var(--gray-100) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  will-change: background-position;
+}
+
+.text   { border-radius: var(--r-sm); }
+.rect   { border-radius: var(--r-md); }
+.circle { border-radius: 50%;         }
+
+/* Respeita preferência do sistema por menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--gray-100);
+  }
+}
