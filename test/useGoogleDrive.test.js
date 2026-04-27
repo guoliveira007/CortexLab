@@ -24,16 +24,15 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  vi.useFakeTimers(); // ✅ necessário para vi.runAllTimersAsync()
+  vi.useFakeTimers();
   localStorage.clear();
   vi.clearAllMocks();
   global.fetch = vi.fn();
-  // Por padrão, usuário não está conectado (sem token no cofre)
   mockElectronAPI.loadToken.mockResolvedValue({ success: false, token: null });
 });
 
 afterEach(() => {
-  vi.useRealTimers(); // ✅ restaura timers reais após cada teste
+  vi.useRealTimers();
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -53,7 +52,6 @@ describe('conectar()', () => {
     await act(async () => { await result.current.conectar(); });
 
     expect(result.current.conectado).toBe(true);
-    // O refresh_token deve ser salvo no keytar
     expect(mockElectronAPI.saveToken).toHaveBeenCalledWith('def');
   });
 
@@ -89,21 +87,17 @@ describe('conectar()', () => {
 // ────────────────────────────────────────────────────────────────────────────
 describe('desconectar()', () => {
   it('remove token do cofre e limpa localStorage', async () => {
-    // Simula usuário conectado: loadToken retorna um refresh_token
     mockElectronAPI.loadToken.mockResolvedValue({ success: true, token: 'refresh_xyz' });
 
     const { result } = renderHook(() => useGoogleDrive());
 
-    // Aguarda o useEffect que checa a conexão inicial
     await act(async () => { await vi.runAllTimersAsync(); });
     expect(result.current.conectado).toBe(true);
 
-    // Desconecta
     await act(async () => { await result.current.desconectar(); });
 
     expect(result.current.conectado).toBe(false);
     expect(result.current.ultimoEnvio).toBe('');
-    // Deve chamar deleteToken para remover do cofre
     expect(mockElectronAPI.deleteToken).toHaveBeenCalled();
   });
 });
@@ -113,12 +107,7 @@ describe('desconectar()', () => {
 // ────────────────────────────────────────────────────────────────────────────
 describe('enviarBackup()', () => {
   beforeEach(() => {
-    // Simula usuário conectado
     mockElectronAPI.loadToken.mockResolvedValue({ success: true, token: 'refresh_xyz' });
-    // Access token válido em memória (setado internamente após connect)
-    // Como não chamamos connect() explicitamente, precisamos mockar getValidAccessToken
-    // que internamente chama loadToken + refreshToken. Vamos configurar refreshToken
-    // para renovar o token com sucesso e evitar chamada ao Google.
     mockElectronAPI.refreshToken.mockResolvedValue({
       success: true,
       tokens: { access_token: 'mem_abc', expires_in: 3600 },
@@ -127,14 +116,11 @@ describe('enviarBackup()', () => {
   });
 
   it('faz upload com sucesso usando token ainda válido', async () => {
-    // Como o memTokens é reiniciado a cada teste, o primeiro envio vai precisar
-    // renovar o token. Configuramos refreshToken acima para retornar 'mem_abc'.
     global.fetch
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'file_id_existente', trashed: false }) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
 
     const { result } = renderHook(() => useGoogleDrive());
-    // Aguarda o useEffect de conexão
     await act(async () => { await vi.runAllTimersAsync(); });
 
     await act(async () => {
@@ -168,13 +154,14 @@ describe('enviarBackup()', () => {
   });
 
   it('lança erro quando não há refresh_token no cofre', async () => {
-    // Simula falha ao carregar o token (cofre vazio / keytar indisponível)
+    vi.resetModules();
+    const { useGoogleDrive: freshUseGoogleDrive } = await import('../src/hooks/useGoogleDrive');
+
     mockElectronAPI.loadToken.mockResolvedValue({ success: false, token: null });
 
-    const { result } = renderHook(() => useGoogleDrive());
+    const { result } = renderHook(() => freshUseGoogleDrive());
     await act(async () => { await vi.runAllTimersAsync(); });
 
-    // fetch não deve ser chamado, pois o erro ocorre antes
     await expect(
       act(async () => { await result.current.enviarBackup('{}'); })
     ).rejects.toThrow('Não conectado');
