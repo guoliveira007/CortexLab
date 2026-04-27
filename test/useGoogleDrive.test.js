@@ -24,11 +24,16 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  vi.useFakeTimers(); // ✅ necessário para vi.runAllTimersAsync()
   localStorage.clear();
   vi.clearAllMocks();
   global.fetch = vi.fn();
   // Por padrão, usuário não está conectado (sem token no cofre)
   mockElectronAPI.loadToken.mockResolvedValue({ success: false, token: null });
+});
+
+afterEach(() => {
+  vi.useRealTimers(); // ✅ restaura timers reais após cada teste
 });
 
 // ────────────────────────────────────────────────────────────────────────────
