@@ -12,8 +12,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { db, invalidateCache } from '../../src/database';
-import CadernoErros from '../../src/components/CadernoErros';
+import { db, invalidateCache } from '../src/database';
+import CadernoErros from '../src/components/CadernoErros';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -244,7 +244,7 @@ describe('Fluxo 3 — erro salvo → aparece no CadernoErros', () => {
     render(<CadernoErros onFechar={onFechar} />);
 
     expect(
-      await screen.findByText(/Sobre o princípio da legalidade/)
+      await screen.findByText(/Sobre o princ.pio da legalidade/)
     ).toBeInTheDocument();
   });
 
@@ -282,28 +282,35 @@ describe('Fluxo 3 — erro salvo → aparece no CadernoErros', () => {
         db.questoes.add(questao({ enunciado: `Questão de erro ${i + 1}` }))
       )
     );
+    // Insere com datas distintas para garantir ordem determinística
     await db.resultados.bulkAdd(
-      ids.map(id => resultado(id, false, { modo: 'freestyle' }))
+      ids.map((id, i) => resultado(id, false, {
+        modo: 'freestyle',
+        data: new Date(Date.now() - (16 - i) * 1000).toISOString(),
+      }))
     );
 
     render(<CadernoErros onFechar={onFechar} />);
 
-    // Aguarda a lista carregar
-    await screen.findByText(/Questão de erro 1/);
+    // Aguarda a lista carregar verificando o header de paginação
+    await screen.findByText(/página 1 de 2/);
 
     // Botões de paginação existem
     expect(screen.getByRole('button', { name: /Próxima/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Anterior/ })).toBeInTheDocument();
 
-    // Página 1: item 16 ainda não aparece
-    expect(screen.queryByText(/Questão de erro 16/)).not.toBeInTheDocument();
+    // Página 1 tem 15 itens — o mais antigo (erro 1) NÃO aparece
+    // (componente ordena por ultimoErro desc: erro 16 é o mais recente → página 1)
+    expect(screen.queryByText(/Questão de erro 1(?!\d)/)).not.toBeInTheDocument();
 
     // Navega para a página 2
     await userEvent.click(screen.getByRole('button', { name: /Próxima/ }));
 
-    // Página 2: item 16 aparece, item 1 desaparece
-    expect(await screen.findByText(/Questão de erro 16/)).toBeInTheDocument();
-    expect(screen.queryByText(/Questão de erro 1/)).not.toBeInTheDocument();
+    // Página 2 tem só 1 item — o mais antigo (erro 1)
+    await screen.findByText(/Questão de erro 1(?!\d)/);
+
+    // Erro 16 (mais recente) não aparece mais na página 2
+    expect(screen.queryByText(/Questão de erro 16/)).not.toBeInTheDocument();
   });
 
   it('com ≤15 erros NÃO exibe controles de paginação', async () => {
