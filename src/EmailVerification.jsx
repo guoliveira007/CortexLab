@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { sendEmailVerification, signOut, reload } from 'firebase/auth';
 import { auth } from './firebase';
+import { useAuth } from './AuthContext';
 
 /* ─── Spinner & Animations ───────────────────────────────────── */
 const spinnerCSS = `
@@ -66,6 +67,7 @@ const POLL_INTERVAL_MS = 5000;
 
 const EmailVerification = () => {
   const user = auth.currentUser;
+  const { refreshUser } = useAuth();
   const [resendLoading, setResendLoading] = useState(false);
   const [checkLoading,  setCheckLoading]  = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -79,10 +81,9 @@ const EmailVerification = () => {
   useEffect(() => {
     pollRef.current = setInterval(async () => {
       try {
-        await reload(auth.currentUser);
-        // AuthContext detecta emailVerified e redireciona — nada mais necessário aqui.
+        await refreshUser();
       } catch {
-        // Silencioso: se falhar, tenta no próximo ciclo.
+        // Silencioso: tenta no próximo ciclo
       }
     }, POLL_INTERVAL_MS);
 
@@ -125,7 +126,7 @@ const EmailVerification = () => {
   const handleCheck = async () => {
     setError(''); setCheckLoading(true);
     try {
-      await reload(user);
+      await refreshUser();
       if (!auth.currentUser.emailVerified) {
         setError('E-mail ainda não verificado. Clique no link que enviamos.');
       }

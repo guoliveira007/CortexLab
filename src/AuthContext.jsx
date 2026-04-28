@@ -23,8 +23,16 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
+  // Chame isso após qualquer reload() externo para sincronizar o estado do React
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      await reload(auth.currentUser);
+      setUser(auth.currentUser);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
