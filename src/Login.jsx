@@ -245,16 +245,10 @@ const Login = () => {
         }
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(cred.user);
-        await auth.signOut();
-        setSuccess('Conta criada. Verifique seu e-mail para ativar antes de fazer login.');
-        setIsReg(false);
-        setEmail(''); setPassword('');
+        // Não faz signOut — main.jsx detecta emailVerified: false e exibe EmailVerification
       } else {
         const cred = await signInWithEmailAndPassword(auth, email, password);
-        if (!cred.user.emailVerified) {
-          await auth.signOut();
-          setError('E-mail ainda não verificado. Cheque sua caixa de entrada.');
-        }
+        // Se emailVerified: false, main.jsx redireciona para EmailVerification automaticamente
       }
     } catch (err) {
       setError(msgErro(err.code));
