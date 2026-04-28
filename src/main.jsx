@@ -14,14 +14,6 @@ const Root = () => {
   const { user, emailVerified, loading } = useAuth();
   const [showSuccess, setShowSuccess] = React.useState(false);
 
-  const prevVerified = React.useRef(false);
-  React.useEffect(() => {
-    if (emailVerified && !prevVerified.current && user) {
-      setShowSuccess(true);
-    }
-    prevVerified.current = emailVerified;
-  }, [emailVerified]);
-
   if (loading) return <LoadingScreen />;
 
   if (!user) return <Login />;
