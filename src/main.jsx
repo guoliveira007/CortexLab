@@ -9,9 +9,18 @@ import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 
 const Root = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
+  const [checking, setChecking] = React.useState(false);
 
-  if (loading) {
+  // Sempre que detectar usuário não verificado, confirma com o servidor antes de decidir
+  React.useEffect(() => {
+    if (user && !user.emailVerified) {
+      setChecking(true);
+      refreshUser().finally(() => setChecking(false));
+    }
+  }, [user?.uid]); // roda uma vez por usuário logado
+
+  if (loading || checking) {
     return (
       <div style={{ textAlign: 'center', marginTop: 100, fontSize: 18 }}>
         Verificando autenticação…
@@ -22,7 +31,7 @@ const Root = () => {
   // Não autenticado
   if (!user) return <Login />;
 
-  // Autenticado mas e-mail não verificado
+  // Autenticado mas e-mail não verificado (confirmado pelo servidor)
   if (!user.emailVerified) return <EmailVerification />;
 
   // Autenticado e verificado
