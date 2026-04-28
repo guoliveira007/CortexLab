@@ -5,11 +5,22 @@ import './index.css';
 import { AuthProvider, useAuth } from './AuthContext';
 import Login from './Login';
 import EmailVerification from './EmailVerification';
+import VerificationSuccess from './VerificationSuccess';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 
 const Root = () => {
   const { user, emailVerified, loading } = useAuth();
+  const [showSuccess, setShowSuccess] = React.useState(false);
+
+  // Quando emailVerified virar true durante a sessão, mostra tela de sucesso
+  const prevVerified = React.useRef(false);
+  React.useEffect(() => {
+    if (emailVerified && !prevVerified.current && user) {
+      setShowSuccess(true);
+    }
+    prevVerified.current = emailVerified;
+  }, [emailVerified]);
 
   if (loading) {
     return (
@@ -21,6 +32,9 @@ const Root = () => {
 
   // Não autenticado
   if (!user) return <Login />;
+
+  // Conta recém-verificada → tela de sucesso de 8s
+  if (showSuccess) return <VerificationSuccess onDone={() => setShowSuccess(false)} />;
 
   // Autenticado mas e-mail não verificado
   if (!emailVerified) return <EmailVerification />;
