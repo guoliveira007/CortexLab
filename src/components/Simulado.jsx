@@ -186,9 +186,6 @@ const Simulado = () => {
     const acertos              = sessaoQ.filter(q => respostas[q.id] === q.gabarito).length;
     const taxa                 = sessaoQ.length ? Math.round((acertos / sessaoQ.length) * 100) : 0;
     const corT                 = taxa >= 70 ? '#10b981' : taxa >= 50 ? '#f59e0b' : '#ef4444';
-    // ✅ Separar erros explícitos de questões não respondidas na tela de resultado.
-    // Antes, questoes em branco simplesmente desapareciam da revisão, fazendo o
-    // usuário pensar que só errou o que marcou. Agora cada categoria fica clara.
     const questoesErradas      = sessaoQ.filter(q => respostas[q.id] && respostas[q.id] !== q.gabarito);
     const questoesNaoResp      = sessaoQ.filter(q => !respostas[q.id]);
 
@@ -347,125 +344,161 @@ const Simulado = () => {
           <div className="progress-fill" style={{ width: `${tempoPerc}%`, background: corTempo, transition: 'width 1s linear' }} />
         </div>
 
-        {/* Questão atual */}
-        {q && (
-          <div className="questao-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', alignItems: 'center' }}>
-              <span style={{
-                background: 'var(--gradient-brand)', color: 'white',
-                padding: '3px 12px', borderRadius: 'var(--r-sm)',
-                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '13px',
-              }}>
-                Q{questaoIdx + 1}
-              </span>
-              <span style={{ fontSize: '12px', color: 'var(--gray-400)' }}>
-                {[q.banca, q.ano, q.materia].filter(Boolean).join(' · ')}
-              </span>
-            </div>
+        {/* Layout: painel lateral + questão */}
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
 
-            {q.enunciado && (
-              <p style={{ marginBottom: '12px', lineHeight: '1.75', color: 'var(--gray-700)', fontSize: '15px' }}>
-                {q.enunciado}
-              </p>
-            )}
-            {q.imagemEnunciado && (
-              <img src={q.imagemEnunciado} alt=""
-                style={{ maxWidth: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px' }} />
-            )}
-
-            <div style={{
-              background: '#fffbeb', padding: '12px 16px',
-              borderLeft: '3px solid var(--accent-amber)',
-              borderRadius: '0 var(--r-md) var(--r-md) 0',
-              marginBottom: '18px', color: '#92400e', fontSize: '14px', fontWeight: 500,
+          {/* ── Painel de navegação lateral (esquerda) ── */}
+          <div style={{
+            position: 'sticky',
+            top: '16px',
+            width: '176px',
+            flexShrink: 0,
+            background: 'white',
+            borderRadius: 'var(--r-xl)',
+            padding: '16px',
+            boxShadow: 'var(--shadow-sm)',
+            border: '1px solid var(--gray-100)',
+            maxHeight: 'calc(100vh - 160px)',
+            overflowY: 'auto',
+          }}>
+            <p style={{
+              fontSize: '11px', fontWeight: 700, letterSpacing: '0.6px',
+              color: 'var(--gray-400)', textTransform: 'uppercase',
+              marginBottom: '10px',
             }}>
-              {q.comando}
+              Questões
+            </p>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '14px' }}>
+              {sessaoQ.map((qq, i) => {
+                const respondida = !!respostas[qq.id];
+                const atual      = i === questaoIdx;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setIdx(i)}
+                    title={respondida ? 'Respondida' : 'Pendente'}
+                    style={{
+                      width: '34px', height: '34px',
+                      borderRadius: 'var(--r-md)',
+                      border: `2px solid ${atual ? 'var(--brand-500)' : respondida ? 'var(--accent-green)' : 'var(--gray-200)'}`,
+                      background: atual ? 'var(--brand-50)' : respondida ? '#ecfdf5' : 'white',
+                      color: atual ? 'var(--brand-600)' : respondida ? '#065f46' : 'var(--gray-500)',
+                      fontWeight: atual || respondida ? 700 : 400,
+                      fontSize: '12px', cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
             </div>
 
-            {['A', 'B', 'C', 'D', 'E'].map(lt => {
-              const txt = q.alternativas?.[lt];
-              const img = q.imagensAlternativas?.[lt];
-              if (!txt && !img) return null;
-              const marcada = respAtual === lt;
-              return (
-                <div
-                  key={lt}
-                  data-testid={`alt-${lt}`}
-                  className={`alternativa ${marcada ? 'correta' : ''}`}
-                  onClick={() => responderQuestao(lt)}
-                  style={{
-                    cursor: respAtual ? 'default' : 'pointer',
-                    background: marcada ? 'rgba(99,102,241,0.07)' : undefined,
-                    borderColor: marcada ? 'var(--brand-400)' : undefined,
-                  }}
-                >
-                  <strong style={{ minWidth: '22px' }}>{lt})</strong>
-                  <span style={{ flex: 1, fontSize: '14px', lineHeight: '1.6' }}>{txt}</span>
-                  {img && (
-                    <img src={img} alt=""
-                      style={{ maxWidth: '180px', borderRadius: 'var(--r-sm)', marginTop: '6px' }} />
-                  )}
-                  {marcada && <span style={{ color: 'var(--brand-500)' }}>✓</span>}
+            {/* Legenda */}
+            <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <span style={{ fontSize: '11px', color: '#065f46', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ecfdf5', border: '2px solid var(--accent-green)', display: 'inline-block' }} />
+                Respondida ({respondidas})
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'white', border: '2px solid var(--gray-200)', display: 'inline-block' }} />
+                Pendente ({sessaoQ.length - respondidas})
+              </span>
+            </div>
+          </div>
+
+          {/* ── Questão atual (direita) ── */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {q && (
+              <div className="questao-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', alignItems: 'center' }}>
+                  <span style={{
+                    background: 'var(--gradient-brand)', color: 'white',
+                    padding: '3px 12px', borderRadius: 'var(--r-sm)',
+                    fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '13px',
+                  }}>
+                    Q{questaoIdx + 1}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--gray-400)' }}>
+                    {[q.banca, q.ano, q.materia].filter(Boolean).join(' · ')}
+                  </span>
                 </div>
-              );
-            })}
 
-            {/* Navegação prev/next */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button
-                className="btn-secondary"
-                onClick={() => setIdx(i => Math.max(0, i - 1))}
-                disabled={questaoIdx === 0}
-                style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
-              >← Anterior</button>
-              {questaoIdx < sessaoQ.length - 1 ? (
-                <button
-                  className="btn-primary"
-                  onClick={() => setIdx(i => i + 1)}
-                  style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
-                >Próxima →</button>
-              ) : (
-                <button
-                  className="btn-primary"
-                  onClick={() => { if (window.confirm('Finalizar e ver resultados?')) encerrarSimulado(); }}
-                  style={{ flex: 1, justifyContent: 'center', padding: '10px', background: '#10b981' }}
-                >🏁 Finalizar</button>
-              )}
-            </div>
-          </div>
-        )}
+                {q.enunciado && (
+                  <p style={{ marginBottom: '12px', lineHeight: '1.75', color: 'var(--gray-700)', fontSize: '15px' }}>
+                    {q.enunciado}
+                  </p>
+                )}
+                {q.imagemEnunciado && (
+                  <img src={q.imagemEnunciado} alt=""
+                    style={{ maxWidth: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px' }} />
+                )}
 
-        {/* Painel de navegação entre questões */}
-        <div className="card" style={{ marginTop: '16px' }}>
-          <p className="section-title">Navegação</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {sessaoQ.map((qq, i) => {
-              const respondida = !!respostas[qq.id];
-              const atual      = i === questaoIdx;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setIdx(i)}
-                  style={{
-                    width: '38px', height: '38px', borderRadius: 'var(--r-md)',
-                    border: `2px solid ${atual ? 'var(--brand-500)' : respondida ? 'var(--accent-green)' : 'var(--gray-200)'}`,
-                    background: atual ? 'var(--brand-50)' : respondida ? '#ecfdf5' : 'white',
-                    color: atual ? 'var(--brand-600)' : respondida ? '#065f46' : 'var(--gray-500)',
-                    fontWeight: atual || respondida ? 700 : 400,
-                    fontSize: '13px', cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
+                <div style={{
+                  background: '#fffbeb', padding: '12px 16px',
+                  borderLeft: '3px solid var(--accent-amber)',
+                  borderRadius: '0 var(--r-md) var(--r-md) 0',
+                  marginBottom: '18px', color: '#92400e', fontSize: '14px', fontWeight: 500,
+                }}>
+                  {q.comando}
+                </div>
+
+                {['A', 'B', 'C', 'D', 'E'].map(lt => {
+                  const txt = q.alternativas?.[lt];
+                  const img = q.imagensAlternativas?.[lt];
+                  if (!txt && !img) return null;
+                  const marcada = respAtual === lt;
+                  return (
+                    <div
+                      key={lt}
+                      data-testid={`alt-${lt}`}
+                      className={`alternativa ${marcada ? 'correta' : ''}`}
+                      onClick={() => responderQuestao(lt)}
+                      style={{
+                        cursor: respAtual ? 'default' : 'pointer',
+                        background: marcada ? 'rgba(99,102,241,0.07)' : undefined,
+                        borderColor: marcada ? 'var(--brand-400)' : undefined,
+                      }}
+                    >
+                      <strong style={{ minWidth: '22px' }}>{lt})</strong>
+                      <span style={{ flex: 1, fontSize: '14px', lineHeight: '1.6' }}>{txt}</span>
+                      {img && (
+                        <img src={img} alt=""
+                          style={{ maxWidth: '180px', borderRadius: 'var(--r-sm)', marginTop: '6px' }} />
+                      )}
+                      {marcada && <span style={{ color: 'var(--brand-500)' }}>✓</span>}
+                    </div>
+                  );
+                })}
+
+                {/* Navegação prev/next */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setIdx(i => Math.max(0, i - 1))}
+                    disabled={questaoIdx === 0}
+                    style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
+                  >← Anterior</button>
+                  {questaoIdx < sessaoQ.length - 1 ? (
+                    <button
+                      className="btn-primary"
+                      onClick={() => setIdx(i => i + 1)}
+                      style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
+                    >Próxima →</button>
+                  ) : (
+                    <button
+                      className="btn-primary"
+                      onClick={() => { if (window.confirm('Finalizar e ver resultados?')) encerrarSimulado(); }}
+                      style={{ flex: 1, justifyContent: 'center', padding: '10px', background: '#10b981' }}
+                    >🏁 Finalizar</button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px' }}>
-            <span style={{ color: '#065f46', fontWeight: 600 }}>■ Respondida ({respondidas})</span>
-            <span style={{ color: 'var(--gray-400)' }}>■ Pendente ({sessaoQ.length - respondidas})</span>
-          </div>
-        </div>
+
+        </div>{/* fim do layout flex */}
       </div>
     );
   }
