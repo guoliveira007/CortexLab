@@ -1,7 +1,9 @@
+import logo from './assets/logo.png';
+
 const loadingCSS = `
 @keyframes spin { to { transform: rotate(360deg); } }
 .ls-spinner {
-  width: 40px; height: 40px;
+  width: 64px; height: 64px;
   border: 3px solid rgba(99,102,241,0.15);
   border-top-color: #818cf8;
   border-radius: 50%;
@@ -23,31 +25,6 @@ const loadingCSS = `
 .ls-dot:nth-child(3) { animation-delay: 0.4s; }
 `;
 
-const CortexLogo = () => (
-  <svg width="36" height="36" viewBox="0 0 52 52" fill="none">
-    <circle cx="26" cy="26" r="25" stroke="url(#lsGrad)" strokeWidth="1.5" fill="rgba(99,102,241,0.08)"/>
-    <circle cx="26" cy="26" r="4" fill="url(#lsGrad)"/>
-    <line x1="26" y1="22" x2="26" y2="13" stroke="url(#lsGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="26" y1="30" x2="26" y2="39" stroke="url(#lsGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="22.5" y1="23.5" x2="15" y2="17" stroke="url(#lsGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="29.5" y1="28.5" x2="37" y2="35" stroke="url(#lsGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="22.5" y1="28.5" x2="15" y2="35" stroke="url(#lsGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="29.5" y1="23.5" x2="37" y2="17" stroke="url(#lsGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <circle cx="26" cy="13" r="2.5" fill="url(#lsGrad)" opacity="0.85"/>
-    <circle cx="26" cy="39" r="2.5" fill="url(#lsGrad)" opacity="0.85"/>
-    <circle cx="15" cy="17" r="2.5" fill="url(#lsGrad)" opacity="0.85"/>
-    <circle cx="37" cy="35" r="2.5" fill="url(#lsGrad)" opacity="0.85"/>
-    <circle cx="15" cy="35" r="2.5" fill="url(#lsGrad)" opacity="0.85"/>
-    <circle cx="37" cy="17" r="2.5" fill="url(#lsGrad)" opacity="0.85"/>
-    <defs>
-      <linearGradient id="lsGrad" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#a78bfa"/>
-        <stop offset="100%" stopColor="#6366f1"/>
-      </linearGradient>
-    </defs>
-  </svg>
-);
-
 const LoadingScreen = () => (
   <div style={{
     minHeight: '100vh',
@@ -66,7 +43,11 @@ const LoadingScreen = () => (
       {/* Logo + spinner sobrepostos */}
       <div style={{ position: 'relative', width: '72px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="ls-spinner" style={{ position: 'absolute' }} />
-        <CortexLogo />
+        <img
+          src={logo}
+          alt="CortexLab"
+          style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'contain' }}
+        />
       </div>
 
       {/* Nome */}
@@ -83,7 +64,7 @@ const LoadingScreen = () => (
         {/* Pontinhos animados */}
         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
           {[0, 1, 2].map(i => (
-            <div key={i} className={`ls-dot`} style={{
+            <div key={i} className="ls-dot" style={{
               width: '6px', height: '6px', borderRadius: '50%',
               background: 'rgba(129,140,248,0.6)',
               animationDelay: `${i * 0.2}s`,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import logo from './assets/logo.png';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -37,31 +38,13 @@ const IconLock = () => (
   </svg>
 );
 
-/* ─── CortexLab logo SVG ─────────────────────────────────────── */
+/* ─── CortexLab logo ─────────────────────────────────────────── */
 const CortexLogo = () => (
-  <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="26" cy="26" r="25" stroke="url(#logoGrad)" strokeWidth="1.5" fill="rgba(99,102,241,0.08)"/>
-    {/* simplified neural/cortex motif */}
-    <circle cx="26" cy="26" r="4" fill="url(#logoGrad)"/>
-    <line x1="26" y1="22" x2="26" y2="13" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="26" y1="30" x2="26" y2="39" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="22.5" y1="23.5" x2="15" y2="17" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="29.5" y1="28.5" x2="37" y2="35" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="22.5" y1="28.5" x2="15" y2="35" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="29.5" y1="23.5" x2="37" y2="17" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round"/>
-    <circle cx="26" cy="13" r="2.5" fill="url(#logoGrad)" opacity="0.85"/>
-    <circle cx="26" cy="39" r="2.5" fill="url(#logoGrad)" opacity="0.85"/>
-    <circle cx="15" cy="17" r="2.5" fill="url(#logoGrad)" opacity="0.85"/>
-    <circle cx="37" cy="35" r="2.5" fill="url(#logoGrad)" opacity="0.85"/>
-    <circle cx="15" cy="35" r="2.5" fill="url(#logoGrad)" opacity="0.85"/>
-    <circle cx="37" cy="17" r="2.5" fill="url(#logoGrad)" opacity="0.85"/>
-    <defs>
-      <linearGradient id="logoGrad" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#a78bfa"/>
-        <stop offset="100%" stopColor="#6366f1"/>
-      </linearGradient>
-    </defs>
-  </svg>
+  <img
+    src={logo}
+    alt="CortexLab"
+    style={{ width: '52px', height: '52px', borderRadius: '12px', objectFit: 'contain' }}
+  />
 );
 
 /* ─── Inline styles ──────────────────────────────────────────── */
