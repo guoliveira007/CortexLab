@@ -168,7 +168,7 @@ export default function App() {
 
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <img src={logo} alt="CortexLab" style={{ height: '38px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+          <img src={logo} alt="CortexLab" style={{ height: '44px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
         </div>
 
         <nav className="sidebar-nav">
