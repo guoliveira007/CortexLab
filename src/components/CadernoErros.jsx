@@ -224,13 +224,14 @@ const CadernoErros = ({ onFechar }) => {
         });
 
       // Busca os dados das questões
-      const ids = Object.keys(agrupado).map(id => isNaN(id) ? id : Number(id));
-      const questoes = await db.questoes.where('id').anyOf(ids).toArray();
+      const ids = new Set(Object.keys(agrupado).map(id => isNaN(id) ? id : Number(id)));
+      const todasQuestoes = await db.questoes.toArray();
+      const questoes = todasQuestoes.filter(q => ids.has(q.id) || ids.has(String(q.id)));
 
       // Busca estados SM-2 existentes
-      const sm2Estados = await db.revisaoEspacada
-        .where('questaoId').anyOf(Object.keys(agrupado))
-        .toArray();
+      const idsAgrupado = new Set(Object.keys(agrupado));
+      const todasRevisoes = await db.revisaoEspacada.toArray();
+      const sm2Estados = todasRevisoes.filter(e => idsAgrupado.has(String(e.questaoId)));
       const sm2PorId = {};
       sm2Estados.forEach(e => { sm2PorId[e.questaoId] = e; });
 
