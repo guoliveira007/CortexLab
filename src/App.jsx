@@ -39,7 +39,7 @@ import OfflineBanner from './components/OfflineBanner';
 // ── Error Boundary ──
 import ErrorBoundary from './components/ErrorBoundary';
 
-import logo from './assets/logo.png';
+import logo from './assets/logo_sidebar.png';
 
 // ── Fallback de carregamento exibido enquanto o chunk lazy é baixado ──
 const LoadingFallback = () => (
@@ -168,8 +168,7 @@ export default function App() {
 
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <img src={logo} alt="CortexLab logo" width={36} height={36} style={{ borderRadius: '8px', flexShrink: 0 }} />
-          <h1>Cortex<span>Lab</span></h1>
+          <img src={logo} alt="CortexLab" style={{ height: '38px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
         </div>
 
         <nav className="sidebar-nav">

@@ -1,4 +1,4 @@
-import logo from './assets/logo.png';
+import logo from './assets/brain_icon.png';
 
 const loadingCSS = `
 @keyframes spin { to { transform: rotate(360deg); } }

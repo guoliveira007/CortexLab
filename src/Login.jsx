@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from './assets/logo.png';
+import logo from './assets/logo_login.png';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -43,7 +43,7 @@ const CortexLogo = () => (
   <img
     src={logo}
     alt="CortexLab"
-    style={{ width: '52px', height: '52px', borderRadius: '12px', objectFit: 'contain' }}
+    style={{ width: '180px', height: 'auto', objectFit: 'contain' }}
   />
 );
 
@@ -261,7 +261,6 @@ const Login = () => {
         {/* Header */}
         <div style={s.header}>
           <div style={s.logoWrap}><CortexLogo /></div>
-          <h1 style={s.title}>CortexLab</h1>
           <p style={s.subtitle}>{pageSubtitle}</p>
         </div>
 
