@@ -32,9 +32,7 @@ export const useQuestaoFilters = (todasQuestoes, {
       try {
         const saved = sessionStorage.getItem(storageKey);
         return saved ? JSON.parse(saved) : FILTROS_VAZIOS;
-      } catch {
-        return FILTROS_VAZIOS;
-      }
+      } catch { /* ignorado */ }
     }
     return FILTROS_VAZIOS;
   });
@@ -42,7 +40,7 @@ export const useQuestaoFilters = (todasQuestoes, {
   // Persiste filtros se storageKey foi passada
   useEffect(() => {
     if (storageKey) {
-      try { sessionStorage.setItem(storageKey, JSON.stringify(filtros)); } catch {}
+      try { sessionStorage.setItem(storageKey, JSON.stringify(filtros)); } catch { /* ignorado */ }
     }
   }, [filtros, storageKey]);
 
@@ -174,7 +172,7 @@ export const useQuestaoFilters = (todasQuestoes, {
   const resetar = () => {
     setFiltros(FILTROS_VAZIOS);
     if (storageKey) {
-      try { sessionStorage.removeItem(storageKey); } catch {}
+      try { sessionStorage.removeItem(storageKey); } catch { /* ignorado */ }
     }
   };
 

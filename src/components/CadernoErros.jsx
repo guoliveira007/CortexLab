@@ -1,20 +1,23 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toast } from 'react-hot-toast';
+import { FixedSizeList as List } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { db } from '../database';
 import { estadoInicial } from './sm2';
-import ProgressBar from './ProgressBar'; // ✅ Componente reutilizável
+import ProgressBar from './ProgressBar';
 
 /**
  * CadernoErros — Tela dedicada de erros + widget para Dashboard.
+ *
+ * MELHORIA DE PERFORMANCE: A lista de questões agora usa react-window
+ * (FixedSizeList) para renderizar apenas os itens visíveis na tela.
+ * Com centenas/milhares de questões, a UI permanece fluida.
  *
  * Filtra db.resultados onde acertou === false e cruza com db.questoes.
  *
  * FIX: Agora exibe apenas questões cujo RESULTADO MAIS RECENTE foi errado,
  * evitando que questões já acertadas posteriormente permaneçam no caderno.
  * Também inclui botão "Remover do caderno" para remoção manual.
- *
- * Exports:
- *   default        — Tela completa do caderno de erros
  */
 
 /* ─── Helpers ─── */
@@ -25,18 +28,147 @@ const formatarData = (dataStr) => {
   } catch { return '—'; }
 };
 
+// Altura fixa de cada item da lista virtualizada (em px).
+// Deve ser a altura máxima que um card pode ocupar.
+const ITEM_HEIGHT = 170;
+
+/* ─── Card de questão — componente separado e memoizado ─── */
+// Recebe todos os dados via props para que react-window possa renderizá-lo
+// sem fechar sobre o estado do pai, evitando re-renders desnecessários.
+const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdicionarRevisao, onRemover, onPreview }) => {
+  const q         = questao;
+  const idStr     = String(q.id);
+  const taxaErro  = q.meta.totalErros;
+  const adicionando = adicionandoSM2.has(idStr);
+  const removendoQ  = removendo.has(idStr);
+
+  return (
+    <div
+      style={{
+        background: 'white', border: '1.5px solid var(--gray-100)',
+        borderRadius: 'var(--r-lg)', padding: '16px',
+        transition: 'box-shadow 0.15s',
+        boxSizing: 'border-box',
+      }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+    >
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+        {/* Indicador de erros */}
+        <div style={{
+          flexShrink: 0, width: '44px', height: '44px',
+          background: '#fef2f2', border: '2px solid #fecaca',
+          borderRadius: 'var(--r-md)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '16px', color: '#dc2626', lineHeight: 1 }}>
+            {taxaErro}
+          </span>
+          <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>erro{taxaErro !== 1 ? 's' : ''}</span>
+        </div>
+
+        {/* Conteúdo */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Tags */}
+          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '6px' }}>
+            {[q.banca, q.ano, q.materia, q.topico].filter(Boolean).map((v, i) => (
+              <span key={i} style={{
+                background: 'var(--brand-50)', color: 'var(--brand-600)',
+                borderRadius: '99px', padding: '1px 8px',
+                fontSize: '10px', fontWeight: 600, border: '1px solid var(--brand-200)',
+              }}>{v}</span>
+            ))}
+            {q.meta.modos?.map(m => (
+              <span key={m} style={{
+                background: 'var(--gray-100)', color: 'var(--gray-500)',
+                borderRadius: '99px', padding: '1px 8px',
+                fontSize: '10px', fontWeight: 600,
+              }}>{m}</span>
+            ))}
+            <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--gray-400)' }}>
+              Último erro: {formatarData(q.meta.ultimoErro)}
+            </span>
+          </div>
+
+          {/* Enunciado resumido */}
+          <p style={{
+            fontSize: '13px', color: 'var(--gray-700)',
+            lineHeight: '1.5', marginBottom: '10px',
+            overflow: 'hidden', display: '-webkit-box',
+            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          }}>
+            {q.enunciado || q.comando || 'Questão sem enunciado'}
+          </p>
+
+          {/* Barra de frequência de erros */}
+          <div style={{ marginBottom: '10px' }}>
+            <ProgressBar valor={Math.min(taxaErro * 20, 100)} cor='#ef4444' />
+          </div>
+
+          {/* Ações */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => onPreview(q)}
+              style={{
+                padding: '5px 12px', background: 'var(--gray-50)',
+                border: '1px solid var(--gray-200)', borderRadius: 'var(--r-md)',
+                fontSize: '12px', color: 'var(--gray-600)', cursor: 'pointer', fontWeight: 500,
+              }}
+            >👁 Ver questão</button>
+
+            {!q.emRevisao ? (
+              <button
+                onClick={() => onAdicionarRevisao(q)}
+                disabled={adicionando}
+                style={{
+                  padding: '5px 12px',
+                  background: 'linear-gradient(135deg, var(--brand-50), #eef2ff)',
+                  border: '1px solid var(--brand-200)', borderRadius: 'var(--r-md)',
+                  fontSize: '12px', color: 'var(--brand-600)',
+                  cursor: adicionando ? 'wait' : 'pointer', fontWeight: 600,
+                }}
+              >{adicionando ? '...' : '🧠 Adicionar à Revisão Espaçada'}</button>
+            ) : (
+              <span style={{
+                padding: '5px 12px', background: '#f0fdf4',
+                border: '1px solid #bbf7d0', borderRadius: 'var(--r-md)',
+                fontSize: '12px', color: '#059669', fontWeight: 600,
+              }}>✓ Na Revisão Espaçada</span>
+            )}
+
+            <button
+              onClick={() => onRemover(q.id)}
+              disabled={removendoQ}
+              title="Remove esta questão do caderno de erros"
+              style={{
+                padding: '5px 12px', background: '#fef2f2',
+                border: '1px solid #fecaca', borderRadius: 'var(--r-md)',
+                fontSize: '12px', color: '#dc2626',
+                cursor: removendoQ ? 'wait' : 'pointer', fontWeight: 600,
+                marginLeft: 'auto',
+              }}
+            >{removendoQ ? '...' : '🗑️ Remover'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+CardQuestao.displayName = 'CardQuestao';
+
 /* ─── Tela principal ─── */
 const CadernoErros = ({ onFechar }) => {
   const [questoesErradas, setQuestoesErradas] = useState([]);
   const [carregando, setCarregando]           = useState(true);
   const [filtroMateria, setFiltroMateria]     = useState('');
   const [filtroModo, setFiltroModo]           = useState('');
+  const [ordenacao, setOrdenacao]             = useState('recente'); // 'recente' | 'erros' | 'materia'
+  const [filtroPeriodo, setFiltroPeriodo]     = useState('');        // '' | '7' | '30'
   const [materiasDisponiveis, setMaterias]    = useState([]);
   const [preview, setPreview]                 = useState(null);
   const [adicionandoSM2, setAdicionandoSM2]   = useState(new Set());
   const [removendo, setRemovendo]             = useState(new Set());
-  const [pagina, setPagina]                   = useState(1);
-  const POR_PAGINA = 15;
 
   useEffect(() => {
     carregarErros();
@@ -114,10 +246,6 @@ const CadernoErros = ({ onFechar }) => {
           },
           emRevisao: !!sm2PorId[idStr],
         };
-      }).sort((a, b) => {
-        const da = a.meta.ultimoErro || '';
-        const db_ = b.meta.ultimoErro || '';
-        return db_ > da ? 1 : -1;
       });
 
       const materias = [...new Set(resultado.map(q => q.materia).filter(Boolean))].sort();
@@ -132,7 +260,7 @@ const CadernoErros = ({ onFechar }) => {
   };
 
   /* ── Adiciona questão à revisão espaçada ── */
-  const adicionarRevisao = async (questao) => {
+  const adicionarRevisao = useCallback(async (questao) => {
     const idStr = String(questao.id);
     setAdicionandoSM2(prev => new Set([...prev, idStr]));
     try {
@@ -147,10 +275,10 @@ const CadernoErros = ({ onFechar }) => {
     } finally {
       setAdicionandoSM2(prev => { const next = new Set(prev); next.delete(idStr); return next; });
     }
-  };
+  }, []);
 
   /* ── FIX: Remove questão do caderno apagando seus resultados errados ── */
-  const removerDoCaderno = async (questaoId) => {
+  const removerDoCaderno = useCallback(async (questaoId) => {
     const idStr = String(questaoId);
     setRemovendo(prev => new Set([...prev, idStr]));
     try {
@@ -171,26 +299,62 @@ const CadernoErros = ({ onFechar }) => {
     } finally {
       setRemovendo(prev => { const next = new Set(prev); next.delete(idStr); return next; });
     }
-  };
+  }, []);
+
+  const abrirPreview = useCallback((q) => setPreview(q), []);
 
   /* ── Filtragem ── */
-  const questoesFiltradas = useMemo(() =>
-    questoesErradas.filter(q => {
-      if (filtroMateria && q.materia !== filtroMateria) return false;
-      if (filtroModo && !q.meta.modos?.includes(filtroModo)) return false;
-      return true;
-    }),
-  [questoesErradas, filtroMateria, filtroModo]);
+  const questoesFiltradas = useMemo(() => {
+    const corte = filtroPeriodo
+      ? new Date(Date.now() - Number(filtroPeriodo) * 86_400_000)
+      : null;
 
-  // Reset explícito de página quando filtros mudam — mantido fora do useMemo
-  // para evitar efeito colateral dentro de função pura.
-  useEffect(() => { setPagina(1); }, [filtroMateria, filtroModo]);
+    return questoesErradas
+      .filter(q => {
+        if (filtroMateria && q.materia !== filtroMateria) return false;
+        if (filtroModo && !q.meta.modos?.includes(filtroModo)) return false;
+        if (corte && (!q.meta.ultimoErro || new Date(q.meta.ultimoErro) < corte)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (ordenacao === 'erros')   return (b.meta.totalErros ?? 0) - (a.meta.totalErros ?? 0);
+        if (ordenacao === 'materia') return (a.materia ?? '').localeCompare(b.materia ?? '');
+        // 'recente' — padrão
+        return (b.meta.ultimoErro ?? '') > (a.meta.ultimoErro ?? '') ? 1 : -1;
+      });
+  }, [questoesErradas, filtroMateria, filtroModo, filtroPeriodo, ordenacao]);
 
-  const totalPaginas     = Math.ceil(questoesFiltradas.length / POR_PAGINA);
-  const questoesPaginadas = questoesFiltradas.slice(
-    (pagina - 1) * POR_PAGINA,
-    pagina * POR_PAGINA,
-  );
+  /* ── Row renderer para react-window ── */
+  // É CRÍTICO que essa função seja estável — envolve em useCallback
+  // e recebe os dados necessários via itemData (evita closure stale).
+  const RowRenderer = useCallback(({ index, style, data }) => {
+    const { itens, adicionandoSM2: sm2Set, removendo: remSet, onAdicionar, onRemover, onPreview } = data;
+    const q = itens[index];
+    return (
+      // O wrapper com style é obrigatório para react-window posicionar o item
+      <div style={{ ...style, paddingBottom: '10px', boxSizing: 'border-box' }}>
+        <CardQuestao
+          questao={q}
+          adicionandoSM2={sm2Set}
+          removendo={remSet}
+          onAdicionarRevisao={onAdicionar}
+          onRemover={onRemover}
+          onPreview={onPreview}
+        />
+      </div>
+    );
+  }, []);
+
+  // Empacota os dados passados para cada row — deve ser estável (useMemo)
+  // para evitar que react-window re-renderize toda a lista a cada setState.
+  const itemData = useMemo(() => ({
+    itens: questoesFiltradas,
+    adicionandoSM2,
+    removendo,
+    onAdicionar: adicionarRevisao,
+    onRemover: removerDoCaderno,
+    onPreview: abrirPreview,
+  }), [questoesFiltradas, adicionandoSM2, removendo, adicionarRevisao, removerDoCaderno, abrirPreview]);
 
   /* ─── Render ─── */
   return (
@@ -228,9 +392,7 @@ const CadernoErros = ({ onFechar }) => {
                 Caderno de Erros
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginTop: '1px' }}>
-                {questoesFiltradas.length} questão(ões)
-                {totalPaginas > 1 && ` · página ${pagina} de ${totalPaginas}`}
-                {' '}— clique em 🧠 para adicionar à revisão espaçada
+                {questoesFiltradas.length} questão(ões) — clique em 🧠 para adicionar à revisão espaçada
               </p>
             </div>
           </div>
@@ -274,9 +436,37 @@ const CadernoErros = ({ onFechar }) => {
             <option value="simulado">Simulado</option>
           </select>
 
-          {(filtroMateria || filtroModo) && (
+          <select
+            value={ordenacao}
+            onChange={e => setOrdenacao(e.target.value)}
+            style={{
+              padding: '6px 12px', borderRadius: 'var(--r-md)',
+              border: '1px solid var(--gray-200)', background: 'white',
+              fontSize: '13px', color: 'var(--gray-700)', cursor: 'pointer',
+            }}
+          >
+            <option value="recente">Mais recente</option>
+            <option value="erros">Mais erros</option>
+            <option value="materia">Matéria A→Z</option>
+          </select>
+
+          <select
+            value={filtroPeriodo}
+            onChange={e => setFiltroPeriodo(e.target.value)}
+            style={{
+              padding: '6px 12px', borderRadius: 'var(--r-md)',
+              border: '1px solid var(--gray-200)', background: 'white',
+              fontSize: '13px', color: 'var(--gray-700)', cursor: 'pointer',
+            }}
+          >
+            <option value="">Todos os períodos</option>
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+          </select>
+
+          {(filtroMateria || filtroModo || filtroPeriodo || ordenacao !== 'recente') && (
             <button
-              onClick={() => { setFiltroMateria(''); setFiltroModo(''); }}
+              onClick={() => { setFiltroMateria(''); setFiltroModo(''); setFiltroPeriodo(''); setOrdenacao('recente'); }}
               style={{
                 padding: '6px 12px', background: 'white',
                 border: '1px solid var(--gray-200)', borderRadius: 'var(--r-md)',
@@ -286,8 +476,8 @@ const CadernoErros = ({ onFechar }) => {
           )}
         </div>
 
-        {/* Corpo */}
-        <div style={{ overflowY: 'auto', flex: 1, padding: '16px 28px' }}>
+        {/* Corpo — lista virtualizada */}
+        <div style={{ flex: 1, padding: '16px 28px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {carregando && (
             <div style={{ textAlign: 'center', padding: '48px 0' }}>
@@ -310,174 +500,22 @@ const CadernoErros = ({ onFechar }) => {
             </div>
           )}
 
+          {/* AutoSizer mede o espaço disponível e passa para FixedSizeList */}
           {!carregando && questoesFiltradas.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {questoesPaginadas.map(q => {
-                const idStr     = String(q.id);
-                const taxaErro  = q.meta.totalErros;
-                const adicionando = adicionandoSM2.has(idStr);
-                const removendoQ  = removendo.has(idStr);
-
-                return (
-                  <div
-                    key={q.id}
-                    style={{
-                      background: 'white', border: '1.5px solid var(--gray-100)',
-                      borderRadius: 'var(--r-lg)', padding: '16px',
-                      transition: 'box-shadow 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-                  >
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      {/* Indicador de erros */}
-                      <div style={{
-                        flexShrink: 0, width: '44px', height: '44px',
-                        background: '#fef2f2', border: '2px solid #fecaca',
-                        borderRadius: 'var(--r-md)',
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '16px', color: '#dc2626', lineHeight: 1 }}>
-                          {taxaErro}
-                        </span>
-                        <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>erro{taxaErro !== 1 ? 's' : ''}</span>
-                      </div>
-
-                      {/* Conteúdo */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* Tags */}
-                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                          {[q.banca, q.ano, q.materia, q.topico].filter(Boolean).map((v, i) => (
-                            <span key={i} style={{
-                              background: 'var(--brand-50)', color: 'var(--brand-600)',
-                              borderRadius: '99px', padding: '1px 8px',
-                              fontSize: '10px', fontWeight: 600, border: '1px solid var(--brand-200)',
-                            }}>{v}</span>
-                          ))}
-                          {q.meta.modos?.map(m => (
-                            <span key={m} style={{
-                              background: 'var(--gray-100)', color: 'var(--gray-500)',
-                              borderRadius: '99px', padding: '1px 8px',
-                              fontSize: '10px', fontWeight: 600,
-                            }}>{m}</span>
-                          ))}
-                          <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--gray-400)' }}>
-                            Último erro: {formatarData(q.meta.ultimoErro)}
-                          </span>
-                        </div>
-
-                        {/* Enunciado resumido */}
-                        <p style={{
-                          fontSize: '13px', color: 'var(--gray-700)',
-                          lineHeight: '1.5', marginBottom: '10px',
-                          overflow: 'hidden', display: '-webkit-box',
-                          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                        }}>
-                          {q.enunciado || q.comando || 'Questão sem enunciado'}
-                        </p>
-
-                        {/* Barra de frequência de erros (substituída por ProgressBar) */}
-                        <div style={{ marginBottom: '10px' }}>
-                          <ProgressBar valor={Math.min(taxaErro * 20, 100)} cor='#ef4444' />
-                        </div>
-
-                        {/* Ações */}
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <button
-                            onClick={() => setPreview(q)}
-                            style={{
-                              padding: '5px 12px', background: 'var(--gray-50)',
-                              border: '1px solid var(--gray-200)', borderRadius: 'var(--r-md)',
-                              fontSize: '12px', color: 'var(--gray-600)', cursor: 'pointer', fontWeight: 500,
-                            }}
-                          >👁 Ver questão</button>
-
-                          {!q.emRevisao ? (
-                            <button
-                              onClick={() => adicionarRevisao(q)}
-                              disabled={adicionando}
-                              style={{
-                                padding: '5px 12px',
-                                background: 'linear-gradient(135deg, var(--brand-50), #eef2ff)',
-                                border: '1px solid var(--brand-200)', borderRadius: 'var(--r-md)',
-                                fontSize: '12px', color: 'var(--brand-600)',
-                                cursor: adicionando ? 'wait' : 'pointer', fontWeight: 600,
-                              }}
-                            >{adicionando ? '...' : '🧠 Adicionar à Revisão Espaçada'}</button>
-                          ) : (
-                            <span style={{
-                              padding: '5px 12px', background: '#f0fdf4',
-                              border: '1px solid #bbf7d0', borderRadius: 'var(--r-md)',
-                              fontSize: '12px', color: '#059669', fontWeight: 600,
-                            }}>✓ Na Revisão Espaçada</span>
-                          )}
-
-                          {/* FIX: botão para remover do caderno manualmente */}
-                          <button
-                            onClick={() => removerDoCaderno(q.id)}
-                            disabled={removendoQ}
-                            title="Remove esta questão do caderno de erros"
-                            style={{
-                              padding: '5px 12px', background: '#fef2f2',
-                              border: '1px solid #fecaca', borderRadius: 'var(--r-md)',
-                              fontSize: '12px', color: '#dc2626',
-                              cursor: removendoQ ? 'wait' : 'pointer', fontWeight: 600,
-                              marginLeft: 'auto',
-                            }}
-                          >{removendoQ ? '...' : '🗑️ Remover'}</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* ── Paginação ── */}
-              {totalPaginas > 1 && (
-                <div style={{
-                  display: 'flex', justifyContent: 'center', alignItems: 'center',
-                  gap: '8px', paddingTop: '12px',
-                }}>
-                  <button
-                    onClick={() => setPagina(p => Math.max(1, p - 1))}
-                    disabled={pagina === 1}
-                    style={{
-                      padding: '6px 14px', borderRadius: 'var(--r-md)',
-                      border: '1px solid var(--gray-200)', background: 'white',
-                      fontSize: '13px', cursor: pagina === 1 ? 'not-allowed' : 'pointer',
-                      color: pagina === 1 ? 'var(--gray-300)' : 'var(--gray-700)',
-                    }}
-                  >← Anterior</button>
-
-                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setPagina(n)}
-                      style={{
-                        width: '34px', height: '34px', borderRadius: 'var(--r-md)',
-                        border: `1.5px solid ${n === pagina ? 'var(--brand-400)' : 'var(--gray-200)'}`,
-                        background: n === pagina ? 'var(--brand-50)' : 'white',
-                        color: n === pagina ? 'var(--brand-700)' : 'var(--gray-600)',
-                        fontSize: '13px', fontWeight: n === pagina ? 700 : 400,
-                        cursor: 'pointer',
-                      }}
-                    >{n}</button>
-                  ))}
-
-                  <button
-                    onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
-                    disabled={pagina === totalPaginas}
-                    style={{
-                      padding: '6px 14px', borderRadius: 'var(--r-md)',
-                      border: '1px solid var(--gray-200)', background: 'white',
-                      fontSize: '13px', cursor: pagina === totalPaginas ? 'not-allowed' : 'pointer',
-                      color: pagina === totalPaginas ? 'var(--gray-300)' : 'var(--gray-700)',
-                    }}
-                  >Próxima →</button>
-                </div>
+            <AutoSizer>
+              {({ height, width }) => (
+                <List
+                  height={height}
+                  width={width}
+                  itemCount={questoesFiltradas.length}
+                  itemSize={ITEM_HEIGHT}
+                  itemData={itemData}
+                  overscanCount={3}
+                >
+                  {RowRenderer}
+                </List>
               )}
-            </div>
+            </AutoSizer>
           )}
         </div>
       </div>

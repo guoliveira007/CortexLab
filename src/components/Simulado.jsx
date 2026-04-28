@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { db, invalidateCache } from '../database';
 import PainelFiltros from './PainelFiltros';
@@ -30,10 +30,9 @@ const Simulado = () => {
   const [tempoRestante, setTempoR]      = useState(0);
   const [encerrado, setEncerrado]       = useState(false);
   const timerRef    = useRef(null);
-  // ✅ Proteção contra dupla gravação: garante que salvarResultados seja
-  // chamado no máximo uma vez por sessão, mesmo que o timer e o botão
-  // "Encerrar" disparem ao mesmo tempo.
   const salvandoRef = useRef(false);
+  const restauradoRef = useRef(false);
+  const STORAGE_KEY_SIM = 'cortexlab_simulado_sessao';
 
   // Hook de filtros – sem mesclagem de currículo, opções vêm só do banco
   const { filtros, setFiltro, opcoes, filtradas, resetar } = useQuestaoFilters(todasQuestoes, {
@@ -41,6 +40,45 @@ const Simulado = () => {
   });
 
   useEffect(() => { carregarDados(); }, []);
+
+  // ── Restaura sessão salva após as questões carregarem ──
+  useEffect(() => {
+    if (!todasQuestoes.length || restauradoRef.current) return;
+    restauradoRef.current = true;
+    const raw = localStorage.getItem(STORAGE_KEY_SIM);
+    if (!raw) return;
+    try {
+      const { simAtual: sim, ids, respostas: resp, questaoIdx: idx, tempoRestante: tempo, savedAt } = JSON.parse(raw);
+      const map = Object.fromEntries(todasQuestoes.map(q => [q.id, q]));
+      const ordered = ids.map(id => map[id]).filter(Boolean);
+      if (!ordered.length) { localStorage.removeItem(STORAGE_KEY_SIM); return; }
+      // Desconta o tempo que passou enquanto o app estava fechado
+      const elapsed = Math.floor((Date.now() - savedAt) / 1000);
+      const tempoAjustado = Math.max(0, tempo - elapsed);
+      salvandoRef.current = false;
+      setSessaoQ(ordered);
+      setSimAtual(sim);
+      setRespostas(resp || {});
+      setIdx(idx || 0);
+      setTempoR(tempoAjustado);
+      setEncerrado(false);
+      setAba('realizando');
+      toast('Sessão restaurada! Continuando de onde parou 🔄');
+    } catch { localStorage.removeItem(STORAGE_KEY_SIM); }
+  }, [todasQuestoes]);
+
+  // ── Persiste sessão a cada resposta, mudança de questão ou tick do timer ──
+  useEffect(() => {
+    if (aba !== 'realizando' || encerrado || !simAtual || !sessaoQ.length) return;
+    localStorage.setItem(STORAGE_KEY_SIM, JSON.stringify({
+      simAtual,
+      ids: sessaoQ.map(q => q.id),
+      respostas,
+      questaoIdx,
+      tempoRestante,
+      savedAt: Date.now(),
+    }));
+  }, [respostas, questaoIdx, tempoRestante]);
 
   const carregarDados = async () => {
     const [sims, qs] = await Promise.all([db.simulados.toArray(), db.questoes.toArray()]);
@@ -103,38 +141,7 @@ const Simulado = () => {
     return () => clearInterval(timerRef.current);
   }, [aba, encerrado]);
 
-  /* Encerra automaticamente quando o tempo chega a 0 */
-  useEffect(() => {
-    if (aba === 'realizando' && !encerrado && tempoRestante === 0 && simAtual) {
-      encerrarSimulado();
-    }
-  }, [tempoRestante]);
-
-  const encerrarSimulado = async () => {
-    clearInterval(timerRef.current);
-    setEncerrado(true);
-    await salvarResultados();
-    setAba('resultado');
-  };
-
-  // ✅ Corrigido: três problemas resolvidos aqui.
-  //
-  // 1. QUESTÕES EM BRANCO — antes, o `if (resp)` pulava questões sem
-  //    resposta; agora todas as questões do simulado são registradas.
-  //    Questão não respondida → acertou: false, resposta: null.
-  //    Isso garante que o desempenho real apareça no Dashboard e nas
-  //    estatísticas gerais, sem distorção por omissão.
-  //
-  // 2. PERFORMANCE — substituído o loop `for...of` com `await` sequencial
-  //    por um único `db.resultados.bulkAdd()`. Para simulados grandes
-  //    (ex.: 100 questões) isso é significativamente mais rápido, pois
-  //    o Dexie executa tudo em uma única transação.
-  //
-  // 3. DUPLA GRAVAÇÃO — a flag `salvandoRef` impede que o timer e o botão
-  //    "Encerrar" acionados quase simultaneamente gravem os resultados duas
-  //    vezes no banco. A ref é resetada em `iniciarSimulado` para garantir
-  //    que refazer o simulado funcione normalmente.
-  const salvarResultados = async () => {
+  const salvarResultados = useCallback(async () => {
     if (salvandoRef.current) return;
     salvandoRef.current = true;
 
@@ -151,7 +158,22 @@ const Simulado = () => {
 
     await db.resultados.bulkAdd(registros);
     invalidateCache();
-  };
+  }, [sessaoQ, respostas, simAtual]);
+
+  const encerrarSimulado = useCallback(async () => {
+    clearInterval(timerRef.current);
+    setEncerrado(true);
+    localStorage.removeItem(STORAGE_KEY_SIM);
+    await salvarResultados();
+    setAba('resultado');
+  }, [salvarResultados]);
+
+  /* Encerra automaticamente quando o tempo chega a 0 */
+  useEffect(() => {
+    if (aba === 'realizando' && !encerrado && tempoRestante === 0 && simAtual) {
+      encerrarSimulado();
+    }
+  }, [tempoRestante, aba, encerrado, simAtual, encerrarSimulado]);
 
   const responderQuestao = (letra) => {
     const q = sessaoQ[questaoIdx];
@@ -368,6 +390,7 @@ const Simulado = () => {
               return (
                 <div
                   key={lt}
+                  data-testid={`alt-${lt}`}
                   className={`alternativa ${marcada ? 'correta' : ''}`}
                   onClick={() => responderQuestao(lt)}
                   style={{

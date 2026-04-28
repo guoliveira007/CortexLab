@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { toast } from 'react-hot-toast';
 import { db } from '../database';
 import {
-  aplicarSM2, estadoInicial, deveRevisarHoje,
+  aplicarSM2, deveRevisarHoje,
   descricaoIntervalo, taxaAcerto, SM2_GRAUS,
 } from './sm2';
 import ExplicacaoIA from './ExplicacaoIA';
@@ -10,7 +10,7 @@ import ProgressBar from './ProgressBar';
 import BotaoGrau from './BotaoGrau';
 import Alternativas from './Alternativas';
 
-const TelaInicio = ({ total, onIniciar, onFechar }) => (
+const TelaInicio = memo(({ total, onIniciar, onFechar }) => (
   <div style={{ textAlign: 'center', padding: '48px 32px' }}>
     <div style={{ fontSize: '64px', marginBottom: '16px' }}>🧠</div>
     <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 800, marginBottom: '8px', color: 'var(--gray-900)' }}>
@@ -67,9 +67,10 @@ const TelaInicio = ({ total, onIniciar, onFechar }) => (
       )}
     </div>
   </div>
-);
+));
+TelaInicio.displayName = 'TelaInicio';
 
-const TelaFim = ({ stats, onFechar }) => (
+const TelaFim = memo(({ stats, onFechar }) => (
   <div style={{ textAlign: 'center', padding: '48px 32px' }}>
     <div style={{ fontSize: '64px', marginBottom: '16px' }}>
       {stats.acertos === stats.total ? '🏆' : stats.acertos >= stats.total * 0.7 ? '🎉' : '💪'}
@@ -108,7 +109,8 @@ const TelaFim = ({ stats, onFechar }) => (
       }}
     >Concluir ✓</button>
   </div>
-);
+));
+TelaFim.displayName = 'TelaFim';
 
 const RevisaoEspacada = ({ onFechar }) => {
   const [fase, setFase]         = useState('carregando');
@@ -155,6 +157,8 @@ const RevisaoEspacada = ({ onFechar }) => {
     };
     carregar();
   }, []);
+
+  const handleIniciar = useCallback(() => setFase('revisando'), []);
 
   const handleFechar = useCallback(() => {
     if (fase === 'fim') {
@@ -285,7 +289,7 @@ const RevisaoEspacada = ({ onFechar }) => {
           {fase === 'inicio' && (
             <TelaInicio
               total={questoesDoDia.length}
-              onIniciar={() => setFase('revisando')}
+              onIniciar={handleIniciar}
               onFechar={handleFechar}
             />
           )}

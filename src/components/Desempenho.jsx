@@ -41,7 +41,7 @@ const AnimatedNumber = memo(({ value, suffix = '', duration = 800 }) => {
   useEffect(() => {
     const start = prev.current;
     const end = parseFloat(value) || 0;
-    if (start === end) return;           // evita animação desnecessária
+    if (start === end) return;
     const startTime = performance.now();
     const tick = (now) => {
       const p = Math.min((now - startTime) / duration, 1);
@@ -51,7 +51,7 @@ const AnimatedNumber = memo(({ value, suffix = '', duration = 800 }) => {
       else { prev.current = end; setDisplay(end); }
     };
     requestAnimationFrame(tick);
-  }, [value]);
+  }, [value, duration]);
   return <>{display}{suffix}</>;
 });
 AnimatedNumber.displayName = 'AnimatedNumber';
@@ -106,7 +106,6 @@ const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444' }) =>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '120px', position: 'relative' }}>
-        {/* Grid lines */}
         {[0.25, 0.5, 0.75, 1].map(f => (
           <div key={f} style={{
             position: 'absolute', left: 0, right: 0,
@@ -127,7 +126,6 @@ const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444' }) =>
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
             >
-              {/* Tooltip */}
               {isHov && d.total > 0 && (
                 <div style={{
                   position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
@@ -141,7 +139,6 @@ const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444' }) =>
                   <div style={{ color: cor1 }}>✓ {d.acertos} acertos</div>
                   <div style={{ color: cor2 }}>✗ {d.total - d.acertos} erros</div>
                   <div style={{ color: '#94a3b8', marginTop: '2px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2px' }}>{taxa}% aproveitamento</div>
-                  {/* Arrow */}
                   <div style={{
                     position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
                     width: 0, height: 0,
@@ -151,7 +148,6 @@ const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444' }) =>
                 </div>
               )}
 
-              {/* Bars */}
               <div style={{ width: '100%', borderRadius: '6px 6px 0 0', overflow: 'hidden', minHeight: d.total ? '4px' : '0', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                 <div style={{
                   height: `${acertoH}px`,
@@ -275,7 +271,7 @@ ProgressRow.displayName = 'ProgressRow';
 
 /* ─── Comparativo de Modos ─── */
 const ModoCard = memo(({ label, emoji, acertos, total, cor, bg }) => {
-  const taxa = total ? Math.round((acertos / total) * 100) : 0;
+  // ✅ removida a declaração de taxa não utilizada nesta versão
   return (
     <div style={{
       background: bg, borderRadius: '16px', padding: '18px',

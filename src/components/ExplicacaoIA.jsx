@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 /**
  * ExplicacaoIA — Botão "💡 Entender com IA" + Modal de explicação com streaming.
@@ -154,7 +154,7 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
 
   const gabarito = questao.gabarito?.toUpperCase() || '?';
 
-  const buscarExplicacao = async () => {
+  const buscarExplicacao = useCallback(async () => {
     if (!apiKey) {
       setErro('Chave da API não configurada. Salve-a em Configurações.');
       setStatus('erro');
@@ -184,9 +184,9 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
       setErro(msgRede);
       setStatus('erro');
     }
-  };
+  }, [apiKey, questao, respostaUsuario]);
 
-  React.useEffect(() => { buscarExplicacao(); }, []);
+  React.useEffect(() => { buscarExplicacao(); }, [buscarExplicacao]);
 
   const mostraTexto = status === 'streamando' || status === 'pronto';
 

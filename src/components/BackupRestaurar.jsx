@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../database';
 import { toast } from 'react-hot-toast';
 import { useAutoBackup } from '../hooks/useAutoBackup';
@@ -101,10 +101,10 @@ const BackupRestaurar = () => {
 
   const {
     conectado, salvando, restaurando, ultimoEnvio,
-    conectar, desconectar, enviarBackup, enviarComDebounce, restaurarDoDrive,
+    conectar, desconectar, enviarBackup, restaurarDoDrive,
   } = useGoogleDrive();
 
-  // Auto-backup na nuvem: envia a cada 5 minutos enquanto ativo
+  // Auto-backup na nuvem: envia a cada 24h enquanto ativo
   useEffect(() => {
     if (!autoNuvem || !conectado) return;
     const intervalo = setInterval(async () => {
@@ -262,7 +262,7 @@ const BackupRestaurar = () => {
     <div>
       <div className="page-header">
         <div>
-          <h2 className="page-title">Backup & Restauração</h2>
+          <h2 className="page-title">Backup &amp; Restauração</h2>
           <p style={{ color: 'var(--gray-500)', fontSize: '14px', marginTop: '2px' }}>
             Exporte e importe todos os seus dados com segurança.
           </p>
@@ -283,7 +283,7 @@ const BackupRestaurar = () => {
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginTop: '2px' }}>
               {conectado
-                ? '✅ Conectado — seus dados são enviados direto para a nuvem, sem ocupar espaço no computador.'
+                ? '✅ Conectado — seus dados são enviados direto para a nuvem.'
                 : 'Conecte sua conta Google para backup automático na nuvem.'}
             </p>
           </div>
@@ -298,7 +298,6 @@ const BackupRestaurar = () => {
 
         {conectado ? (
           <>
-            {/* Auto-backup na nuvem */}
             <div style={{
               padding: '12px 14px', marginBottom: '12px',
               background: autoNuvem ? 'var(--brand-50)' : 'var(--gray-50)',
@@ -322,7 +321,6 @@ const BackupRestaurar = () => {
               <Toggle value={autoNuvem} onChange={toggleAutoNuvem} />
             </div>
 
-            {/* Ações manuais */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
               <button
                 className="btn-primary"
@@ -338,7 +336,7 @@ const BackupRestaurar = () => {
                 disabled={restaurando}
                 style={{ justifyContent: 'center', padding: '10px' }}
               >
-                {restaurando ? '⏳ Restaurando...' : '⬇️ Restaurar do Drive'}
+                {restaurando ? '⏳ Restaurando...' : '🔄 Restaurar do Drive'}
               </button>
             </div>
 
@@ -366,15 +364,13 @@ const BackupRestaurar = () => {
 
       {/* ── Exportar + Importar ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-
-        {/* Exportar */}
         <div className="card">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '18px' }}>
             <div style={{
               width: '40px', height: '40px', borderRadius: 'var(--r-md)',
               background: 'linear-gradient(135deg, #10b981, #059669)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
-            }}>💾</div>
+            }}>📥</div>
             <div>
               <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '16px' }}>Exportar Backup</h3>
               <p style={{ fontSize: '12px', color: 'var(--gray-400)' }}>Baixa um arquivo .json com todos os dados</p>
@@ -382,15 +378,15 @@ const BackupRestaurar = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
-            <StatItem emoji="📚" label="Questões"   valor={stats.questoes   || 0} />
+            <StatItem emoji="📝" label="Questões"   valor={stats.questoes   || 0} />
             <StatItem emoji="✅" label="Resultados" valor={stats.resultados || 0} />
             <StatItem emoji="📋" label="Listas"     valor={stats.listas     || 0} />
-            <StatItem emoji="🔁" label="Revisões"   valor={stats.revisaoEspacada || 0} />
+            <StatItem emoji="🔄" label="Revisões"   valor={stats.revisaoEspacada || 0} />
           </div>
 
           {ultimoBackup && (
             <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginBottom: '12px' }}>
-              ✔ Último backup manual: <strong>{ultimoBackup}</strong>
+              🕓 Último backup manual: <strong>{ultimoBackup}</strong>
             </p>
           )}
 
@@ -400,10 +396,9 @@ const BackupRestaurar = () => {
             disabled={exportando}
             style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
           >
-            {exportando ? '⏳ Exportando...' : '⬇️ Exportar Backup'}
+            {exportando ? '⏳ Exportando...' : '🔄 Exportar Backup'}
           </button>
 
-          {/* Auto-backup local */}
           <div style={{
             marginTop: '14px', padding: '12px 14px',
             background: autoBackup ? 'var(--brand-50)' : 'var(--gray-50)',
@@ -432,11 +427,10 @@ const BackupRestaurar = () => {
             onClick={restaurarAutoBackup}
             style={{ width: '100%', marginTop: '12px', justifyContent: 'center', padding: '10px' }}
           >
-            🔄 Restaurar backup automático
+            🔧 Restaurar backup automático
           </button>
         </div>
 
-        {/* Importar */}
         <div className="card">
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '18px' }}>
             <div style={{
@@ -520,29 +514,8 @@ const BackupRestaurar = () => {
             disabled={!dadosImport || importando}
             style={{ width: '100%', justifyContent: 'center', padding: '12px', opacity: !dadosImport ? 0.5 : 1 }}
           >
-            {importando ? '⏳ Importando...' : '⬆️ Restaurar Backup'}
+            {importando ? '⏳ Importando...' : '🔅 Restaurar Backup'}
           </button>
-        </div>
-      </div>
-
-      {/* Dicas */}
-      <div className="card" style={{ background: 'linear-gradient(135deg, #f0fdf4, white)', border: '1px solid #bbf7d0' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: '#166534', marginBottom: '10px' }}>
-          💡 Boas práticas de backup
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
-          {[
-            'Conecte o Google Drive para backup automático sem ocupar espaço no computador.',
-            'Exporte um backup manual antes de importar dados novos.',
-            'Use "Mesclar" para combinar dados de dispositivos diferentes.',
-            'Use "Substituir" apenas para restaurar um backup limpo.',
-            'O auto-backup local protege contra fechamentos inesperados.',
-          ].map((d, i) => (
-            <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-              <span style={{ color: '#10b981', fontWeight: 700, flexShrink: 0 }}>→</span>
-              <span style={{ fontSize: '13px', color: 'var(--gray-600)' }}>{d}</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>

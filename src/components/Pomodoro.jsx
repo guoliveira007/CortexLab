@@ -46,6 +46,20 @@ if (typeof document !== 'undefined' && !document.getElementById(CSS_ID)) {
     .pom-widget { animation: pom-slide-in 0.35s cubic-bezier(0.34,1.56,0.64,1); }
     .pom-timer-active { animation: pom-tick 1s ease-in-out infinite; }
     .pom-suggestion { animation: pom-fade-up 0.4s ease; }
+
+    /* ── Extracted from inline styles ── */
+    .pom-mini-stat { display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.08); border-radius:8px; padding:5px 10px; backdrop-filter:blur(6px); }
+    .pom-mini-stat__label { font-size:9px; color:rgba(255,255,255,0.55); text-transform:uppercase; letter-spacing:0.06em; line-height:1.2; }
+    .pom-stat-grid { display:grid; grid-template-columns:1fr 1px 1fr 1px 1fr; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:10px; overflow:hidden; padding:8px 0; }
+    .pom-stat-cell { text-align:center; padding:4px 6px; }
+    .pom-stat-sep  { background:rgba(255,255,255,0.08); width:1px; }
+    .pom-icon-btn  { background:rgba(255,255,255,0.08); border:none; width:28px; height:28px; border-radius:7px; cursor:pointer; color:rgba(255,255,255,0.5); font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+    .pom-icon-btn:hover { background:rgba(255,255,255,0.15); }
+    .pom-reset-btn { width:42px; height:42px; flex-shrink:0; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; cursor:pointer; color:rgba(255,255,255,0.5); font-size:18px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+    .pom-reset-btn:hover { background:rgba(255,255,255,0.12); }
+    .pom-glow-orb  { position:absolute; top:-30px; right:-20px; width:100px; height:100px; border-radius:50%; pointer-events:none; }
+    .pom-revision-hint { margin-top:10px; padding:8px 10px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.15s; }
+    .pom-revision-hint:hover { background:rgba(239,68,68,0.18); }
   `;
   document.head.appendChild(style);
 }
@@ -68,16 +82,11 @@ const RevBadge = ({ count }) => {
 
 /* ─── Mini stat pill ─── */
 const MiniStat = ({ icon, value, label, cor }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', gap: 5,
-    background: 'rgba(255,255,255,0.08)',
-    borderRadius: 8, padding: '5px 10px',
-    backdropFilter: 'blur(6px)',
-  }}>
+  <div className="pom-mini-stat">
     <span style={{ fontSize: 13 }}>{icon}</span>
     <div>
       <div style={{ fontSize: 13, fontWeight: 800, color: cor, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1.2 }}>{label}</div>
+      <div className="pom-mini-stat__label">{label}</div>
     </div>
   </div>
 );
@@ -146,7 +155,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
         });
       const entries = Object.entries(mapa).sort((a, b) => b[1] - a[1]);
       setMatErros(entries[0]?.[0] || null);
-    } catch (_) {}
+    } catch { /* ignorado */ }
   }, []);
 
   useEffect(() => {
@@ -168,7 +177,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
         osc.start(ctx.currentTime + delay);
         osc.stop(ctx.currentTime + delay + 0.36);
       });
-    } catch (_) {}
+    } catch { /* ignorado */ }
   }, []);
 
   /* ── Concluir sessão ── */
@@ -188,7 +197,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
           duracao: modo.minutos * 60,
         });
         await carregarDados();
-      } catch (_) {}
+      } catch { /* ignorado */ }
 
       const novosCiclos = ciclosRef.current + 1;
       ciclosRef.current = novosCiclos;
@@ -338,12 +347,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
         overflow: 'hidden',
       }}>
         {/* Glow orb */}
-        <div style={{
-          position: 'absolute', top: -30, right: -20,
-          width: 100, height: 100, borderRadius: '50%',
-          background: `radial-gradient(circle, ${modo.cor}30, transparent 70%)`,
-          pointerEvents: 'none',
-        }} />
+        <div className="pom-glow-orb" style={{ background: `radial-gradient(circle, ${modo.cor}30, transparent 70%)` }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -358,16 +362,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
               <div style={{ fontSize: 10, color: modo.cor, fontWeight: 600, marginTop: 1 }}>{modo.label} · {modo.minutos}min</div>
             </div>
           </div>
-          <button onClick={() => setAberto(false)} style={{
-            background: 'rgba(255,255,255,0.08)', border: 'none',
-            width: 28, height: 28, borderRadius: 7, cursor: 'pointer',
-            color: 'rgba(255,255,255,0.5)', fontSize: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-          >−</button>
+          <button onClick={() => setAberto(false)} className="pom-icon-btn">−</button>
         </div>
 
         {/* Stats da plataforma hoje */}
@@ -532,17 +527,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
 
         {/* Controles */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <button onClick={resetar} title="Reiniciar" style={{
-            width: 42, height: 42, flexShrink: 0,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 10, cursor: 'pointer', color: 'rgba(255,255,255,0.5)',
-            fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-          >↺</button>
+          <button onClick={resetar} title="Reiniciar" className="pom-reset-btn">↺</button>
 
           <button onClick={() => setAtivo(a => !a)} style={{
             flex: 1, height: 42,
@@ -592,21 +577,15 @@ const Pomodoro = ({ onFocoConcluido }) => {
         )}
 
         {/* Stats da sessão */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 10, overflow: 'hidden',
-          padding: '8px 0',
-        }}>
+        <div className="pom-stat-grid">
           {[
             { val: ciclos, label: 'ciclos', icon: '🔥' },
             { val: sessoesHoje, label: 'hoje', icon: '📊' },
             { val: tempoHoje > 0 ? fmtMin(tempoHoje) : '0min', label: 'tempo', icon: '⏱' },
           ].map((s, i) => (
             <React.Fragment key={s.label}>
-              {i > 0 && <div style={{ background: 'rgba(255,255,255,0.08)', width: 1 }} />}
-              <div style={{ textAlign: 'center', padding: '4px 6px' }}>
+              {i > 0 && <div className="pom-stat-sep" />}
+              <div className="pom-stat-cell">
                 <div style={{ fontSize: 10, marginBottom: 2 }}>{s.icon}</div>
                 <div style={{
                   fontWeight: 800, fontSize: 17, lineHeight: 1,
@@ -620,17 +599,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
 
         {/* Dica de revisões pendentes */}
         {revisoesHoje > 0 && !sugestao && (
-          <div onClick={irParaRevisao} style={{
-            marginTop: 10, padding: '8px 10px',
-            background: 'rgba(239,68,68,0.1)',
-            border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 8, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
-            transition: 'all 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
-          >
+          <div onClick={irParaRevisao} className="pom-revision-hint">
             <span style={{ fontSize: 14 }}>🧠</span>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', flex: 1 }}>
               <strong style={{ color: '#fca5a5' }}>{revisoesHoje} revisão{revisoesHoje > 1 ? 'ões' : ''}</strong> espaçada{revisoesHoje > 1 ? 's' : ''} pendente{revisoesHoje > 1 ? 's' : ''}

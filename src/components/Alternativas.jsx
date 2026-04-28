@@ -103,14 +103,14 @@ const Alternativas = ({
               onKeyDown={e => handleKeyDown(e, letra)}
               style={{ cursor: respondida ? 'default' : 'pointer' }}
             >
-              <strong style={{ minWidth: '22px', flexShrink: 0 }}>{letra})</strong>
+              <strong className="alt-letra">{letra})</strong>
               <div style={{ flex: 1 }}>
-                {texto && <span style={{ fontSize: '14px', lineHeight: '1.6' }}>{texto}</span>}
+                {texto && <span className="alt-texto">{texto}</span>}
                 {img && (
                   <img
                     src={img}
                     alt={`Imagem da alternativa ${letra}`}
-                    style={{ maxWidth: '180px', borderRadius: 'var(--r-sm)', marginTop: '6px', display: 'block' }}
+                    className="alt-img"
                   />
                 )}
               </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { db } from '../database';
-import ProgressBar from './ProgressBar'; // ✅ Componente reutilizável
+import ProgressBar from './ProgressBar';
 
 // Primitivos de extração de PDF compartilhados com ImportarIA/utils.js
 import {
@@ -101,7 +101,7 @@ const extrairQuestoesDoLote = async (textoLote, apiKey, onRetry) => {
 
     if (!response.ok) {
       let msg = `Erro HTTP ${response.status}`;
-      try { const err = await response.json(); msg = err.error?.message || msg; } catch (_) {}
+      try { const err = await response.json(); msg = err.error?.message || msg; } catch { /* ignorado */ }
       throw new Error(msg);
     }
 
@@ -113,11 +113,11 @@ const extrairQuestoesDoLote = async (textoLote, apiKey, onRetry) => {
     try {
       const parsed = JSON.parse(matchJson[0]);
       return Array.isArray(parsed.questoes) ? parsed.questoes : [];
-    } catch (_) {
+    } catch {
       try {
         const parsed = JSON.parse(matchJson[0] + ']}');
         return Array.isArray(parsed.questoes) ? parsed.questoes : [];
-      } catch (__) { return []; }
+      } catch { return []; }
     }
   }
   return [];
@@ -224,15 +224,16 @@ const ImportarPDF = ({ onFechar, onImportar }) => {
   const [fase, setFase]                 = useState('upload');
   const [paginasTotal, setPaginasTotal] = useState(0);
   const [paginaAtual, setPaginaAtual]   = useState(0);
-  const [statusOCR, setStatusOCR]       = useState(''); // mensagem de progresso do OCR
+  const [statusOCR, setStatusOCR]       = useState('');
   const [questoesExtraidas, setQuestoes]   = useState([]);
   const [questoesSelecionadas, setSelec]   = useState(new Set());
   const [arrastar, setArrastar]         = useState(false);
   const [progresso, setProgresso]       = useState(0);
   const [erroGlobal, setErroGlobal]     = useState(null);
   const [paginasComErro, setPagErros]   = useState([]);
-  const [paginasSemTexto, setPagSemTexto] = useState([]);  // páginas que falharam até o OCR
-  const [paginasOCR, setPaginasOCR]     = useState([]);    // páginas processadas via OCR
+  const [paginasSemTexto, setPagSemTexto] = useState([]);
+  const [paginasOCR, setPaginasOCR]     = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [errosDetalhe, setErrosDetalhe] = useState({});
   const [preview, setPreview]           = useState(null);
   const inputRef = useRef(null);
@@ -468,6 +469,7 @@ const ImportarPDF = ({ onFechar, onImportar }) => {
   const onDrop = useCallback((e) => {
     e.preventDefault(); setArrastar(false);
     processarPDF(e.dataTransfer.files[0]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey]);
 
   /* ─── Render ─── */

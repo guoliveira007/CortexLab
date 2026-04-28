@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { db, invalidateCache } from '../database';
 import PainelFiltros from './PainelFiltros';
@@ -77,6 +77,8 @@ const Freestyle = () => {
   const [todas, setTodas]    = useState([]);
   const [sessao, setSessao]  = useState(null);
   const [respostas, setResp] = useState({});
+  const restauradoRef        = useRef(false);
+  const STORAGE_KEY          = 'cortexlab_freestyle_sessao';
 
   const {
     filtros,
@@ -95,6 +97,34 @@ const Freestyle = () => {
   });
 
   useEffect(() => { db.questoes.toArray().then(setTodas); }, []);
+
+  // ── Restaura sessão salva após as questões carregarem ──
+  useEffect(() => {
+    if (!todas.length || restauradoRef.current) return;
+    restauradoRef.current = true;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const { ids, respostas: resp, pagina: pag } = JSON.parse(raw);
+      const map = Object.fromEntries(todas.map(q => [q.id, q]));
+      const ordered = ids.map(id => map[id]).filter(Boolean);
+      if (!ordered.length) { localStorage.removeItem(STORAGE_KEY); return; }
+      setSessao(ordered);
+      setResp(resp || {});
+      setPagina(pag || 1);
+      toast('Sessão restaurada! Continuando de onde parou 🔄');
+    } catch { localStorage.removeItem(STORAGE_KEY); }
+  }, [todas]);
+
+  // ── Persiste sessão a cada resposta/mudança de página ──
+  useEffect(() => {
+    if (!sessao) { localStorage.removeItem(STORAGE_KEY); return; }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ids: sessao.map(q => q.id),
+      respostas,
+      pagina,
+    }));
+  }, [sessao, respostas, pagina]);
 
   const iniciar = useCallback(() => {
     if (!filtradas.length) { toast.error('Nenhuma questão encontrada!'); return; }
@@ -170,7 +200,7 @@ const Freestyle = () => {
         </div>
         <button
           className="btn-secondary"
-          onClick={() => setSessao(null)}
+          onClick={() => { localStorage.removeItem(STORAGE_KEY); setSessao(null); }}
           style={{ fontSize: '13px', padding: '7px 14px' }}
         >
           ← Novo filtro

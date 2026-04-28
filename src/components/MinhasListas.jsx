@@ -71,6 +71,7 @@ const MinhasListas = () => {
   const [qtdAleatorio, setQtd]        = useState(10);
   const [modoSelecao, setModoSelecao] = useState('aleatorio');
   const [selecionadas, setSel]        = useState(new Set());
+  const [erros, setErros]             = useState({});
 
   const [listaSelecionada, setListaSel] = useState(null);
   const [sessaoQuestoes, setSessaoQ]    = useState([]);
@@ -91,16 +92,18 @@ const MinhasListas = () => {
   };
 
   const criarLista = async () => {
-    if (!nomeLista.trim()) { toast.error('Dê um nome para a lista!'); return; }
+    const novos = {};
+    if (!nomeLista.trim()) novos.nome = 'Dê um nome para a lista';
     let ids = [];
     if (modoSelecao === 'aleatorio') {
       const pool = [...filtradas].sort(() => Math.random() - 0.5);
       ids = pool.slice(0, qtdAleatorio).map(q => q.id);
-      if (!ids.length) { toast.error('Nenhuma questão encontrada!'); return; }
+      if (!ids.length) novos.questoes = 'Nenhuma questão encontrada com esses filtros';
     } else {
       ids = [...selecionadas];
-      if (!ids.length) { toast.error('Selecione ao menos uma questão!'); return; }
+      if (!ids.length) novos.questoes = 'Selecione ao menos uma questão';
     }
+    if (Object.keys(novos).length > 0) { setErros(novos); return; }
     await db.listas.add({
       nome: nomeLista.trim(),
       questoes: ids,
@@ -109,7 +112,7 @@ const MinhasListas = () => {
       total: ids.length,
     });
     toast.success(`Lista "${nomeLista}" criada com ${ids.length} questão(ões)!`);
-    setNomeLista(''); resetar(); setSel(new Set());
+    setNomeLista(''); resetar(); setSel(new Set()); setErros({});
     setAba('listas');
     await carregarDados();
   };
@@ -141,7 +144,6 @@ const MinhasListas = () => {
       tempo: 0,
       modo: 'lista',
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessaoQuestoes, respostas]);
 
   /* ── ABA ESTUDAR (inalterada) ── */
@@ -210,7 +212,14 @@ const MinhasListas = () => {
 
         <div className="card" style={{ marginBottom: '18px' }}>
           <label className="field-label">Nome da Lista *</label>
-          <input className="input-modern" placeholder="Ex: Matemática — Geometria 2023" value={nomeLista} onChange={e => setNomeLista(e.target.value)} />
+          <input
+            className="input-modern"
+            placeholder="Ex: Matemática — Geometria 2023"
+            value={nomeLista}
+            onChange={e => { setNomeLista(e.target.value); setErros(ev => ({ ...ev, nome: '' })); }}
+            style={{ borderColor: erros.nome ? '#ef4444' : undefined }}
+          />
+          {erros.nome && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>⚠ {erros.nome}</p>}
         </div>
 
         <div className="card" style={{ marginBottom: '18px' }}>
@@ -284,6 +293,7 @@ const MinhasListas = () => {
         <button className="btn-primary" onClick={criarLista} style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '15px' }}>
           💾 Criar Lista
         </button>
+        {erros.questoes && <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '8px', fontWeight: 500, textAlign: 'center' }}>⚠ {erros.questoes}</p>}
       </div>
     );
   }

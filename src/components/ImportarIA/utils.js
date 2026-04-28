@@ -1,8 +1,7 @@
-import { toast } from 'react-hot-toast';
 import { db } from '../../database';
 
-// Primitivos de extração de PDF compartilhados com ImportarPDF.jsx
-export {
+// Importa os primitivos para uso interno, depois reexporta
+import {
   carregarPDFJS,
   carregarTesseract,
   sleep,
@@ -10,6 +9,16 @@ export {
   renderizarCanvas,
   ocrPagina,
 } from '../../utils/pdfExtraction';
+
+// Reexporta para outros módulos que consomem este arquivo
+export {
+  carregarPDFJS,
+  carregarTesseract,
+  sleep,
+  extrairTextoPagina,
+  renderizarCanvas,
+  ocrPagina,
+};
 
 /* ── Agrupamento adaptativo de páginas em lotes ── */
 const CHARS_POR_LOTE = 4000;

@@ -2,15 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '../database';
 
 /**
- * useRevisoesHoje — versão corrigida (fix #5)
+ * useRevisoesHoje — versão corrigida (fix #5 + compatibilidade Firestore)
  *
- * PROBLEMA ANTERIOR: cachedCount e cacheTimestamp eram variáveis de MÓDULO
- * (escopo global do bundle). Dois componentes usando o hook compartilhavam
- * o mesmo cache, o que causaria leituras "velhas" ou race conditions em
- * futuras refatorações.
- *
- * CORREÇÃO: cache movido para refs internas ao hook. Cada instância mantém
- * seu próprio estado isolado.
+ * Alteração para Firestore:
+ * - Substituída a chamada encadeada .where().belowOrEqual().count()
+ *   pela função centralizada db.getContagemRevisaoHoje(), que já retorna
+ *   o número correto de revisões pendentes.
  */
 
 const CACHE_TTL = 30_000; // 30 segundos
@@ -63,11 +60,8 @@ export const useRevisoesHoje = () => {
           if (!isMounted.current) return resolve(0);
           setLoading(true);
 
-          const hoje = new Date().toISOString().split('T')[0];
-          const total = await db.revisaoEspacada
-            .where('proximaRevisao')
-            .belowOrEqual(hoje)
-            .count();
+          // 🔁 ALTERADO: usa a função compatível do database.js
+          const total = await db.getContagemRevisaoHoje();
 
           cachedCount.current    = total;
           cacheTimestamp.current = Date.now();
@@ -129,7 +123,7 @@ export const useRevisoesHoje = () => {
           tag: 'revisao-pendente',
         });
         localStorage.setItem('ultima_notif_revisao', hoje);
-      } catch (_) {}
+      } catch { /* ignorado */ }
     };
 
     if (Notification.permission === 'granted') {
@@ -144,46 +138,6 @@ export const useRevisoesHoje = () => {
   }, [count]);
 
   return { count, loading, refetch };
-};
-
-/**
- * BadgeRevisoes — badge com contagem de revisões pendentes.
- */
-export const BadgeRevisoes = ({ ignorarSeVisitado = false }) => {
-  const { count, loading } = useRevisoesHoje();
-
-  const [visitadoHoje, setVisitadoHoje] = useState(() => {
-    if (!ignorarSeVisitado) return false;
-    return localStorage.getItem('previsao_badge_visto') === new Date().toDateString();
-  });
-
-  useEffect(() => {
-    if (!ignorarSeVisitado) return;
-    const handler = () => setVisitadoHoje(true);
-    window.addEventListener('previsao:visitada', handler);
-    return () => window.removeEventListener('previsao:visitada', handler);
-  }, [ignorarSeVisitado]);
-
-  if (loading || count === 0 || visitadoHoje) return null;
-
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      minWidth: '18px', height: '18px', padding: '0 5px',
-      background: '#ef4444', color: 'white',
-      borderRadius: '99px', fontSize: '10px', fontWeight: 800, lineHeight: 1,
-      boxShadow: '0 2px 6px rgba(239,68,68,0.4)',
-      animation: 'pulsar 2s infinite',
-    }}>
-      {count > 99 ? '99+' : count}
-      <style>{`
-        @keyframes pulsar {
-          0%, 100% { box-shadow: 0 2px 6px rgba(239,68,68,0.4); }
-          50%       { box-shadow: 0 2px 12px rgba(239,68,68,0.7); }
-        }
-      `}</style>
-    </span>
-  );
 };
 
 export default useRevisoesHoje;

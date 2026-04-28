@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { db } from '../database';
 
 /* ─────────────────────────────────────────────
    SISTEMA DE RARIDADE
 ───────────────────────────────────────────── */
+// eslint-disable-next-line react-refresh/only-export-components
 export const RARIDADES = {
   comum:    { label: 'Comum',    cor: '#6b7280', bg: '#f3f4f6', borda: '#d1d5db', glow: 'rgba(107,114,128,0.2)'  },
   raro:     { label: 'Raro',     cor: '#1d4ed8', bg: '#dbeafe', borda: '#93c5fd', glow: 'rgba(29,78,216,0.2)'    },
@@ -131,6 +132,7 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
     if (conquistas.length === 0) return;
     const timer = setTimeout(() => fechar(), 5000);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atual, conquistas.length]);
 
   const fechar = () => {
@@ -576,6 +578,9 @@ const Conquistas = () => {
   }, [conquistasDB]);
 
   const conquistasFiltradas = useMemo(() => {
+    // Sem stats ainda, retorna vazio — o guard !stats no JSX cuida disso
+    if (!stats) return [];
+
     let lista = catSelecionada === 'todas'
       ? TODAS_CONQUISTAS
       : TODAS_CONQUISTAS.filter(c => c.cat === catSelecionada);
@@ -583,12 +588,25 @@ const Conquistas = () => {
     if (busca.trim()) {
       const t = busca.toLowerCase();
       lista = lista.filter(c =>
-        (!c.secreta || c.check(stats || {})) &&
+        (!c.secreta || c.check(stats)) &&
         (c.nome.toLowerCase().includes(t) || c.desc.toLowerCase().includes(t))
       );
     }
 
-    return stats ? ordenarConquistas(lista, stats) : lista;
+    // ✅ Pré-computar check/progresso/detalhe uma única vez por conquista aqui
+    // dentro do useMemo, em vez de chamar as funções a cada render do map.
+    const enriquecidas = lista.map(c => ({
+      conquista: c,
+      desbloqueada: c.check(stats),
+      pct: c.progresso(stats),
+      detalhe: c.detalhe(stats),
+    }));
+
+    // Ordenação inline reutilizando desbloqueada já computada (sem c.check extra)
+    const sortRarid = (a, b) => (RARID_ORDER[a.conquista.raridade] ?? 5) - (RARID_ORDER[b.conquista.raridade] ?? 5);
+    const desbloqueadas = enriquecidas.filter(e =>  e.desbloqueada).sort(sortRarid);
+    const bloqueadas    = enriquecidas.filter(e => !e.desbloqueada).sort(sortRarid);
+    return [...desbloqueadas, ...bloqueadas];
   }, [catSelecionada, busca, stats]);
 
   const totalDesbloqueadas = useMemo(
@@ -711,19 +729,16 @@ const Conquistas = () => {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(268px, 1fr))', gap: '14px' }}>
-          {conquistasFiltradas.map(c => {
-            const desbloqueada = c.check(stats);
-            return (
-              <ConquistaCard
-                key={c.id}
-                conquista={c}
-                desbloqueada={desbloqueada}
-                pct={c.progresso(stats)}
-                detalhe={c.detalhe(stats)}
-                dataDesbloqueio={mapaConquistas[c.id]}
-              />
-            );
-          })}
+          {conquistasFiltradas.map(({ conquista: c, desbloqueada, pct, detalhe }) => (
+            <ConquistaCard
+              key={c.id}
+              conquista={c}
+              desbloqueada={desbloqueada}
+              pct={pct}
+              detalhe={detalhe}
+              dataDesbloqueio={mapaConquistas[c.id]}
+            />
+          ))}
         </div>
       )}
     </div>

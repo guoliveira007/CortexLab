@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
+import { FixedSizeList as List } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ImportarCSV from './ImportarCSV';
 import ImportarPDF from './ImportarPDF';
 import ImportarIA from './ImportarIA';
-import { CURRICULO, MATERIAS, getConteudos, getTopicos } from '../curriculo';
+import { MATERIAS, getConteudos, getTopicos } from '../curriculo';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
 
 const VAZIO = {
@@ -15,8 +17,6 @@ const VAZIO = {
   imagensAlternativas: { A: '', B: '', C: '', D: '', E: '' },
   gabarito: '', explicacao: '',
 };
-
-const POR_PAG = 15;
 
 const toBase64 = f => new Promise((res, rej) => {
   const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f);
@@ -42,13 +42,18 @@ const selectStyle = {
   paddingRight: '32px',
 };
 
-/* ── CamposMetadados (inalterado) ── */
-const CamposMetadados = ({ form, setForm, bancasExtras }) => {
+/* ── Helper de mensagem de erro inline ── */
+const ErroInline = ({ msg }) =>
+  msg ? <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>⚠ {msg}</p> : null;
+
+/* ── CamposMetadados ── */
+const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro = () => {} }) => {
   const conteudosCurr = getConteudos(form.materia);
   const topicosCurr   = getTopicos(form.materia, form.conteudo);
 
   const handleMateria = (v) => {
     setForm(f => ({ ...f, materia: v, conteudo: '', topico: '' }));
+    limparErro('materia');
   };
   const handleConteudo = (v) => {
     setForm(f => ({ ...f, conteudo: v, topico: '' }));
@@ -64,12 +69,14 @@ const CamposMetadados = ({ form, setForm, bancasExtras }) => {
           className="input-modern"
           list="dl-bancas"
           value={form.banca || ''}
-          onChange={e => setForm(f => ({ ...f, banca: e.target.value }))}
+          onChange={e => { setForm(f => ({ ...f, banca: e.target.value })); limparErro('banca'); }}
           placeholder="Ex: CESPE"
+          style={{ borderColor: erros.banca ? '#ef4444' : undefined }}
         />
         <datalist id="dl-bancas">
           {bancasExtras.map(o => <option key={o} value={o} />)}
         </datalist>
+        <ErroInline msg={erros.banca} />
       </div>
 
       {/* Ano — input numérico */}
@@ -87,10 +94,15 @@ const CamposMetadados = ({ form, setForm, bancasExtras }) => {
       {/* Matéria — select currículo completo */}
       <div>
         <label className="field-label">Matéria *</label>
-        <select style={selectStyle} value={form.materia || ''} onChange={e => handleMateria(e.target.value)}>
+        <select
+          style={{ ...selectStyle, borderColor: erros.materia ? '#ef4444' : 'var(--gray-200)' }}
+          value={form.materia || ''}
+          onChange={e => handleMateria(e.target.value)}
+        >
           <option value="">— Selecione —</option>
           {MATERIAS.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
+        <ErroInline msg={erros.materia} />
       </div>
 
       {/* Conteúdo — cascateia pela matéria */}
@@ -160,9 +172,12 @@ const CamposMetadados = ({ form, setForm, bancasExtras }) => {
   );
 };
 
-/* ── Formulario (inalterado) ── */
+/* ── Formulario ── */
 const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalvar }) => {
-  const [form, setForm] = useState(formInicial);
+  const [form, setForm]   = useState(formInicial);
+  const [erros, setErros] = useState({});
+
+  const limparErro = (campo) => setErros(e => ({ ...e, [campo]: '' }));
 
   const handleImg = async (e, campo, letra) => {
     const file = e.target.files[0]; if (!file) return;
@@ -172,9 +187,12 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
   };
 
   const salvar = () => {
-    if (!form.banca || !form.materia || !form.comando || !form.gabarito) {
-      toast.error('Preencha banca, matéria, comando e gabarito'); return;
-    }
+    const novos = {};
+    if (!form.banca?.trim())    novos.banca   = 'Banca é obrigatória';
+    if (!form.materia)          novos.materia  = 'Selecione uma matéria';
+    if (!form.comando?.trim())  novos.comando  = 'Comando é obrigatório';
+    if (!form.gabarito)         novos.gabarito = 'Selecione o gabarito';
+    if (Object.keys(novos).length > 0) { setErros(novos); return; }
     onSalvar(form);
   };
 
@@ -188,7 +206,7 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
       </div>
 
       <div style={{ marginBottom: '6px' }}><p className="section-title">Metadados</p></div>
-      <CamposMetadados form={form} setForm={setForm} bancasExtras={bancasExtras} />
+      <CamposMetadados form={form} setForm={setForm} bancasExtras={bancasExtras} erros={erros} limparErro={limparErro} />
 
       <div style={{ marginBottom: '6px' }}><p className="section-title">Enunciado e Comando</p></div>
       <div style={{ marginBottom: '14px' }}>
@@ -200,55 +218,46 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
         <label className="field-label">Imagem do Enunciado</label>
         <input type="file" accept="image/*" onChange={e => handleImg(e, 'imagemEnunciado')} style={{ fontSize: '13px' }} />
         {form.imagemEnunciado && (
-          <img src={form.imagemEnunciado} alt="" style={{ maxWidth: '240px', borderRadius: 'var(--r-md)', marginTop: '8px', display: 'block', border: '1px solid var(--gray-200)' }} />
+          <img src={form.imagemEnunciado} alt="enunciado" style={{ maxWidth: '100%', maxHeight: '200px', marginTop: '8px', borderRadius: 'var(--r-md)' }} />
         )}
       </div>
       <div style={{ marginBottom: '20px' }}>
         <label className="field-label">Comando *</label>
-        <textarea className="input-modern" rows={2} value={form.comando || ''}
-          onChange={e => setForm(f => ({ ...f, comando: e.target.value }))} style={{ resize: 'vertical' }} />
+        <textarea className="input-modern" rows={3} value={form.comando || ''}
+          onChange={e => { setForm(f => ({ ...f, comando: e.target.value })); limparErro('comando'); }}
+          style={{ resize: 'vertical', borderColor: erros.comando ? '#ef4444' : undefined }} />
+        <ErroInline msg={erros.comando} />
       </div>
 
       <div style={{ marginBottom: '6px' }}><p className="section-title">Alternativas</p></div>
-      <div style={{ background: 'var(--gray-50)', borderRadius: 'var(--r-lg)', padding: '16px', marginBottom: '20px', border: '1px solid var(--gray-200)' }}>
-        {['A', 'B', 'C', 'D', 'E'].map((lt, idx) => (
-          <div key={lt} style={{
-            display: 'flex', gap: '12px', alignItems: 'flex-start',
-            marginBottom: idx < 4 ? '16px' : 0, paddingBottom: idx < 4 ? '16px' : 0,
-            borderBottom: idx < 4 ? '1px solid var(--gray-200)' : 'none',
-          }}>
-            <span style={{
-              background: 'var(--gradient-brand)', color: 'white',
-              width: '28px', height: '28px', borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '13px',
-              flexShrink: 0, marginTop: '7px',
-            }}>{lt}</span>
-            <div style={{ flex: 1 }}>
-              <input
-                className="input-modern"
-                placeholder={`Texto da alternativa ${lt}`}
-                value={form.alternativas?.[lt] || ''}
-                onChange={e => setForm(f => ({ ...f, alternativas: { ...f.alternativas, [lt]: e.target.value } }))}
-                style={{ marginBottom: '7px' }}
-              />
-              <input type="file" accept="image/*" onChange={e => handleImg(e, 'imagensAlternativas', lt)} style={{ fontSize: '12px' }} />
-              {form.imagensAlternativas?.[lt] && (
-                <img src={form.imagensAlternativas[lt]} alt="" style={{ maxWidth: '160px', borderRadius: 'var(--r-sm)', marginTop: '7px', display: 'block' }} />
+      {['A', 'B', 'C', 'D', 'E'].map(letra => (
+        <div key={letra} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+          <span style={{ fontWeight: 700, color: 'var(--brand-600)', fontSize: '15px' }}>{letra}</span>
+          <div>
+            <input className="input-modern" value={form.alternativas?.[letra] || ''}
+              onChange={e => setForm(f => ({ ...f, alternativas: { ...f.alternativas, [letra]: e.target.value } }))}
+              placeholder={`Texto da alternativa ${letra}`} />
+            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input type="file" accept="image/*" onChange={e => handleImg(e, 'imagensAlternativas', letra)} style={{ fontSize: '12px' }} />
+              {form.imagensAlternativas?.[letra] && (
+                <img src={form.imagensAlternativas[letra]} alt={`alt ${letra}`} style={{ maxHeight: '60px', borderRadius: 'var(--r-sm)' }} />
               )}
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
 
       <div style={{ marginBottom: '6px' }}><p className="section-title">Gabarito e Explicação</p></div>
       <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '14px', marginBottom: '24px' }}>
         <div>
           <label className="field-label">Gabarito *</label>
-          <select className="select-modern" value={form.gabarito || ''} onChange={e => setForm(f => ({ ...f, gabarito: e.target.value }))}>
+          <select className="select-modern" value={form.gabarito || ''}
+            onChange={e => { setForm(f => ({ ...f, gabarito: e.target.value })); limparErro('gabarito'); }}
+            style={{ borderColor: erros.gabarito ? '#ef4444' : undefined }}>
             <option value="">—</option>
             {['A', 'B', 'C', 'D', 'E'].map(l => <option key={l} value={l}>{l}</option>)}
           </select>
+          <ErroInline msg={erros.gabarito} />
         </div>
         <div>
           <label className="field-label">Explicação</label>
@@ -265,6 +274,49 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
   );
 };
 
+// Altura fixa de cada card de questão na lista virtualizada (em px)
+const ITEM_HEIGHT = 110;
+
+/* ── Card de questão memoizado para react-window ── */
+const CardQuestao = React.memo(({ questao, onEditar, onExcluir }) => {
+  const q = questao;
+  return (
+    <div style={{
+      background: 'white', borderRadius: 'var(--r-lg)',
+      padding: '16px 20px',
+      boxShadow: 'var(--shadow-xs)', border: '1px solid var(--gray-100)',
+      display: 'flex', gap: '16px', alignItems: 'flex-start',
+      boxSizing: 'border-box',
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
+          {[q.banca, q.ano, q.materia, q.conteudo, q.topico].filter(Boolean).map((t, i) => (
+            <span key={i} className="badge badge-gray">{t}</span>
+          ))}
+        </div>
+        <p style={{ color: 'var(--gray-700)', fontSize: '14px', lineHeight: '1.55' }}>
+          {(q.comando || q.enunciado || '').slice(0, 140)}
+          {(q.comando || q.enunciado || '').length > 140 ? '…' : ''}
+        </p>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+        <button onClick={() => onEditar(q)} style={{
+          padding: '7px 14px', border: '1.5px solid var(--brand-200)',
+          borderRadius: 'var(--r-md)', cursor: 'pointer',
+          background: 'var(--brand-50)', color: 'var(--brand-600)',
+          fontSize: '13px', fontWeight: 600,
+        }}>✏️ Editar</button>
+        <button onClick={() => onExcluir(q.id)} style={{
+          padding: '7px 12px', border: '1.5px solid #fecaca',
+          borderRadius: 'var(--r-md)', cursor: 'pointer',
+          background: '#fef2f2', color: 'var(--accent-red)', fontSize: '13px',
+        }}>🗑️</button>
+      </div>
+    </div>
+  );
+});
+CardQuestao.displayName = 'CardQuestao';
+
 /* ─── BancoQuestoes ─── */
 const BancoQuestoes = () => {
   const [aba, setAba]           = useState('listar');
@@ -276,19 +328,15 @@ const BancoQuestoes = () => {
   const [modalPDF, setModalPDF] = useState(false);
   const [modalIA, setModalIA]   = useState(false);
 
-  // Hook de filtros unificado (com integração do currículo e paginação de 15)
+  // Hook de filtros unificado — sem paginação (react-window cuida disso)
   const {
     filtros,
     setFiltro,
     opcoes,
     filtradas,
     resetar,
-    pagina,
-    setPagina,
-    paginaQ,
-    totalPag,
   } = useQuestaoFilters(todas, {
-    pageSize: POR_PAG,
+    pageSize: Infinity, // desabilita paginação — virtualização assume o controle
     includeCurriculo: true,
   });
 
@@ -315,7 +363,7 @@ const BancoQuestoes = () => {
     await carregar();
   };
 
-  const editar = q => {
+  const editar = useCallback(q => {
     setFormInicial({
       ...VAZIO, ...q, ano: String(q.ano || ''),
       alternativas: q.alternativas || { A: '', B: '', C: '', D: '', E: '' },
@@ -323,9 +371,9 @@ const BancoQuestoes = () => {
     });
     setEditId(q.id);
     setAba('editar');
-  };
+  }, []);
 
-  const excluir = async id => {
+  const excluir = useCallback(async id => {
     if (!window.confirm('Excluir esta questão? Os resultados e revisões associados também serão removidos.')) return;
     await db.questoes.delete(id);
     const idsResultados = await db.resultados.where('id_questao').equals(id).primaryKeys();
@@ -334,13 +382,31 @@ const BancoQuestoes = () => {
     window.dispatchEvent(new Event('revisao:concluida'));
     toast.success('Questão excluída!');
     await carregar();
-  };
+  }, []);
 
   const abrirNova = () => { setFormInicial(VAZIO); setEditId(null); setAba('criar'); };
   const cancelar  = () => { setFormInicial(VAZIO); setEditId(null); setAba('listar'); };
 
+  /* ── Row renderer para react-window ── */
+  const RowRenderer = useCallback(({ index, style, data }) => {
+    const { itens, onEditar, onExcluir } = data;
+    const q = itens[index];
+    return (
+      <div style={{ ...style, paddingBottom: '10px', boxSizing: 'border-box' }}>
+        <CardQuestao questao={q} onEditar={onEditar} onExcluir={onExcluir} />
+      </div>
+    );
+  }, []);
+
+  // itemData estável — evita re-render total da lista a cada digitação de filtro
+  const itemData = React.useMemo(() => ({
+    itens: filtradas,
+    onEditar: editar,
+    onExcluir: excluir,
+  }), [filtradas, editar, excluir]);
+
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="page-header">
         <h2 className="page-title">Banco de Questões</h2>
         {aba === 'listar' && (
@@ -370,7 +436,7 @@ const BancoQuestoes = () => {
 
       {aba === 'listar' && (
         <>
-          <div className="card" style={{ marginBottom: '20px' }}>
+          <div className="card" style={{ marginBottom: '20px', flexShrink: 0 }}>
             <p className="section-title">Filtros</p>
             <PainelFiltros
               filtros={filtros}
@@ -381,7 +447,7 @@ const BancoQuestoes = () => {
             />
           </div>
 
-          {paginaQ.length === 0 ? (
+          {filtradas.length === 0 ? (
             <div className="card">
               <div className="empty-state">
                 <div className="empty-state-icon">🗃️</div>
@@ -390,48 +456,22 @@ const BancoQuestoes = () => {
               </div>
             </div>
           ) : (
-            paginaQ.map(q => (
-              <div key={q.id} style={{
-                background: 'white', borderRadius: 'var(--r-lg)',
-                padding: '16px 20px', marginBottom: '10px',
-                boxShadow: 'var(--shadow-xs)', border: '1px solid var(--gray-100)',
-                display: 'flex', gap: '16px', alignItems: 'flex-start',
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
-                    {[q.banca, q.ano, q.materia, q.conteudo, q.topico].filter(Boolean).map((t, i) => (
-                      <span key={i} className="badge badge-gray">{t}</span>
-                    ))}
-                  </div>
-                  <p style={{ color: 'var(--gray-700)', fontSize: '14px', lineHeight: '1.55' }}>
-                    {(q.comando || q.enunciado || '').slice(0, 140)}
-                    {(q.comando || q.enunciado || '').length > 140 ? '…' : ''}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                  <button onClick={() => editar(q)} style={{
-                    padding: '7px 14px', border: '1.5px solid var(--brand-200)',
-                    borderRadius: 'var(--r-md)', cursor: 'pointer',
-                    background: 'var(--brand-50)', color: 'var(--brand-600)',
-                    fontSize: '13px', fontWeight: 600,
-                  }}>✏️ Editar</button>
-                  <button onClick={() => excluir(q.id)} style={{
-                    padding: '7px 12px', border: '1.5px solid #fecaca',
-                    borderRadius: 'var(--r-md)', cursor: 'pointer',
-                    background: '#fef2f2', color: 'var(--accent-red)', fontSize: '13px',
-                  }}>🗑️</button>
-                </div>
-              </div>
-            ))
-          )}
-
-          {totalPag > 1 && (
-            <div className="pagination">
-              <button className="page-btn" onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1}>← Ant.</button>
-              {Array.from({ length: totalPag }, (_, i) => i + 1).map(p => (
-                <button key={p} className={`page-btn ${p === pagina ? 'active' : ''}`} onClick={() => setPagina(p)}>{p}</button>
-              ))}
-              <button className="page-btn" onClick={() => setPagina(p => Math.min(totalPag, p + 1))} disabled={pagina === totalPag}>Próx. →</button>
+            /* Container flex para o AutoSizer funcionar corretamente */
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <AutoSizer>
+                {({ height, width }) => (
+                  <List
+                    height={height}
+                    width={width}
+                    itemCount={filtradas.length}
+                    itemSize={ITEM_HEIGHT}
+                    itemData={itemData}
+                    overscanCount={5}
+                  >
+                    {RowRenderer}
+                  </List>
+                )}
+              </AutoSizer>
             </div>
           )}
         </>

@@ -133,6 +133,7 @@ const ImportarCSV = ({ onFechar, onImportar }) => {
   const confirmar = async () => {
     if (!validas.length) { toast.error('Nenhuma questão válida para importar.'); return; }
     setFase('importando');
+    // eslint-disable-next-line no-unused-vars
     const lote = validas.map(({ _linha, _erros, ...q }) => q);
     let ok = 0;
     for (let i = 0; i < lote.length; i++) {

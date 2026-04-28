@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { db, invalidateCache } from '../database';
 import ExplicacaoIA from './ExplicacaoIA';
@@ -15,23 +15,23 @@ const Lista = ({ lista, onVoltar }) => {
   const [todasRespostas, setTodasRespostas] = useState({});
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    carregarQuestoes();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  const iniciarTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimer(0);
+    timerRef.current = setInterval(() => setTimer(p => p + 1), 1000);
   }, []);
 
-  const carregarQuestoes = async () => {
+  const carregarQuestoes = useCallback(async () => {
     const q = await db.getQuestoesDaLista(lista);
     if (!q.length) { toast.error('Lista sem questões!'); onVoltar(); return; }
     setQuestoes(q.sort(() => Math.random() - 0.5));
     iniciarTimer();
-  };
+  }, [lista, onVoltar, iniciarTimer]);
 
-  const iniciarTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setTimer(0);
-    timerRef.current = setInterval(() => setTimer(p => p + 1), 1000);
-  };
+  useEffect(() => {
+    carregarQuestoes();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [carregarQuestoes]);
 
   const pararTimer = () => {
     if (timerRef.current) {
