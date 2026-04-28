@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, reload } from 'firebase/auth';
 import { auth } from './firebase';
 
 const AuthContext = createContext(null);
@@ -11,8 +11,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        await reload(firebaseUser);           // busca o estado real do Firebase
+        setUser(auth.currentUser);            // já com emailVerified atualizado
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
     return unsubscribe;
