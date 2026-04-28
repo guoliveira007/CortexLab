@@ -1,5 +1,5 @@
 // src/database.js
-import { db as firestoreDb, auth } from './firebase';
+import { auth } from './firebase';
 import {
   collection,
   doc,
@@ -11,628 +11,292 @@ import {
   setDoc,
   query,
   where,
+  documentId,
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  writeBatch,
 } from 'firebase/firestore';
-
-// Objeto que será exportado
-const db = {};
+import { getApp } from 'firebase/app';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // ──────────────────────────────────────────────
-// Referência ao usuário logado
+// FIRESTORE COM PERSISTÊNCIA OFFLINE
+// Substitui o enableIndexedDbPersistence (depreciado desde Firebase v9.12)
 // ──────────────────────────────────────────────
+let firestoreDb;
+try {
+  firestoreDb = initializeFirestore(getApp(), {
+    localCache: persistentLocalCache(),
+  });
+} catch (e) {
+  console.warn('[DB] Firestore já inicializado, usando instância existente:', e.message);
+  firestoreDb = getFirestore();
+}
+
+// ──────────────────────────────────────────────
+// AUTENTICAÇÃO (Race Condition Fix)
+// ──────────────────────────────────────────────
+let currentUser = null;
+let authResolved = false;
+const authWaiters = [];
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  authResolved = true;
+
+  if (user) {
+    while (authWaiters.length > 0) authWaiters.shift().resolve(user.uid);
+  } else {
+    while (authWaiters.length > 0) {
+      authWaiters.shift().reject(
+        new Error('[DB] Nenhum usuário autenticado. Faça login para continuar.')
+      );
+    }
+  }
+});
+
 const getUserId = () => {
-  const user = auth.currentUser;
-  if (!user) throw new Error('Usuário não autenticado');
-  return user.uid;
+  return new Promise((resolve, reject) => {
+    if (authResolved) {
+      if (currentUser) return resolve(currentUser.uid);
+      return reject(new Error('[DB] Nenhum usuário autenticado. Faça login para continuar.'));
+    }
+
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      const idx = authWaiters.findIndex(w => w.resolve === resolve);
+      if (idx !== -1) authWaiters.splice(idx, 1);
+      reject(new Error('[DB] Tempo de espera esgotado. Verifique sua conexão e tente novamente.'));
+    }, 8000);
+
+    authWaiters.push({
+      resolve: (uid) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(uid);
+      },
+      reject: (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(err);
+      },
+    });
+  });
 };
 
 // ──────────────────────────────────────────────
-// Helpers: caminhos das coleções do usuário
+// HELPERS DE REFERÊNCIA
 // ──────────────────────────────────────────────
-const col = (nome) => {
-  const uid = getUserId();
+const col = async (nome) => {
+  const uid = await getUserId();
   return collection(firestoreDb, 'usuarios', uid, nome);
 };
 
-const docRef = (nome, id) => {
-  const uid = getUserId();
-  return doc(firestoreDb, 'usuarios', uid, nome, id);
+const docRef = async (nome, id) => {
+  const uid = await getUserId();
+  return doc(firestoreDb, 'usuarios', uid, nome, String(id));
 };
 
-// Conversão Firestore → objeto plano (id + dados)
-const fromFirestore = (docSnap) => ({
-  id: docSnap.id,
-  ...docSnap.data(),
-});
+const fromFirestore = (docSnap) => ({ id: docSnap.id, ...docSnap.data() });
 
 const toFirestore = (obj) => {
   const copy = { ...obj };
   delete copy.id;
+  Object.keys(copy).forEach((k) => { if (copy[k] === undefined) delete copy[k]; });
   return copy;
 };
 
 // ──────────────────────────────────────────────
-// FUNÇÕES PRINCIPAIS (mesma assinatura do Dexie)
+// BUSCA POR IDs DE DOCUMENTOS
+// Usa documentId() em vez de where('id') — o ID não é um campo de dados.
+// Chunking automático para listas > 30 itens (limite do Firestore).
 // ──────────────────────────────────────────────
+const getDocsByIds = async (colRef, ids) => {
+  if (!ids || ids.length === 0) return [];
+  const stringIds = [...new Set(ids.map(String))];
+  const results = [];
+  const CHUNK = 30;
+  for (let i = 0; i < stringIds.length; i += CHUNK) {
+    const chunk = stringIds.slice(i, i + CHUNK);
+    const q = query(colRef, where(documentId(), 'in', chunk));
+    const snap = await getDocs(q);
+    snap.docs.forEach((d) => results.push(fromFirestore(d)));
+  }
+  return results;
+};
 
-// -- Questões --
-db.questoes = {
+// ──────────────────────────────────────────────
+// FACTORY DE COLEÇÕES
+// ──────────────────────────────────────────────
+const createCollectionHandler = (nome) => ({
   toArray: async () => {
-    const snap = await getDocs(col('questoes'));
+    const c = await col(nome);
+    const snap = await getDocs(c);
     return snap.docs.map(fromFirestore);
   },
+
   get: async (id) => {
-    const snap = await getDoc(docRef('questoes', String(id)));
+    if (!id) return undefined;
+    const dr = await docRef(nome, id);
+    const snap = await getDoc(dr);
     return snap.exists() ? fromFirestore(snap) : undefined;
   },
-  add: async (questao) => {
-    const ref = await addDoc(col('questoes'), toFirestore(questao));
+
+  add: async (item) => {
+    const c = await col(nome);
+    const ref = await addDoc(c, toFirestore(item));
     return ref.id;
   },
+
+  // ✅ bulkAdd — salva múltiplos itens usando writeBatch (lotes de 500)
+  // Usado por ImportarIA (index.jsx) para salvar questões extraídas do PDF.
+  bulkAdd: async (itens) => {
+    if (!itens || itens.length === 0) return [];
+    const uid = await getUserId();
+    const ids = [];
+    const LOTE = 500; // limite do Firestore por batch
+    for (let i = 0; i < itens.length; i += LOTE) {
+      const batch = writeBatch(firestoreDb);
+      const chunk = itens.slice(i, i + LOTE);
+      for (const item of chunk) {
+        const ref = doc(collection(firestoreDb, 'usuarios', uid, nome));
+        batch.set(ref, toFirestore(item));
+        ids.push(ref.id);
+      }
+      await batch.commit();
+    }
+    return ids;
+  },
+
   update: async (id, changes) => {
-    await updateDoc(docRef('questoes', String(id)), toFirestore(changes));
+    const dr = await docRef(nome, id);
+    await updateDoc(dr, toFirestore(changes));
   },
+
   delete: async (id) => {
-    await deleteDoc(docRef('questoes', String(id)));
+    const dr = await docRef(nome, id);
+    await deleteDoc(dr);
   },
+
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      const dr = await docRef(nome, id);
+      await setDoc(dr, toFirestore(data), { merge: true });
+      return String(id);
+    } else {
+      const c = await col(nome);
+      const ref = await addDoc(c, toFirestore(data));
+      return ref.id;
+    }
+  },
+
+  count: async () => {
+    const c = await col(nome);
+    const snap = await getDocs(c);
+    return snap.size;
+  },
+
+  // Filtra por campo de dados (nunca pelo ID do documento)
   where: (campo) => ({
     equals: async (valor) => {
-      const q = query(col('questoes'), where(campo, '==', valor));
+      const c = await col(nome);
+      const q = query(c, where(campo, '==', valor));
       const snap = await getDocs(q);
       return snap.docs.map(fromFirestore);
     },
     anyOf: async (valores) => {
-      const q = query(col('questoes'), where(campo, 'in', valores));
-      const snap = await getDocs(q);
-      return snap.docs.map(fromFirestore);
+      if (!valores || valores.length === 0) return [];
+      const c = await col(nome);
+      const unique = [...new Set(valores)];
+      const results = [];
+      const CHUNK = 30;
+      for (let i = 0; i < unique.length; i += CHUNK) {
+        const chunk = unique.slice(i, i + CHUNK);
+        const q = query(c, where(campo, 'in', chunk));
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => results.push(fromFirestore(d)));
+      }
+      return results;
     },
-  }),
-  count: async () => {
-    const snap = await getDocs(col('questoes'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('questoes'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('questoes', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('questoes'), data);
-      return ref.id;
-    }
-  },
-};
-
-// -- Resultados --
-db.resultados = {
-  toArray: async () => {
-    const snap = await getDocs(col('resultados'));
-    return snap.docs.map(fromFirestore);
-  },
-  add: async (resultado) => {
-    const ref = await addDoc(col('resultados'), toFirestore(resultado));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('resultados', String(id)), toFirestore(changes));
-  },
-  where: (campo) => ({
-    equals: async (valor) => {
-      const q = query(col('resultados'), where(campo, '==', valor));
-      const snap = await getDocs(q);
-      return snap.docs.map(fromFirestore);
-    },
-  }),
-  count: async () => {
-    const snap = await getDocs(col('resultados'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('resultados'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('resultados', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('resultados'), data);
-      return ref.id;
-    }
-  },
-};
-
-// -- Revisão Espaçada --
-db.revisaoEspacada = {
-  where: (campo) => ({
     belowOrEqual: async (valor) => {
-      const q = query(col('revisaoEspacada'), where(campo, '<=', valor));
-      const snap = await getDocs(q);
-      return snap.docs.map(fromFirestore);
-    },
-    equals: async (valor) => {
-      const q = query(col('revisaoEspacada'), where(campo, '==', valor));
+      const c = await col(nome);
+      const q = query(c, where(campo, '<=', valor));
       const snap = await getDocs(q);
       return snap.docs.map(fromFirestore);
     },
   }),
-  toArray: async () => {
-    const snap = await getDocs(col('revisaoEspacada'));
-    return snap.docs.map(fromFirestore);
+
+  // Busca documentos pelos IDs reais do Firestore (não por campo)
+  getByIds: async (ids) => {
+    const c = await col(nome);
+    return getDocsByIds(c, ids);
   },
-  add: async (estado) => {
-    const ref = await addDoc(col('revisaoEspacada'), toFirestore(estado));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('revisaoEspacada', String(id)), toFirestore(changes));
-  },
-  delete: async (id) => {
-    await deleteDoc(docRef('revisaoEspacada', String(id)));
-  },
-  first: async (questaoId) => {
-    const q = query(col('revisaoEspacada'), where('questaoId', '==', String(questaoId)));
-    const snap = await getDocs(q);
-    return snap.empty ? null : fromFirestore(snap.docs[0]);
-  },
-  count: async () => {
-    const snap = await getDocs(col('revisaoEspacada'));
-    return snap.size;
-  },
+
+  // clear usa writeBatch para evitar timeout em grandes coleções
   clear: async () => {
-    const snap = await getDocs(col('revisaoEspacada'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
+    const c = await col(nome);
+    const snap = await getDocs(c);
+    const LOTE = 500;
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += LOTE) {
+      const batch = writeBatch(firestoreDb);
+      docs.slice(i, i + LOTE).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
     }
   },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('revisaoEspacada', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('revisaoEspacada'), data);
-      return ref.id;
-    }
-  },
-};
+});
 
-// -- Sessões --
-db.sessoes = {
-  toArray: async () => {
-    const snap = await getDocs(col('sessoes'));
-    return snap.docs.map(fromFirestore);
-  },
-  add: async (sessao) => {
-    const ref = await addDoc(col('sessoes'), toFirestore(sessao));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('sessoes', String(id)), toFirestore(changes));
-  },
-  delete: async (id) => {
-    await deleteDoc(docRef('sessoes', String(id)));
-  },
-  count: async () => {
-    const snap = await getDocs(col('sessoes'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('sessoes'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('sessoes', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('sessoes'), data);
-      return ref.id;
-    }
-  },
-};
+// ──────────────────────────────────────────────
+// INICIALIZAÇÃO DAS COLEÇÕES
+// ──────────────────────────────────────────────
+const db = {};
 
-// -- Metas --
-db.metas = {
-  toArray: async () => {
-    const snap = await getDocs(col('metas'));
-    return snap.docs.map(fromFirestore);
-  },
-  where: (campo) => ({
-    equals: async (valor) => {
-      const q = query(col('metas'), where(campo, '==', valor));
-      const snap = await getDocs(q);
-      return snap.docs.map(fromFirestore);
-    },
-  }),
-  add: async (meta) => {
-    const ref = await addDoc(col('metas'), toFirestore(meta));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('metas', String(id)), toFirestore(changes));
-  },
-  delete: async (id) => {
-    await deleteDoc(docRef('metas', String(id)));
-  },
-  count: async () => {
-    const snap = await getDocs(col('metas'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('metas'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('metas', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('metas'), data);
-      return ref.id;
-    }
-  },
-};
+db.questoes        = createCollectionHandler('questoes');
+db.resultados      = createCollectionHandler('resultados');
+db.revisaoEspacada = createCollectionHandler('revisaoEspacada');
+db.sessoes         = createCollectionHandler('sessoes');
+db.metas           = createCollectionHandler('metas');
+db.planejamento    = createCollectionHandler('planejamento');
+db.conquistas      = createCollectionHandler('conquistas');
+db.listas          = createCollectionHandler('listas');     // ← BackupRestaurar
+db.simulados       = createCollectionHandler('simulados');  // ← BackupRestaurar
 
-// -- Planejamento --
-db.planejamento = {
-  toArray: async () => {
-    const snap = await getDocs(col('planejamento'));
-    return snap.docs.map(fromFirestore);
-  },
-  add: async (item) => {
-    const ref = await addDoc(col('planejamento'), toFirestore(item));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('planejamento', String(id)), toFirestore(changes));
-  },
-  delete: async (id) => {
-    await deleteDoc(docRef('planejamento', String(id)));
-  },
-  count: async () => {
-    const snap = await getDocs(col('planejamento'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('planejamento'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('planejamento', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('planejamento'), data);
-      return ref.id;
-    }
-  },
-};
-
-// -- Conquistas --
-db.conquistas = {
-  toArray: async () => {
-    const snap = await getDocs(col('conquistas'));
-    return snap.docs.map(fromFirestore);
-  },
-  add: async (item) => {
-    const ref = await addDoc(col('conquistas'), toFirestore(item));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('conquistas', String(id)), toFirestore(changes));
-  },
-  delete: async (id) => {
-    await deleteDoc(docRef('conquistas', String(id)));
-  },
-  count: async () => {
-    const snap = await getDocs(col('conquistas'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('conquistas'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('conquistas', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('conquistas'), data);
-      return ref.id;
-    }
-  },
-};
-
-// -- Listas (nova) --
-db.listas = {
-  toArray: async () => {
-    const snap = await getDocs(col('listas'));
-    return snap.docs.map(fromFirestore);
-  },
-  get: async (id) => {
-    const snap = await getDoc(docRef('listas', String(id)));
-    return snap.exists() ? fromFirestore(snap) : undefined;
-  },
-  add: async (item) => {
-    const ref = await addDoc(col('listas'), toFirestore(item));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('listas', String(id)), toFirestore(changes));
-  },
-  delete: async (id) => {
-    await deleteDoc(docRef('listas', String(id)));
-  },
-  count: async () => {
-    const snap = await getDocs(col('listas'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('listas'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('listas', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('listas'), data);
-      return ref.id;
-    }
-  },
-};
-
-// -- Simulados (nova) --
-db.simulados = {
-  toArray: async () => {
-    const snap = await getDocs(col('simulados'));
-    return snap.docs.map(fromFirestore);
-  },
-  get: async (id) => {
-    const snap = await getDoc(docRef('simulados', String(id)));
-    return snap.exists() ? fromFirestore(snap) : undefined;
-  },
-  add: async (item) => {
-    const ref = await addDoc(col('simulados'), toFirestore(item));
-    return ref.id;
-  },
-  update: async (id, changes) => {
-    await updateDoc(docRef('simulados', String(id)), toFirestore(changes));
-  },
-  delete: async (id) => {
-    await deleteDoc(docRef('simulados', String(id)));
-  },
-  count: async () => {
-    const snap = await getDocs(col('simulados'));
-    return snap.size;
-  },
-  clear: async () => {
-    const snap = await getDocs(col('simulados'));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
-  },
-  put: async (item) => {
-    const { id, ...data } = item;
-    if (id) {
-      await setDoc(docRef('simulados', String(id)), data, { merge: true });
-      return String(id);
-    } else {
-      const ref = await addDoc(col('simulados'), data);
-      return ref.id;
-    }
-  },
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// FUNÇÕES COMPOSTAS (Dashboard e auxiliares)
-// ═══════════════════════════════════════════════════════════════════════════
-
-db.getDashboardData = async () => {
-  const [resultados, questoes, sessoes, estadosSM2, metas, planejamento] = await Promise.all([
-    db.resultados.toArray(),
-    db.questoes.toArray(),
-    db.sessoes.toArray(),
-    db.revisaoEspacada.toArray(),
-    db.metas.toArray(),
-    db.planejamento.toArray(),
-  ]);
-
-  const hoje = new Date();
-  const hojeStr = hoje.toISOString().split('T')[0];
-  const hojeDS = hoje.toDateString();
-
-  const questoesMap = {};
-  questoes.forEach(q => { questoesMap[q.id] = q; });
-  const idsExistentes = new Set(questoes.map(q => String(q.id)));
-
-  const hojeRs = resultados.filter(r => {
-    const d = r.data ? new Date(r.data) : new Date(0);
-    return d.toDateString() === hojeDS;
-  });
-  const sessoesHoje = sessoes.filter(s => {
-    const d = s.data ? new Date(s.data) : new Date(0);
-    return d.toDateString() === hojeDS;
-  });
-  const tempoHojeMin = Math.round(sessoesHoje.reduce((a, s) => a + (s.duracao || 0), 0) / 60);
-
-  const total = resultados.length;
-  const acertos = resultados.filter(r => r.acertou).length;
-  const taxa = total ? Number(((acertos / total) * 100).toFixed(1)) : 0;
-
-  const datasUnicas = [...new Set(resultados.map(r => {
-    const d = r.data ? new Date(r.data) : new Date(0);
-    return d.toDateString();
-  }))];
-  let streak = 0;
-  const d = new Date(); d.setHours(0,0,0,0);
-  for (let i = 0; i < 365; i++) {
-    if (datasUnicas.includes(d.toDateString())) { streak++; d.setDate(d.getDate() - 1); }
-    else break;
-  }
-
-  const revisoesHoje = estadosSM2.filter(
-    e => e.proximaRevisao <= hojeStr && idsExistentes.has(String(e.questaoId))
-  ).length;
-
-  const ultimoPorQuestao = {};
-  resultados.forEach(r => {
-    const id = String(r.id_questao || '');
-    if (!id || !idsExistentes.has(id)) return;
-    const data = r.data || '';
-    if (!ultimoPorQuestao[id] || data > ultimoPorQuestao[id].data) {
-      ultimoPorQuestao[id] = r;
-    }
-  });
-  const errosCount = Object.values(ultimoPorQuestao).filter(r => r.acertou === false || r.acertou === 0).length;
-
-  const ultimos7 = Array.from({ length: 7 }, (_, i) => {
-    const dia = new Date();
-    dia.setDate(dia.getDate() - (6 - i));
-    dia.setHours(0,0,0,0);
-    const fim = new Date(dia); fim.setHours(23,59,59);
-    const rs = resultados.filter(r => {
-      const rd = r.data ? new Date(r.data) : new Date(0);
-      return rd >= dia && rd <= fim;
-    });
-    return {
-      label: dia.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
-      data: dia.toISOString().split('T')[0],
-      total: rs.length,
-      acertos: rs.filter(r => r.acertou).length,
-      isHoje: dia.toDateString() === hojeDS,
-    };
-  });
-
-  const errosPorMateria = {};
-  resultados.filter(r => !r.acertou).forEach(r => {
-    const q = questoesMap[r.id_questao];
-    if (!q?.materia) return;
-    errosPorMateria[q.materia] = (errosPorMateria[q.materia] || 0) + 1;
-  });
-  const topErros = Object.entries(errosPorMateria)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0,3)
-    .map(([materia, count]) => ({ materia, count }));
-
-  const progressoMetas = metas.map(meta => {
-    let atual = 0;
-    if (meta.tipo === 'questoes_dia') atual = hojeRs.length;
-    if (meta.tipo === 'taxa_acerto') {
-      const tHoje = hojeRs.length;
-      const aHoje = hojeRs.filter(r => r.acertou).length;
-      atual = tHoje ? Number(((aHoje / tHoje) * 100).toFixed(1)) : 0;
-    }
-    if (meta.tipo === 'streak') atual = streak;
-    if (meta.tipo === 'tempo_dia') atual = tempoHojeMin;
-    return { ...meta, atual, percentual: meta.valor ? Math.min(Math.round((atual / meta.valor) * 100), 100) : 0 };
-  });
-
-  const diaSemanaHoje = (() => {
-    const js = new Date().getDay();
-    return js === 0 ? 6 : js - 1;
-  })();
-  const blocosHoje = planejamento.filter(b => b.dia === diaSemanaHoje);
-  const blocosConcluidos = blocosHoje.filter(b => b.concluido).length;
-
-  const insights = [];
-  if (revisoesHoje > 0) {
-    insights.push({
-      tipo: 'urgente', icone: '🧠',
-      titulo: `${revisoesHoje} revisão${revisoesHoje > 1 ? 'ões' : ''} pendente${revisoesHoje > 1 ? 's' : ''}`,
-      desc: 'Revise agora para maximizar a retenção de longo prazo.',
-      acao: 'revisao', cor: '#6366f1',
-    });
-  }
-  if (errosCount > 5) {
-    insights.push({
-      tipo: 'atencao', icone: '📓',
-      titulo: `${errosCount} questões no caderno de erros`,
-      desc: topErros[0] ? `${topErros[0].materia} é sua maior dificuldade.` : 'Revise os erros para evoluir.',
-      acao: 'caderno', cor: '#ef4444',
-    });
-  }
-  if (streak >= 3 && hojeRs.length === 0) {
-    insights.push({
-      tipo: 'alerta', icone: '🔥',
-      titulo: `Sequência de ${streak} dias em risco!`,
-      desc: 'Responda ao menos uma questão para manter sua streak.',
-      acao: 'freestyle', cor: '#f59e0b',
-    });
-  }
-  if (hojeRs.length >= 10) {
-    const taxaHoje = hojeRs.length ? Math.round((hojeRs.filter(r => r.acertou).length / hojeRs.length) * 100) : 0;
-    insights.push({
-      tipo: 'conquista', icone: taxaHoje >= 70 ? '🏆' : '💪',
-      titulo: taxaHoje >= 70 ? `${taxaHoje}% de acerto hoje!` : `${hojeRs.length} questões respondidas`,
-      desc: taxaHoje >= 70 ? 'Excelente desempenho! Continue assim.' : 'Bom ritmo, foque na qualidade.',
-      acao: null, cor: '#10b981',
-    });
-  }
-
-  return {
-    total, acertos, taxa,
-    tempoHojeMin,
-    questoesHoje: hojeRs.length,
-    streak,
-    revisoesHoje,
-    errosCount,
-    ultimos7,
-    progressoMetas,
-    blocosHoje,
-    blocosConcluidos,
-    totalBlocosHoje: blocosHoje.length,
-    insights,
-    topErros,
-    totalQuestoesBanco: questoes.length,
-  };
+// ──────────────────────────────────────────────
+// REVISÃO ESPAÇADA
+// ──────────────────────────────────────────────
+db.revisaoEspacada.first = async (questaoId) => {
+  const res = await db.revisaoEspacada.where('questaoId').equals(String(questaoId));
+  return res.length > 0 ? res[0] : null;
 };
 
 db.getQuestoesParaRevisarHoje = async () => {
   const hoje = new Date().toISOString().split('T')[0];
   const estados = await db.revisaoEspacada.where('proximaRevisao').belowOrEqual(hoje);
   if (estados.length === 0) return [];
-  const ids = estados.map(e => e.questaoId);
-  const questoes = await db.questoes.where('id').anyOf(ids);
-  return questoes.map(q => ({
-    ...q,
-    sm2: estados.find(e => String(e.questaoId) === String(q.id))
-  })).filter(q => q.sm2);
+  const ids = estados.map((e) => e.questaoId);
+  const questoes = await db.questoes.getByIds(ids); // ← usa documentId(), correto
+  return questoes
+    .map((q) => ({
+      ...q,
+      sm2: estados.find((e) => String(e.questaoId) === String(q.id)),
+    }))
+    .filter((q) => q.sm2);
 };
 
+// ✅ Usado por useRevisoesHoje.jsx — estava faltando no database.js anterior
 db.getContagemRevisaoHoje = async () => {
   const hoje = new Date().toISOString().split('T')[0];
   const estados = await db.revisaoEspacada.where('proximaRevisao').belowOrEqual(hoje);
   return estados.length;
 };
 
-db.getEstadoRevisao = async (questaoId) => {
-  return db.revisaoEspacada.first(questaoId);
-};
+db.getEstadoRevisao    = async (questaoId) => db.revisaoEspacada.first(questaoId);
 
 db.salvarEstadoRevisao = async (estado) => {
   const existente = await db.getEstadoRevisao(estado.questaoId);
@@ -640,78 +304,175 @@ db.salvarEstadoRevisao = async (estado) => {
   else await db.revisaoEspacada.add(estado);
 };
 
-db.removerDaRevisao = async (questaoId) => {
-  const estado = await db.getEstadoRevisao(questaoId);
-  if (estado) await db.revisaoEspacada.delete(estado.id);
-};
-
-db.getEstatisticasGerais = async () => {
-  const data = await db.getDashboardData();
-  return {
-    totalQuestoes: data.total,
-    acertos: data.acertos,
-    taxa: data.taxa,
-    tempoHoje: data.tempoHojeMin,
-    questoesHoje: data.questoesHoje,
-  };
-};
-
-db.getStreak = async () => {
-  const data = await db.getDashboardData();
-  return data.streak;
-};
-
+// ──────────────────────────────────────────────
+// LISTAS DE QUESTÕES
+// ✅ Usado por Lista.jsx — estava faltando no database.js anterior
+// Uma lista deve ter o campo `questoesIds: string[]` com os IDs das questões.
+// ──────────────────────────────────────────────
 db.getQuestoesDaLista = async (lista) => {
-  const qs = await Promise.all(lista.questoes.map(id => db.questoes.get(id)));
-  return qs.filter(Boolean);
+  if (!lista) return [];
+
+  if (Array.isArray(lista.questoesIds) && lista.questoesIds.length > 0) {
+    return db.questoes.getByIds(lista.questoesIds);
+  }
+
+  // Fallback para formato legado com campo id_lista nas questões
+  if (lista.id) {
+    return db.questoes.where('id_lista').equals(String(lista.id));
+  }
+
+  return [];
 };
 
-db.getProgressoMetas = async () => {
-  const data = await db.getDashboardData();
-  return data.progressoMetas;
-};
-
+// ──────────────────────────────────────────────
+// METAS
+// ✅ Usado por Metas.jsx — estava faltando no database.js anterior
+// ──────────────────────────────────────────────
 db.salvarMeta = async ({ tipo, valor, label }) => {
   const existentes = await db.metas.where('tipo').equals(tipo);
   if (existentes.length > 0) {
-    await db.metas.update(existentes[0].id, { valor, label });
+    await db.metas.update(existentes[0].id, { tipo, valor, label });
   } else {
     await db.metas.add({ tipo, valor, label });
   }
 };
 
-db.getStatsConquistas = async () => {
-  const [resultados, sessoes, questoes] = await Promise.all([
+db.getProgressoMetas = async () => {
+  const [metas, resultados] = await Promise.all([
+    db.metas.toArray(),
     db.resultados.toArray(),
-    db.sessoes.toArray(),
-    db.questoes.toArray(),
   ]);
-  const total = resultados.length;
-  const acertos = resultados.filter(r => r.acertou).length;
-  const taxa = total ? Number(((acertos / total) * 100).toFixed(1)) : 0;
 
-  const datas = [...new Set(resultados.map(r => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const hojeStr = hoje.toDateString();
+
+  const hojeRs = resultados.filter((r) => {
+    const d = r.data ? new Date(r.data) : new Date(0);
+    return d.toDateString() === hojeStr;
+  });
+
+  // Streak de dias consecutivos
+  const datas = [...new Set(resultados.map((r) => {
     const d = r.data ? new Date(r.data) : new Date(0);
     return d.toDateString();
   }))];
   let streak = 0;
-  const d = new Date(); d.setHours(0,0,0,0);
-  for (let i = 0; i < 365; i++) {
-    if (datas.includes(d.toDateString())) { streak++; d.setDate(d.getDate() - 1); }
-    else break;
+  let dCheck = new Date(hoje);
+  while (datas.includes(dCheck.toDateString())) {
+    streak++;
+    dCheck.setDate(dCheck.getDate() - 1);
   }
 
-  const simsUnicos = new Set(resultados.filter(r => r.modo === 'simulado').map(r => r.simuladoNome).filter(Boolean)).size;
-  const questoesMap = {};
-  questoes.forEach(q => { questoesMap[q.id] = q; });
-  const materiasUnicas = new Set(resultados.map(r => questoesMap[r.id_questao]?.materia).filter(Boolean)).size;
+  const totalR   = resultados.length;
+  const acertosR = resultados.filter((r) => r.acertou).length;
+  const taxaGeral = totalR ? Math.round((acertosR / totalR) * 100) : 0;
+  const tempoHojeMin = Math.round(hojeRs.reduce((acc, r) => acc + (r.tempo || 0), 0) / 60);
 
-  return { total, taxa, streak, simulados: simsUnicos, pomodoros: sessoes.length, materias: materiasUnicas };
+  // Valores atuais por tipo de meta
+  const ATUAIS = {
+    questoes_dia: hojeRs.length,
+    taxa_acerto:  taxaGeral,
+    streak,
+    tempo_dia:    tempoHojeMin,
+  };
+
+  return metas.map((m) => {
+    const atual      = ATUAIS[m.tipo] ?? 0;
+    const percentual = m.valor > 0 ? Math.min(Math.round((atual / m.valor) * 100), 150) : 0;
+    return { ...m, atual, percentual };
+  });
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Compatibilidade com código antigo
-// ═══════════════════════════════════════════════════════════════════════════
-export const invalidateCache = () => {};
+// ──────────────────────────────────────────────
+// DASHBOARD
+// ──────────────────────────────────────────────
+db.getDashboardData = async () => {
+  const [questoes, resultados, , , revisoes] = await Promise.all([
+    db.questoes.toArray(),
+    db.resultados.toArray(),
+    db.metas.toArray(),
+    db.planejamento.toArray(),
+    db.revisaoEspacada.toArray(),
+  ]);
 
+  const total   = resultados.length;
+  const acertos = resultados.filter((r) => r.acertou).length;
+  const taxa    = total ? Number(((acertos / total) * 100).toFixed(1)) : 0;
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const hojeDS  = hoje.toDateString();
+  const hojeIso = hoje.toISOString().split('T')[0];
+
+  const hojeRs = resultados.filter((r) => {
+    const d = r.data ? new Date(r.data) : new Date(0);
+    return d.toDateString() === hojeDS;
+  });
+
+  const datasCompletas = [...new Set(resultados.map((r) => {
+    const d = r.data ? new Date(r.data) : new Date(0);
+    return d.toDateString();
+  }))];
+  let streak = 0;
+  let dCheck = new Date(hoje);
+  while (datasCompletas.includes(dCheck.toDateString())) {
+    streak++;
+    dCheck.setDate(dCheck.getDate() - 1);
+  }
+
+  const tempoHojeMin = Math.round(hojeRs.reduce((acc, r) => acc + (r.tempo || 0), 0) / 60);
+  const revisoesHoje = revisoes.filter((rev) => rev.proximaRevisao <= hojeIso).length;
+
+  const idsExistentes = new Set(questoes.map((q) => String(q.id)));
+  const ultimoPorQuestao = {};
+  resultados.forEach((r) => {
+    const qid = String(r.id_questao || '');
+    if (!qid || !idsExistentes.has(qid)) return;
+    if (!ultimoPorQuestao[qid] || r.data > ultimoPorQuestao[qid].data) {
+      ultimoPorQuestao[qid] = r;
+    }
+  });
+  const errosCount = Object.values(ultimoPorQuestao).filter((r) => !r.acertou).length;
+
+  const ultimos7 = Array.from({ length: 7 }, (_, i) => {
+    const dia = new Date();
+    dia.setDate(dia.getDate() - (6 - i));
+    dia.setHours(0, 0, 0, 0);
+    const diaIso = dia.toISOString().split('T')[0];
+    const rs = resultados.filter((r) => {
+      const rd = r.data ? new Date(r.data).toISOString().split('T')[0] : '';
+      return rd === diaIso;
+    });
+    return {
+      label:   dia.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+      data:    diaIso,
+      total:   rs.length,
+      acertos: rs.filter((r) => r.acertou).length,
+      isHoje:  dia.toDateString() === hojeDS,
+    };
+  });
+
+  return {
+    total, acertos, taxa,
+    tempoHojeMin,
+    questoesHoje:       hojeRs.length,
+    streak,
+    revisoesHoje,
+    errosCount,
+    ultimos7,
+    totalQuestoesBanco: questoes.length,
+  };
+};
+
+// ──────────────────────────────────────────────
+// ATENÇÃO — firebase.js
+// Remova esta linha do seu firebase.js para evitar conflito de instâncias:
+//   export const db = getFirestore(app);   ← REMOVA
+//
+// Onde você importava db do firebase, use este arquivo:
+//   import { db } from './database';
+// ──────────────────────────────────────────────
+
+export const invalidateCache = () => {};
 export { db };
