@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import Login from './Login';
 import EmailVerification from './EmailVerification';
 import VerificationSuccess from './VerificationSuccess';
+import LoadingScreen from './LoadingScreen';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 
@@ -13,13 +14,15 @@ const Root = () => {
   const { user, emailVerified, loading } = useAuth();
   const [showSuccess, setShowSuccess] = React.useState(false);
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: 100, fontSize: 18 }}>
-        Verificando autenticação…
-      </div>
-    );
-  }
+  const prevVerified = React.useRef(false);
+  React.useEffect(() => {
+    if (emailVerified && !prevVerified.current && user) {
+      setShowSuccess(true);
+    }
+    prevVerified.current = emailVerified;
+  }, [emailVerified]);
+
+  if (loading) return <LoadingScreen />;
 
   if (!user) return <Login />;
 
