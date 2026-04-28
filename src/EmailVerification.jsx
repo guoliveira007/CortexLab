@@ -63,32 +63,18 @@ const IconRefresh = () => (
 
 /* ─── Component ──────────────────────────────────────────────── */
 const COOLDOWN_SECONDS = 60;
-const POLL_INTERVAL_MS = 5000;
 
-const EmailVerification = () => {
+const EmailVerification = ({ onVerified }) => {
   const user = auth.currentUser;
   const { refreshUser } = useAuth();
   const [resendLoading, setResendLoading] = useState(false);
   const [checkLoading,  setCheckLoading]  = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  const [cooldown,      setCooldown]      = useState(0); // seconds remaining
+  const [cooldown,      setCooldown]      = useState(0);
   const [error,         setError]         = useState('');
 
-  const pollRef    = useRef(null);
   const cooldownRef = useRef(null);
 
-  /* ── Polling automático a cada 5s ─────────────────────────── */
-  useEffect(() => {
-    pollRef.current = setInterval(async () => {
-      try {
-        await refreshUser();
-      } catch {
-        // Silencioso: tenta no próximo ciclo
-      }
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(pollRef.current);
-  }, []);
 
   /* ── Cooldown counter ─────────────────────────────────────── */
   useEffect(() => {
@@ -127,7 +113,9 @@ const EmailVerification = () => {
     setError(''); setCheckLoading(true);
     try {
       await refreshUser();
-      if (!auth.currentUser.emailVerified) {
+      if (auth.currentUser.emailVerified) {
+        onVerified(); // dispara a tela de sucesso no main.jsx
+      } else {
         setError('E-mail ainda não verificado. Clique no link que enviamos.');
       }
     } catch {
@@ -208,7 +196,7 @@ const EmailVerification = () => {
           {[
             'Abra o e-mail que enviamos',
             'Clique em "Verificar e-mail"',
-            'Esta tela redireciona sozinha',
+            'Volte aqui e clique em "Já verifiquei"',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: i < 2 ? '10px' : 0 }}>
               <div style={{
@@ -225,11 +213,6 @@ const EmailVerification = () => {
             </div>
           ))}
         </div>
-
-        {/* Indicador de polling */}
-        <p style={{ margin: '0 0 20px', fontSize: '12px', color: 'rgba(255,255,255,0.22)', lineHeight: '1.5' }}>
-          Verificando automaticamente a cada 5 segundos…
-        </p>
 
         {/* Botão: já verifiquei */}
         <button

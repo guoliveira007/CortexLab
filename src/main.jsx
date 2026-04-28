@@ -13,15 +13,6 @@ const Root = () => {
   const { user, emailVerified, loading } = useAuth();
   const [showSuccess, setShowSuccess] = React.useState(false);
 
-  // Quando emailVerified virar true durante a sessão, mostra tela de sucesso
-  const prevVerified = React.useRef(false);
-  React.useEffect(() => {
-    if (emailVerified && !prevVerified.current && user) {
-      setShowSuccess(true);
-    }
-    prevVerified.current = emailVerified;
-  }, [emailVerified]);
-
   if (loading) {
     return (
       <div style={{ textAlign: 'center', marginTop: 100, fontSize: 18 }}>
@@ -30,16 +21,12 @@ const Root = () => {
     );
   }
 
-  // Não autenticado
   if (!user) return <Login />;
 
-  // Conta recém-verificada → tela de sucesso de 8s
   if (showSuccess) return <VerificationSuccess onDone={() => setShowSuccess(false)} />;
 
-  // Autenticado mas e-mail não verificado
-  if (!emailVerified) return <EmailVerification />;
+  if (!emailVerified) return <EmailVerification onVerified={() => setShowSuccess(true)} />;
 
-  // Autenticado e verificado
   return (
     <>
       <div style={{ position: 'fixed', top: 10, right: 10, zIndex: 9999 }}>
