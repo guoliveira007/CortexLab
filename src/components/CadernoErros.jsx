@@ -360,14 +360,14 @@ const CadernoErros = ({ onFechar }) => {
   /* ─── Render ─── */
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, padding: '16px',
+      zIndex: 9999, padding: '16px',
     }}>
       <div style={{
         background: 'white', borderRadius: 'var(--r-2xl)',
-        width: '100%', maxWidth: '900px', maxHeight: '92vh',
+        width: '100%', maxWidth: '900px', height: '85vh', minHeight: '500px',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
         border: '1px solid var(--gray-100)',
