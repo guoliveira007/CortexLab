@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '../database';
 import { toast } from 'react-hot-toast';
-import { useAutoBackup } from '../hooks/useAutoBackup';
-import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 const TABELAS = [
   'questoes', 'resultados', 'listas', 'simulados',
@@ -13,34 +11,49 @@ const TABELAS = [
 const exportarBanco = async () => {
   const dados = {};
   for (const tabela of TABELAS) {
-    try { dados[tabela] = await db[tabela].toArray(); }
-    catch { dados[tabela] = []; }
+    try {
+      dados[tabela] = await db[tabela].toArray();
+    } catch {
+      dados[tabela] = [];
+    }
   }
   dados._exportadoEm = new Date().toISOString();
-  dados._versao      = 3;
+  dados._versao = 3;
   return dados;
 };
 
 const baixarJSON = (dados) => {
   const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
   a.download = `cortexlab-backup-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
   a.click();
   URL.revokeObjectURL(url);
 };
 
+/* ── Função segura de importação compatível com Firestore ── */
 const importarBanco = async (dados, modo) => {
   if (!dados._versao) throw new Error('Arquivo de backup inválido.');
   for (const tabela of TABELAS) {
     if (!Array.isArray(dados[tabela])) continue;
-    if (modo === 'substituir') await db[tabela].clear();
+    if (modo === 'substituir') {
+      try {
+        await db[tabela].clear();
+      } catch (e) {
+        console.warn(`Erro ao limpar tabela ${tabela}:`, e);
+      }
+    }
     for (const item of dados[tabela]) {
       try {
-        if (modo === 'substituir') await db[tabela].add(item);
-        else await db[tabela].put(item);
-      } catch { /* ignora duplicatas */ }
+        if (modo === 'substituir') {
+          await db[tabela].add(item);
+        } else {
+          await db[tabela].put(item);
+        }
+      } catch (e) {
+        console.warn(`Erro ao importar item em ${tabela}:`, e);
+      }
     }
   }
 };
@@ -82,55 +95,33 @@ const Toggle = ({ value, onChange }) => (
 
 /* ── BackupRestaurar ── */
 const BackupRestaurar = () => {
-  const [stats, setStats]             = useState({});
-  const [exportando, setExportando]   = useState(false);
-  const [importando, setImportando]   = useState(false);
+  const [stats, setStats] = useState({});
+  const [exportando, setExportando] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [arquivoInfo, setArquivoInfo] = useState(null);
   const [dadosImport, setDadosImport] = useState(null);
-  const [modoImport, setModoImport]   = useState('merge');
+  const [modoImport, setModoImport] = useState('merge');
   const [ultimoBackup, setUltimoBackup] = useState('');
-  const [autoBackup, setAutoBackup]   = useState(
+  const [autoBackup, setAutoBackup] = useState(
     () => localStorage.getItem('auto_backup') === 'true'
   );
-  const [autoNuvem, setAutoNuvem]     = useState(
-    () => localStorage.getItem('cortexlab_auto_nuvem') === 'true'
-  );
-  const [conectando, setConectando]   = useState(false);
 
-  useAutoBackup(autoBackup);
-
-  const {
-    conectado, salvando, restaurando, ultimoEnvio,
-    conectar, desconectar, enviarBackup, restaurarDoDrive,
-  } = useGoogleDrive();
-
-  // Auto-backup na nuvem: envia a cada 24h enquanto ativo
-  useEffect(() => {
-    if (!autoNuvem || !conectado) return;
-    const intervalo = setInterval(async () => {
+  const carregarStats = useCallback(async () => {
+    const s = {};
+    for (const t of TABELAS) {
       try {
-        const dados = await exportarBanco();
-        await enviarBackup(JSON.stringify(dados, null, 2));
-      } catch (e) {
-        console.error('[AutoNuvem]', e);
+        s[t] = await db[t].count();
+      } catch {
+        s[t] = 0;
       }
-    }, 24 * 60 * 60 * 1000);
-    return () => clearInterval(intervalo);
-  }, [autoNuvem, conectado, enviarBackup]);
+    }
+    setStats(s);
+  }, []);
 
   useEffect(() => {
     carregarStats();
     setUltimoBackup(localStorage.getItem('ultimo_backup') || '');
-  }, []);
-
-  const carregarStats = async () => {
-    const s = {};
-    for (const t of TABELAS) {
-      try { s[t] = await db[t].count(); }
-      catch { s[t] = 0; }
-    }
-    setStats(s);
-  };
+  }, [carregarStats]);
 
   const handleExportar = async () => {
     setExportando(true);
@@ -160,7 +151,7 @@ const BackupRestaurar = () => {
         setArquivoInfo({
           nome: file.name,
           data: dados._exportadoEm ? new Date(dados._exportadoEm).toLocaleString('pt-BR') : 'desconhecida',
-          questoes:   dados.questoes?.length   || 0,
+          questoes: dados.questoes?.length || 0,
           resultados: dados.resultados?.length || 0,
         });
       } catch {
@@ -196,56 +187,12 @@ const BackupRestaurar = () => {
     toast(novo ? '✅ Auto-backup local ativado.' : 'Auto-backup local desativado.');
   };
 
-  const toggleAutoNuvem = () => {
-    const novo = !autoNuvem;
-    setAutoNuvem(novo);
-    localStorage.setItem('cortexlab_auto_nuvem', String(novo));
-    toast(novo ? '☁️ Auto-backup na nuvem ativado.' : 'Auto-backup na nuvem desativado.');
-  };
-
-  const handleConectar = async () => {
-    setConectando(true);
-    try {
-      await conectar();
-      toast.success('✅ Google Drive conectado!');
-    } catch (e) {
-      toast.error('Erro ao conectar: ' + e.message);
-    } finally {
-      setConectando(false);
-    }
-  };
-
-  const handleDesconectar = () => {
-    desconectar();
-    setAutoNuvem(false);
-    localStorage.setItem('cortexlab_auto_nuvem', 'false');
-    toast('Google Drive desconectado.');
-  };
-
-  const handleEnviarAgora = async () => {
-    try {
-      const dados = await exportarBanco();
-      await enviarBackup(JSON.stringify(dados, null, 2));
-      toast.success('☁️ Backup enviado para o Google Drive!');
-    } catch (e) {
-      toast.error('Erro ao enviar: ' + e.message);
-    }
-  };
-
-  const handleRestaurarDrive = async () => {
-    try {
-      const dados = await restaurarDoDrive();
-      await importarBanco(dados, 'merge');
-      toast.success('✅ Backup restaurado do Google Drive!');
-      carregarStats();
-    } catch (e) {
-      toast.error('Erro ao restaurar: ' + e.message);
-    }
-  };
-
   const restaurarAutoBackup = async () => {
     const backupStr = localStorage.getItem('cortexlab_autobackup');
-    if (!backupStr) { toast.error('Nenhum backup automático encontrado.'); return; }
+    if (!backupStr) {
+      toast.error('Nenhum backup automático encontrado.');
+      return;
+    }
     try {
       const dados = JSON.parse(backupStr);
       await importarBanco(dados, 'merge');
@@ -267,99 +214,6 @@ const BackupRestaurar = () => {
             Exporte e importe todos os seus dados com segurança.
           </p>
         </div>
-      </div>
-
-      {/* ── Google Drive ── */}
-      <div className="card" style={{ marginBottom: '20px', border: conectado ? '1.5px solid #34d399' : '1.5px solid var(--gray-200)' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{
-            width: '44px', height: '44px', borderRadius: 'var(--r-md)',
-            background: 'linear-gradient(135deg, #4285F4, #34A853)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px',
-          }}>☁️</div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '16px' }}>
-              Backup no Google Drive
-            </h3>
-            <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginTop: '2px' }}>
-              {conectado
-                ? '✅ Conectado — seus dados são enviados direto para a nuvem.'
-                : 'Conecte sua conta Google para backup automático na nuvem.'}
-            </p>
-          </div>
-          {conectado && (
-            <span style={{
-              background: '#d1fae5', color: '#065f46',
-              fontSize: '11px', fontWeight: 700,
-              padding: '3px 10px', borderRadius: '999px',
-            }}>CONECTADO</span>
-          )}
-        </div>
-
-        {conectado ? (
-          <>
-            <div style={{
-              padding: '12px 14px', marginBottom: '12px',
-              background: autoNuvem ? 'var(--brand-50)' : 'var(--gray-50)',
-              border: `1px solid ${autoNuvem ? 'var(--brand-200)' : 'var(--gray-200)'}`,
-              borderRadius: 'var(--r-md)',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
-            }}>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: autoNuvem ? 'var(--brand-700)' : 'var(--gray-700)' }}>
-                  Auto-backup na nuvem
-                </p>
-                <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '2px' }}>
-                  Envia automaticamente ao alterar dados (10s de debounce)
-                </p>
-                {ultimoEnvio && (
-                  <p style={{ fontSize: '10px', color: 'var(--gray-400)', marginTop: '2px' }}>
-                    Último envio: {ultimoEnvio}
-                  </p>
-                )}
-              </div>
-              <Toggle value={autoNuvem} onChange={toggleAutoNuvem} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-              <button
-                className="btn-primary"
-                onClick={handleEnviarAgora}
-                disabled={salvando}
-                style={{ justifyContent: 'center', padding: '10px' }}
-              >
-                {salvando ? '⏳ Enviando...' : '☁️ Enviar backup agora'}
-              </button>
-              <button
-                className="btn-secondary"
-                onClick={handleRestaurarDrive}
-                disabled={restaurando}
-                style={{ justifyContent: 'center', padding: '10px' }}
-              >
-                {restaurando ? '⏳ Restaurando...' : '🔄 Restaurar do Drive'}
-              </button>
-            </div>
-
-            <button
-              onClick={handleDesconectar}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--gray-400)', fontSize: '12px', padding: '4px 0',
-              }}
-            >
-              Desconectar Google Drive
-            </button>
-          </>
-        ) : (
-          <button
-            className="btn-primary"
-            onClick={handleConectar}
-            disabled={conectando}
-            style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '15px' }}
-          >
-            {conectando ? '⏳ Abrindo navegador...' : '🔗 Conectar Google Drive'}
-          </button>
-        )}
       </div>
 
       {/* ── Exportar + Importar ── */}

@@ -8,6 +8,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
   query,
   where,
 } from 'firebase/firestore';
@@ -89,6 +90,22 @@ db.questoes = {
     const snap = await getDocs(col('questoes'));
     return snap.size;
   },
+  clear: async () => {
+    const snap = await getDocs(col('questoes'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('questoes', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('questoes'), data);
+      return ref.id;
+    }
+  },
 };
 
 // -- Resultados --
@@ -114,6 +131,22 @@ db.resultados = {
   count: async () => {
     const snap = await getDocs(col('resultados'));
     return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('resultados'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('resultados', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('resultados'), data);
+      return ref.id;
+    }
   },
 };
 
@@ -150,6 +183,26 @@ db.revisaoEspacada = {
     const snap = await getDocs(q);
     return snap.empty ? null : fromFirestore(snap.docs[0]);
   },
+  count: async () => {
+    const snap = await getDocs(col('revisaoEspacada'));
+    return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('revisaoEspacada'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('revisaoEspacada', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('revisaoEspacada'), data);
+      return ref.id;
+    }
+  },
 };
 
 // -- Sessões --
@@ -157,6 +210,36 @@ db.sessoes = {
   toArray: async () => {
     const snap = await getDocs(col('sessoes'));
     return snap.docs.map(fromFirestore);
+  },
+  add: async (sessao) => {
+    const ref = await addDoc(col('sessoes'), toFirestore(sessao));
+    return ref.id;
+  },
+  update: async (id, changes) => {
+    await updateDoc(docRef('sessoes', String(id)), toFirestore(changes));
+  },
+  delete: async (id) => {
+    await deleteDoc(docRef('sessoes', String(id)));
+  },
+  count: async () => {
+    const snap = await getDocs(col('sessoes'));
+    return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('sessoes'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('sessoes', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('sessoes'), data);
+      return ref.id;
+    }
   },
 };
 
@@ -180,6 +263,29 @@ db.metas = {
   update: async (id, changes) => {
     await updateDoc(docRef('metas', String(id)), toFirestore(changes));
   },
+  delete: async (id) => {
+    await deleteDoc(docRef('metas', String(id)));
+  },
+  count: async () => {
+    const snap = await getDocs(col('metas'));
+    return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('metas'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('metas', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('metas'), data);
+      return ref.id;
+    }
+  },
 };
 
 // -- Planejamento --
@@ -188,6 +294,36 @@ db.planejamento = {
     const snap = await getDocs(col('planejamento'));
     return snap.docs.map(fromFirestore);
   },
+  add: async (item) => {
+    const ref = await addDoc(col('planejamento'), toFirestore(item));
+    return ref.id;
+  },
+  update: async (id, changes) => {
+    await updateDoc(docRef('planejamento', String(id)), toFirestore(changes));
+  },
+  delete: async (id) => {
+    await deleteDoc(docRef('planejamento', String(id)));
+  },
+  count: async () => {
+    const snap = await getDocs(col('planejamento'));
+    return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('planejamento'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('planejamento', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('planejamento'), data);
+      return ref.id;
+    }
+  },
 };
 
 // -- Conquistas --
@@ -195,6 +331,120 @@ db.conquistas = {
   toArray: async () => {
     const snap = await getDocs(col('conquistas'));
     return snap.docs.map(fromFirestore);
+  },
+  add: async (item) => {
+    const ref = await addDoc(col('conquistas'), toFirestore(item));
+    return ref.id;
+  },
+  update: async (id, changes) => {
+    await updateDoc(docRef('conquistas', String(id)), toFirestore(changes));
+  },
+  delete: async (id) => {
+    await deleteDoc(docRef('conquistas', String(id)));
+  },
+  count: async () => {
+    const snap = await getDocs(col('conquistas'));
+    return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('conquistas'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('conquistas', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('conquistas'), data);
+      return ref.id;
+    }
+  },
+};
+
+// -- Listas (nova) --
+db.listas = {
+  toArray: async () => {
+    const snap = await getDocs(col('listas'));
+    return snap.docs.map(fromFirestore);
+  },
+  get: async (id) => {
+    const snap = await getDoc(docRef('listas', String(id)));
+    return snap.exists() ? fromFirestore(snap) : undefined;
+  },
+  add: async (item) => {
+    const ref = await addDoc(col('listas'), toFirestore(item));
+    return ref.id;
+  },
+  update: async (id, changes) => {
+    await updateDoc(docRef('listas', String(id)), toFirestore(changes));
+  },
+  delete: async (id) => {
+    await deleteDoc(docRef('listas', String(id)));
+  },
+  count: async () => {
+    const snap = await getDocs(col('listas'));
+    return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('listas'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('listas', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('listas'), data);
+      return ref.id;
+    }
+  },
+};
+
+// -- Simulados (nova) --
+db.simulados = {
+  toArray: async () => {
+    const snap = await getDocs(col('simulados'));
+    return snap.docs.map(fromFirestore);
+  },
+  get: async (id) => {
+    const snap = await getDoc(docRef('simulados', String(id)));
+    return snap.exists() ? fromFirestore(snap) : undefined;
+  },
+  add: async (item) => {
+    const ref = await addDoc(col('simulados'), toFirestore(item));
+    return ref.id;
+  },
+  update: async (id, changes) => {
+    await updateDoc(docRef('simulados', String(id)), toFirestore(changes));
+  },
+  delete: async (id) => {
+    await deleteDoc(docRef('simulados', String(id)));
+  },
+  count: async () => {
+    const snap = await getDocs(col('simulados'));
+    return snap.size;
+  },
+  clear: async () => {
+    const snap = await getDocs(col('simulados'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  },
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      await setDoc(docRef('simulados', String(id)), data, { merge: true });
+      return String(id);
+    } else {
+      const ref = await addDoc(col('simulados'), data);
+      return ref.id;
+    }
   },
 };
 
