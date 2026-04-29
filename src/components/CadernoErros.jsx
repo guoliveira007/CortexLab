@@ -180,27 +180,23 @@ const CadernoErros = ({ onFechar }) => {
     try {
       const todosResultados = await db.resultados.toArray();
 
-      // FIX: determina o resultado mais recente de CADA questão (acertou ou não)
       const ultimoPorQuestao = {};
       todosResultados.forEach(r => {
-        const id  = String(r.id_questao || r.questaoId || r.questao_id);
+        const id  = String(r.questaoId || r.id_questao || '');
         if (!id) return;
-        const data = r.data || r.criadoEm || r.created_at || '';
+        const data = r.data || '';
         if (!ultimoPorQuestao[id] || data > ultimoPorQuestao[id].data) {
           ultimoPorQuestao[id] = { ...r, data };
         }
       });
 
-      // Agrupa apenas os resultados errados de questões cujo último resultado
-      // também foi errado (se o aluno acertou depois, sai do caderno).
       const agrupado = {};
       todosResultados
         .filter(r => r.acertou === false || r.acertou === 0)
         .forEach(r => {
-          const id = String(r.id_questao || r.questaoId || r.questao_id);
+          const id = String(r.questaoId || r.id_questao || '');
           if (!id) return;
 
-          // FIX: ignora questões em que o resultado mais recente foi correto
           const ultimo = ultimoPorQuestao[id];
           if (ultimo && (ultimo.acertou === true || ultimo.acertou === 1)) return;
 
@@ -214,13 +210,13 @@ const CadernoErros = ({ onFechar }) => {
             };
           }
           agrupado[id].totalErros += 1;
-          const data = r.data || r.criadoEm || r.created_at;
+          const data = r.data || '';
           if (!agrupado[id].ultimoErro || data > agrupado[id].ultimoErro) {
             agrupado[id].ultimoErro = data;
           }
           if (r.modo) agrupado[id].modos.add(r.modo);
-          if (r.respostaUsuario || r.resposta_usuario) {
-            agrupado[id].respostasErradas.push(r.respostaUsuario || r.resposta_usuario);
+          if (r.respostaUsuario) {
+            agrupado[id].respostasErradas.push(r.respostaUsuario);
           }
         });
 
@@ -287,7 +283,7 @@ const CadernoErros = ({ onFechar }) => {
       const todos = await db.resultados.toArray();
       const idsParaDeletar = todos
         .filter(r => {
-          const id = String(r.id_questao || r.questaoId || r.questao_id);
+          const id = String(r.questaoId || r.id_questao || '');
           return id === idStr && (r.acertou === false || r.acertou === 0);
         })
         .map(r => r.id)

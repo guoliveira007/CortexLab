@@ -412,7 +412,7 @@ const Desempenho = () => {
   const porMateria = useMemo(() => {
     const map = {};
     resultadosFiltrados.forEach(r => {
-      const questao = questoesMap[r.id_questao];
+      const questao = questoesMap[r.questaoId] || questoesMap[r.id_questao];
       const materia = questao?.materia || 'Sem matéria';
       if (!map[materia]) map[materia] = { total: 0, acertos: 0 };
       map[materia].total++;

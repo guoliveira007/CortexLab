@@ -427,7 +427,7 @@ db.getDashboardData = async () => {
   const idsExistentes = new Set(questoes.map((q) => String(q.id)));
   const ultimoPorQuestao = {};
   resultados.forEach((r) => {
-    const qid = String(r.id_questao || '');
+    const qid = String(r.questaoId || r.id_questao || '');
     if (!qid || !idsExistentes.has(qid)) return;
     if (!ultimoPorQuestao[qid] || r.data > ultimoPorQuestao[qid].data) {
       ultimoPorQuestao[qid] = r;
@@ -495,5 +495,4 @@ db.removerDaRevisao = async (questaoId) => {
   }
 };
 
-export const invalidateCache = () => {};
 export { db };

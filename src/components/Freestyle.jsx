@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { db, invalidateCache } from '../database';
+import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
 import Alternativas from './Alternativas';
@@ -145,9 +145,9 @@ const Freestyle = () => {
       if (!q) return sess;
       const acertou = letra === q.gabarito;
       db.resultados.add({
-        id_questao: id, data: new Date().toISOString(),
+        questaoId: id, data: new Date().toISOString(),
         acertou, tempo: 0, modo: 'freestyle',
-      }).then(() => invalidateCache());
+      });
       return sess;
     });
   }, []);

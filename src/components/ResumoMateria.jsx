@@ -199,7 +199,7 @@ const ResumoMateria = () => {
 
     const stats = {};
     resultados.forEach(r => {
-      const q = questoesMap[r.id_questao];
+      const q = questoesMap[r.questaoId] || questoesMap[r.id_questao];
       if (!q?.materia) return;
       if (!stats[q.materia]) stats[q.materia] = { total: 0, erros: 0, questoes: [] };
       stats[q.materia].total++;

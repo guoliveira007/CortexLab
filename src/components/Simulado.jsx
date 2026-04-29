@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { db, invalidateCache } from '../database';
+import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
@@ -147,17 +147,16 @@ const Simulado = () => {
 
     const agora = new Date().toISOString();
     const registros = sessaoQ.map(q => ({
-      id_questao:    q.id,
+      questaoId:     q.id,
       data:          agora,
       acertou:       respostas[q.id] ? respostas[q.id] === q.gabarito : false,
-      resposta:      respostas[q.id] ?? null,   // null = não respondida
+      resposta:      respostas[q.id] ?? null,
       tempo:         0,
       modo:          'simulado',
       simuladoNome:  simAtual?.nome,
     }));
 
     await db.resultados.bulkAdd(registros);
-    invalidateCache();
   }, [sessaoQ, respostas, simAtual]);
 
   const encerrarSimulado = useCallback(async () => {

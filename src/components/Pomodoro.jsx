@@ -150,7 +150,7 @@ const Pomodoro = ({ onFocoConcluido }) => {
       resultadosArr
         .filter(r => r.acertou === false)
         .forEach(r => {
-          const q = questoesArr.find(q => q.id === r.id_questao);
+          const q = questoesArr.find(q => q.id === (r.questaoId || r.id_questao));
           if (q?.materia) mapa[q.materia] = (mapa[q.materia] || 0) + 1;
         });
       const entries = Object.entries(mapa).sort((a, b) => b[1] - a[1]);

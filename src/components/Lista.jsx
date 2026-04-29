@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { db, invalidateCache } from '../database';
+import { db } from '../database';
 import ExplicacaoIA from './ExplicacaoIA';
 import Alternativas from './Alternativas';
 
@@ -62,13 +62,12 @@ const Lista = ({ lista, onVoltar }) => {
       : toast.error(`❌ Resposta: ${questaoAtual.gabarito}`);
 
     await db.resultados.add({
-      id_questao: questaoAtual.id,
+      questaoId: questaoAtual.id,
       data: new Date().toISOString(),
       acertou,
       tempo: timer,
       modo: 'lista',
     });
-    invalidateCache();
   };
 
   const proxima = () => {

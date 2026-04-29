@@ -138,7 +138,7 @@ const MinhasListas = () => {
     if (!q || respostas[idQ]) return;
     setRespostas(prev => ({ ...prev, [idQ]: letra }));
     await db.resultados.add({
-      id_questao: idQ,
+      questaoId: idQ,
       data: new Date().toISOString(),
       acertou: letra === q.gabarito,
       tempo: 0,
