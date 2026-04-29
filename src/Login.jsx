@@ -199,7 +199,6 @@ const Login = () => {
     'auth/email-already-in-use': 'Este e-mail já está em uso.',
     'auth/too-many-requests':    'Muitas tentativas. Aguarde alguns minutos.',
     'auth/weak-password':        'Senha muito fraca. Use ao menos 6 caracteres.',
-    'auth/user-not-found':       'Nenhuma conta encontrada com este e-mail.',
   }[code] ?? 'Algo deu errado. Tente novamente.');
 
   /* ── Forgot password ── */

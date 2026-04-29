@@ -495,4 +495,53 @@ db.removerDaRevisao = async (questaoId) => {
   }
 };
 
+// ──────────────────────────────────────────────
+// STATS PARA CONQUISTAS
+// Retorna os campos que Conquistas.jsx usa para
+// verificar e calcular progresso de cada medalha.
+// ──────────────────────────────────────────────
+db.getStatsConquistas = async () => {
+  const [resultados, sessoes] = await Promise.all([
+    db.resultados.toArray(),
+    db.sessoes.toArray().catch(() => []),
+  ]);
+
+  const total   = resultados.length;
+  const acertos = resultados.filter(r => r.acertou).length;
+  const taxa    = total ? Number(((acertos / total) * 100).toFixed(1)) : 0;
+
+  // streak — dias consecutivos com pelo menos 1 resultado
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const datasCompletas = new Set(resultados.map(r => {
+    const d = r.data ? new Date(r.data) : new Date(0);
+    d.setHours(0, 0, 0, 0);
+    return d.toDateString();
+  }));
+  let streak = 0;
+  const dCheck = new Date(hoje);
+  while (datasCompletas.has(dCheck.toDateString())) {
+    streak++;
+    dCheck.setDate(dCheck.getDate() - 1);
+  }
+
+  // simulados — conjuntos únicos de resultados com modo 'simulado'
+  // cada simulado salva todos os resultados com o mesmo timestamp (mesma chamada bulkAdd)
+  // agrupamos por simuladoNome + data (dia) para contar sessões únicas
+  const simSet = new Set(
+    resultados
+      .filter(r => r.modo === 'simulado' && r.simuladoNome)
+      .map(r => `${r.simuladoNome}__${r.data ? r.data.split('T')[0] : ''}`)
+  );
+  const simulados = simSet.size;
+
+  // pomodoros — sessões de foco concluídas
+  const pomodoros = sessoes.length;
+
+  // materias — disciplinas únicas com pelo menos 1 resultado
+  const materias = new Set(resultados.map(r => r.materia).filter(Boolean)).size;
+
+  return { total, acertos, taxa, streak, simulados, pomodoros, materias };
+};
+
 export { db };
