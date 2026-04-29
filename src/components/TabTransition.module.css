@@ -11,7 +11,9 @@
 
 .wrapper {
   animation: fadeSlideIn 0.22s ease-out;
-  will-change: opacity, transform;   /* hint para o browser usar GPU */
+  /* will-change removido — criava novo stacking context e impedia que
+     position:fixed dos modais escapasse para o viewport, quebrando
+     o backdropFilter: blur() do CadernoErros e RevisaoEspacada */
 }
 
 /* Sem animação para quem prefere menos movimento */

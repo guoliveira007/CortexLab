@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { db } from '../database';
 import {
@@ -208,7 +209,7 @@ const RevisaoEspacada = ({ onFechar }) => {
     }
   }, [questaoAtual, indiceAtual, questoesDoDia.length]);
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', inset: 0,
       background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(6px)',
@@ -435,7 +436,7 @@ const RevisaoEspacada = ({ onFechar }) => {
         </div>
       </div>
     </div>
-  );
+  , document.body);
 };
 
 export default RevisaoEspacada;

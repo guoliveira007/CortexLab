@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,8 +13,9 @@ const firebaseConfig = {
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 
-// Exporta os serviços que vamos usar
+// Exporta apenas auth — o Firestore é inicializado em database.js
+// com persistência offline (persistentLocalCache). Não inicializar aqui
+// evita conflito de instância que desativava o cache local.
 export const auth = getAuth(app);
-export const db = getFirestore(app);
 
 console.log("Firebase inicializado com sucesso!");

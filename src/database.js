@@ -466,13 +466,34 @@ db.getDashboardData = async () => {
 };
 
 // ──────────────────────────────────────────────
-// ATENÇÃO — firebase.js
-// Remova esta linha do seu firebase.js para evitar conflito de instâncias:
-//   export const db = getFirestore(app);   ← REMOVA
-//
-// Onde você importava db do firebase, use este arquivo:
-//   import { db } from './database';
+// BULK DELETE DE RESULTADOS
+// Usado por BancoQuestoes ao excluir uma questão.
+// Remove múltiplos documentos por ID usando writeBatch.
 // ──────────────────────────────────────────────
+db.resultados.bulkDelete = async (ids) => {
+  if (!ids || ids.length === 0) return;
+  const uid = await getUserId();
+  const LOTE = 500;
+  for (let i = 0; i < ids.length; i += LOTE) {
+    const batch = writeBatch(firestoreDb);
+    ids.slice(i, i + LOTE).forEach((id) => {
+      batch.delete(doc(firestoreDb, 'usuarios', uid, 'resultados', String(id)));
+    });
+    await batch.commit();
+  }
+};
+
+// ──────────────────────────────────────────────
+// REMOVER DA REVISÃO ESPAÇADA
+// Usado por BancoQuestoes ao excluir uma questão.
+// Remove todos os estados SM-2 associados à questão.
+// ──────────────────────────────────────────────
+db.removerDaRevisao = async (questaoId) => {
+  const estados = await db.revisaoEspacada.where('questaoId').equals(String(questaoId));
+  for (const e of estados) {
+    await db.revisaoEspacada.delete(e.id);
+  }
+};
 
 export const invalidateCache = () => {};
 export { db };

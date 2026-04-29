@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { FixedSizeList as List } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
@@ -358,7 +359,7 @@ const CadernoErros = ({ onFechar }) => {
   }), [questoesFiltradas, adicionandoSM2, removendo, adicionarRevisao, removerDoCaderno, abrirPreview]);
 
   /* ─── Render ─── */
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(6px)',
@@ -603,7 +604,7 @@ const CadernoErros = ({ onFechar }) => {
         </div>
       )}
     </div>
-  );
+  , document.body);
 };
 
 export default CadernoErros;
