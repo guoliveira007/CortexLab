@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
-import { FixedSizeList as List } from 'react-window';
 import { db } from '../database';
 import { estadoInicial } from './sm2';
 import ProgressBar from './ProgressBar';
@@ -321,38 +320,6 @@ const CadernoErros = ({ onFechar }) => {
       });
   }, [questoesErradas, filtroMateria, filtroModo, filtroPeriodo, ordenacao]);
 
-  /* ── Row renderer para react-window ── */
-  // É CRÍTICO que essa função seja estável — envolve em useCallback
-  // e recebe os dados necessários via itemData (evita closure stale).
-  const RowRenderer = useCallback(({ index, style, data }) => {
-    const { itens, adicionandoSM2: sm2Set, removendo: remSet, onAdicionar, onRemover, onPreview } = data;
-    const q = itens[index];
-    return (
-      // O wrapper com style é obrigatório para react-window posicionar o item
-      <div style={{ ...style, paddingBottom: '10px', boxSizing: 'border-box' }}>
-        <CardQuestao
-          questao={q}
-          adicionandoSM2={sm2Set}
-          removendo={remSet}
-          onAdicionarRevisao={onAdicionar}
-          onRemover={onRemover}
-          onPreview={onPreview}
-        />
-      </div>
-    );
-  }, []);
-
-  // Empacota os dados passados para cada row — deve ser estável (useMemo)
-  // para evitar que react-window re-renderize toda a lista a cada setState.
-  const itemData = useMemo(() => ({
-    itens: questoesFiltradas,
-    adicionandoSM2,
-    removendo,
-    onAdicionar: adicionarRevisao,
-    onRemover: removerDoCaderno,
-    onPreview: abrirPreview,
-  }), [questoesFiltradas, adicionandoSM2, removendo, adicionarRevisao, removerDoCaderno, abrirPreview]);
-
   /* ─── Render ─── */
   return createPortal(
     <div style={{
@@ -497,19 +464,20 @@ const CadernoErros = ({ onFechar }) => {
             </div>
           )}
 
-          {/* Lista sem AutoSizer — width="100%" nativo do react-window */}
+          {/* Lista simples sem virtualização */}
           {!carregando && questoesFiltradas.length > 0 && (
-            <div style={{ height: 'calc(85vh - 220px)', minHeight: '300px' }}>
-              <List
-                height={Math.max(window.innerHeight * 0.85 - 220, 300)}
-                width="100%"
-                itemCount={questoesFiltradas.length}
-                itemSize={ITEM_HEIGHT}
-                itemData={itemData}
-                overscanCount={3}
-              >
-                {RowRenderer}
-              </List>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1 }}>
+              {questoesFiltradas.map(q => (
+                <CardQuestao
+                  key={q.questaoId || q.id}
+                  questao={q}
+                  adicionandoSM2={adicionandoSM2}
+                  removendo={removendo}
+                  onAdicionarRevisao={adicionarRevisao}
+                  onRemover={removerDoCaderno}
+                  onPreview={abrirPreview}
+                />
+              ))}
             </div>
           )}
         </div>

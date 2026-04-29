@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { FixedSizeList as List } from 'react-window';
 import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ImportarCSV from './ImportarCSV';
@@ -387,24 +386,6 @@ const BancoQuestoes = () => {
   const abrirNova = () => { setFormInicial(VAZIO); setEditId(null); setAba('criar'); };
   const cancelar  = () => { setFormInicial(VAZIO); setEditId(null); setAba('listar'); };
 
-  /* ── Row renderer para react-window ── */
-  const RowRenderer = useCallback(({ index, style, data }) => {
-    const { itens, onEditar, onExcluir } = data;
-    const q = itens[index];
-    return (
-      <div style={{ ...style, paddingBottom: '10px', boxSizing: 'border-box' }}>
-        <CardQuestao questao={q} onEditar={onEditar} onExcluir={onExcluir} />
-      </div>
-    );
-  }, []);
-
-  // itemData estável — evita re-render total da lista a cada digitação de filtro
-  const itemData = React.useMemo(() => ({
-    itens: filtradas,
-    onEditar: editar,
-    onExcluir: excluir,
-  }), [filtradas, editar, excluir]);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div className="page-header">
@@ -456,18 +437,11 @@ const BancoQuestoes = () => {
               </div>
             </div>
           ) : (
-            /* Lista sem AutoSizer — width="100%" nativo do react-window */
-            <div style={{ height: 'calc(100vh - 220px)', minHeight: '300px' }}>
-              <List
-                height={Math.max(window.innerHeight - 220, 300)}
-                width="100%"
-                itemCount={filtradas.length}
-                itemSize={ITEM_HEIGHT}
-                itemData={itemData}
-                overscanCount={5}
-              >
-                {RowRenderer}
-              </List>
+            /* Lista simples sem virtualização */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {filtradas.map(q => (
+                <CardQuestao key={q.id} questao={q} onEditar={editar} onExcluir={excluir} />
+              ))}
             </div>
           )}
         </>
