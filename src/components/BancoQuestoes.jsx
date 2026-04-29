@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { FixedSizeList as List } from 'react-window';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ImportarCSV from './ImportarCSV';
@@ -407,7 +406,7 @@ const BancoQuestoes = () => {
   }), [filtradas, editar, excluir]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div className="page-header">
         <h2 className="page-title">Banco de Questões</h2>
         {aba === 'listar' && (
@@ -457,22 +456,18 @@ const BancoQuestoes = () => {
               </div>
             </div>
           ) : (
-            /* Container com altura calculada para AutoSizer funcionar corretamente */
+            /* Lista sem AutoSizer — width="100%" nativo do react-window */
             <div style={{ height: 'calc(100vh - 220px)', minHeight: '300px' }}>
-              <AutoSizer disableHeight>
-                {({ width }) => (
-                  <List
-                    height={Math.max(window.innerHeight - 220, 300)}
-                    width={width}
-                    itemCount={filtradas.length}
-                    itemSize={ITEM_HEIGHT}
-                    itemData={itemData}
-                    overscanCount={5}
-                  >
-                    {RowRenderer}
-                  </List>
-                )}
-              </AutoSizer>
+              <List
+                height={Math.max(window.innerHeight - 220, 300)}
+                width="100%"
+                itemCount={filtradas.length}
+                itemSize={ITEM_HEIGHT}
+                itemData={itemData}
+                overscanCount={5}
+              >
+                {RowRenderer}
+              </List>
             </div>
           )}
         </>

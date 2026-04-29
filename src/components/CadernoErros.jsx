@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { FixedSizeList as List } from 'react-window';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { db } from '../database';
 import { estadoInicial } from './sm2';
 import ProgressBar from './ProgressBar';
@@ -498,23 +497,19 @@ const CadernoErros = ({ onFechar }) => {
             </div>
           )}
 
-          {/* AutoSizer com altura calculada para funcionar fora do Electron */}
+          {/* Lista sem AutoSizer — width="100%" nativo do react-window */}
           {!carregando && questoesFiltradas.length > 0 && (
             <div style={{ height: 'calc(85vh - 220px)', minHeight: '300px' }}>
-              <AutoSizer disableHeight>
-                {({ width }) => (
-                  <List
-                    height={Math.max(window.innerHeight * 0.85 - 220, 300)}
-                    width={width}
-                    itemCount={questoesFiltradas.length}
-                    itemSize={ITEM_HEIGHT}
-                    itemData={itemData}
-                    overscanCount={3}
-                  >
-                    {RowRenderer}
-                  </List>
-                )}
-              </AutoSizer>
+              <List
+                height={Math.max(window.innerHeight * 0.85 - 220, 300)}
+                width="100%"
+                itemCount={questoesFiltradas.length}
+                itemSize={ITEM_HEIGHT}
+                itemData={itemData}
+                overscanCount={3}
+              >
+                {RowRenderer}
+              </List>
             </div>
           )}
         </div>
