@@ -111,7 +111,7 @@ const Simulado = () => {
   };
 
   const iniciarSimulado = async (sim) => {
-    const qs = (await Promise.all(sim.questoes.map(id => db.questoes.get(id)))).filter(Boolean);
+    const qs = (await db.questoes.getByIds(sim.questoes.map(String))).filter(Boolean);
     if (!qs.length) { toast.error('Nenhuma questão disponível neste simulado.'); return; }
     salvandoRef.current = false; // reseta a trava a cada nova sessão
     setSessaoQ(qs); setSimAtual(sim); setRespostas({});

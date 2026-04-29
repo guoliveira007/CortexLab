@@ -125,7 +125,7 @@ const MinhasListas = () => {
   };
 
   const iniciarEstudo = async (lista) => {
-    const qs = (await Promise.all(lista.questoes.map(id => db.questoes.get(id)))).filter(Boolean);
+    const qs = (await db.questoes.getByIds(lista.questoes.map(String))).filter(Boolean);
     setSessaoQ(qs);
     setListaSel(lista);
     setRespostas({});

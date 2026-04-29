@@ -73,7 +73,7 @@ export const QuestaoCard = memo(({ questao, numero, resposta, onResponder }) => 
 
 QuestaoCard.displayName = 'QuestaoCard';
 
-const Freestyle = () => {
+const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
   const [todas, setTodas]    = useState([]);
   const [sessao, setSessao]  = useState(null);
   const [respostas, setResp] = useState({});
@@ -97,6 +97,13 @@ const Freestyle = () => {
   });
 
   useEffect(() => { db.questoes.toArray().then(setTodas); }, []);
+
+  // Quando vem do Pomodoro com sugestão de matéria, pré-aplica o filtro
+  useEffect(() => {
+    if (!materiaInicial) return;
+    setFiltro('materia', materiaInicial);
+    if (onMateriaAplicada) onMateriaAplicada();
+  }, [materiaInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Restaura sessão salva após as questões carregarem ──
   useEffect(() => {

@@ -83,6 +83,7 @@ const TABS_CONFIG = [
 export default function App() {
   const { user } = useAuth();
   const [tab, setTab]                   = useState('dashboard');
+  const [materiaFreestyle, setMateriaFreestyle] = useState('');
   const [configAberta, setConfigAberta] = useState(false);
   const [ajudaAberta, setAjudaAberta]   = useState(false);
   // Incrementado quando outra aba invalida o cache via BroadcastChannel.
@@ -103,7 +104,12 @@ export default function App() {
   // Navegar via eventos customizados (ex: Pomodoro → Freestyle)
   useEffect(() => {
     const handler = (e) => {
-      if (e.detail?.tela) setTab(e.detail.tela);
+      if (e.detail?.tela) {
+        setTab(e.detail.tela);
+        if (e.detail.tela === 'freestyle' && e.detail.materia) {
+          setMateriaFreestyle(e.detail.materia);
+        }
+      }
     };
     window.addEventListener('app:navegar', handler);
     return () => window.removeEventListener('app:navegar', handler);
@@ -129,7 +135,7 @@ export default function App() {
   const renderPage = () => {
     switch (tab) {
       case 'dashboard':    return <Dashboard key={dbVersion} onNavigate={setTab} />;
-      case 'freestyle':    return <Freestyle />;
+      case 'freestyle':    return <Freestyle materiaInicial={materiaFreestyle} onMateriaAplicada={() => setMateriaFreestyle('')} />;
       case 'simulado':     return <Simulado />;
       case 'listas':       return <MinhasListas />;
       case 'revisao':      return <RevisaoEspacada onFechar={() => setTab('dashboard')} />;
