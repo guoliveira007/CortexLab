@@ -137,8 +137,8 @@ const RevisaoEspacada = ({ onFechar }) => {
           return;
         }
 
-        const ids = devidas.map(e => isNaN(e.questaoId) ? e.questaoId : Number(e.questaoId));
-        const questoes = await db.questoes.where('id').anyOf(ids).toArray();
+        const ids = devidas.map(e => String(e.questaoId));
+        const questoes = await db.questoes.getByIds(ids);
 
         const questoesComEstado = questoes.map(q => ({
           ...q,
