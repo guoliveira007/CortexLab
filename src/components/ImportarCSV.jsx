@@ -135,13 +135,10 @@ const ImportarCSV = ({ onFechar, onImportar }) => {
     setFase('importando');
     // eslint-disable-next-line no-unused-vars
     const lote = validas.map(({ _linha, _erros, ...q }) => q);
-    let ok = 0;
-    for (let i = 0; i < lote.length; i++) {
-      await db.questoes.add(lote[i]);
-      ok++;
-      setProgresso(Math.round((ok / lote.length) * 100));
-    }
-    toast.success(`${ok} questão(ões) importada(s) com sucesso!`);
+    setProgresso(10);
+    await db.questoes.bulkAdd(lote);
+    setProgresso(100);
+    toast.success(`${lote.length} questão(ões) importada(s) com sucesso!`);
     onImportar?.();
     onFechar();
   };

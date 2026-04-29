@@ -32,27 +32,31 @@ const baixarJSON = (dados) => {
   URL.revokeObjectURL(url);
 };
 
-/* ── Função segura de importação compatível com Firestore ── */
+/* ── Função de importação otimizada para Firestore (bulkAdd/writeBatch) ── */
 const importarBanco = async (dados, modo) => {
   if (!dados._versao) throw new Error('Arquivo de backup inválido.');
   for (const tabela of TABELAS) {
-    if (!Array.isArray(dados[tabela])) continue;
+    if (!Array.isArray(dados[tabela]) || dados[tabela].length === 0) continue;
     if (modo === 'substituir') {
       try {
         await db[tabela].clear();
       } catch (e) {
         console.warn(`Erro ao limpar tabela ${tabela}:`, e);
       }
-    }
-    for (const item of dados[tabela]) {
+      // substituir: recria tudo via bulkAdd (usa writeBatch internamente)
       try {
-        if (modo === 'substituir') {
-          await db[tabela].add(item);
-        } else {
-          await db[tabela].put(item);
-        }
+        await db[tabela].bulkAdd(dados[tabela]);
       } catch (e) {
-        console.warn(`Erro ao importar item em ${tabela}:`, e);
+        console.warn(`Erro ao importar tabela ${tabela}:`, e);
+      }
+    } else {
+      // merge: put item a item para preservar IDs existentes
+      for (const item of dados[tabela]) {
+        try {
+          await db[tabela].put(item);
+        } catch (e) {
+          console.warn(`Erro ao mesclar item em ${tabela}:`, e);
+        }
       }
     }
   }
@@ -72,27 +76,6 @@ const StatItem = ({ label, valor, emoji }) => (
   </div>
 );
 
-/* ── Toggle ── */
-const Toggle = ({ value, onChange }) => (
-  <button
-    onClick={onChange}
-    style={{
-      width: '44px', height: '24px', borderRadius: '12px',
-      background: value ? 'var(--brand-500)' : 'var(--gray-300)',
-      border: 'none', cursor: 'pointer', position: 'relative',
-      transition: 'background 0.2s', flexShrink: 0,
-    }}
-  >
-    <div style={{
-      position: 'absolute', top: '3px',
-      left: value ? '23px' : '3px',
-      width: '18px', height: '18px', borderRadius: '50%',
-      background: 'white', transition: 'left 0.2s',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-    }} />
-  </button>
-);
-
 /* ── BackupRestaurar ── */
 const BackupRestaurar = () => {
   const [stats, setStats] = useState({});
@@ -102,9 +85,6 @@ const BackupRestaurar = () => {
   const [dadosImport, setDadosImport] = useState(null);
   const [modoImport, setModoImport] = useState('merge');
   const [ultimoBackup, setUltimoBackup] = useState('');
-  const [autoBackup, setAutoBackup] = useState(
-    () => localStorage.getItem('auto_backup') === 'true'
-  );
 
   const carregarStats = useCallback(async () => {
     const s = {};
@@ -180,31 +160,6 @@ const BackupRestaurar = () => {
     }
   };
 
-  const toggleAutoBackup = () => {
-    const novo = !autoBackup;
-    setAutoBackup(novo);
-    localStorage.setItem('auto_backup', String(novo));
-    toast(novo ? '✅ Auto-backup local ativado.' : 'Auto-backup local desativado.');
-  };
-
-  const restaurarAutoBackup = async () => {
-    const backupStr = localStorage.getItem('cortexlab_autobackup');
-    if (!backupStr) {
-      toast.error('Nenhum backup automático encontrado.');
-      return;
-    }
-    try {
-      const dados = JSON.parse(backupStr);
-      await importarBanco(dados, 'merge');
-      toast.success('Backup automático restaurado!');
-      carregarStats();
-    } catch (e) {
-      toast.error('Falha ao restaurar: ' + e.message);
-    }
-  };
-
-  const ultimoAutoBackup = localStorage.getItem('cortexlab_ultimo_autobackup');
-
   return (
     <div>
       <div className="page-header">
@@ -253,36 +208,7 @@ const BackupRestaurar = () => {
             {exportando ? '⏳ Exportando...' : '🔄 Exportar Backup'}
           </button>
 
-          <div style={{
-            marginTop: '14px', padding: '12px 14px',
-            background: autoBackup ? 'var(--brand-50)' : 'var(--gray-50)',
-            border: `1px solid ${autoBackup ? 'var(--brand-200)' : 'var(--gray-200)'}`,
-            borderRadius: 'var(--r-md)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
-          }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: autoBackup ? 'var(--brand-700)' : 'var(--gray-700)' }}>
-                Auto-backup local
-              </p>
-              <p style={{ fontSize: '11px', color: 'var(--gray-400)', marginTop: '2px' }}>
-                Salva no navegador a cada alteração
-              </p>
-              {ultimoAutoBackup && (
-                <p style={{ fontSize: '10px', color: 'var(--gray-400)', marginTop: '2px' }}>
-                  Último: {ultimoAutoBackup}
-                </p>
-              )}
-            </div>
-            <Toggle value={autoBackup} onChange={toggleAutoBackup} />
-          </div>
 
-          <button
-            className="btn-secondary"
-            onClick={restaurarAutoBackup}
-            style={{ width: '100%', marginTop: '12px', justifyContent: 'center', padding: '10px' }}
-          >
-            🔧 Restaurar backup automático
-          </button>
         </div>
 
         <div className="card">

@@ -67,6 +67,7 @@ const Lista = ({ lista, onVoltar }) => {
       acertou,
       tempo: timer,
       modo: 'lista',
+      materia: questaoAtual.materia || null,
     });
   };
 

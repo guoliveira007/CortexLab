@@ -428,13 +428,11 @@ const ImportarPDF = ({ onFechar, onImportar }) => {
     if (!selecionadas.length) { toast.error('Selecione ao menos uma questão.'); return; }
 
     setFase('importando');
-    let ok = 0;
+    setProgresso(10);
 
-    for (let i = 0; i < selecionadas.length; i++) {
-      const q = selecionadas[i];
+    const lote = selecionadas.map(q => {
       const gabarito = (q.gabarito || '').toUpperCase();
-
-      await db.questoes.add({
+      return {
         banca:     q.banca    || '',
         ano:       q.ano      || null,
         materia:   q.materia  || '',
@@ -454,13 +452,13 @@ const ImportarPDF = ({ onFechar, onImportar }) => {
         imagensAlternativas: { A: '', B: '', C: '', D: '', E: '' },
         gabarito: ['A','B','C','D','E'].includes(gabarito) ? gabarito : 'A',
         explicacao: q.explicacao || '',
-      });
+      };
+    });
 
-      ok++;
-      setProgresso(Math.round((ok / selecionadas.length) * 100));
-    }
+    await db.questoes.bulkAdd(lote);
+    setProgresso(100);
 
-    toast.success(`${ok} questão(ões) importada(s) com sucesso!`);
+    toast.success(`${lote.length} questão(ões) importada(s) com sucesso!`);
     onImportar?.();
     onFechar();
   };
