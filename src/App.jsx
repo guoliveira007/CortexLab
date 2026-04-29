@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { signOut } from 'firebase/auth';
+import { auth } from './firebase';
+import { useAuth } from './AuthContext';
 
 // ── Componentes leves — importados estaticamente ──
 import Dashboard        from './components/Dashboard';
@@ -78,6 +81,7 @@ const TABS_CONFIG = [
 ];
 
 export default function App() {
+  const { user } = useAuth();
   const [tab, setTab]                   = useState('dashboard');
   const [configAberta, setConfigAberta] = useState(false);
   const [ajudaAberta, setAjudaAberta]   = useState(false);
@@ -218,6 +222,21 @@ export default function App() {
               <span className="nav-icon">⚙️</span>
               Configurações
             </button>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '4px', paddingTop: '8px' }}>
+              {user?.email && (
+                <p style={{ fontSize: '11px', color: 'var(--gray-400)', padding: '0 12px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.email}
+                </p>
+              )}
+              <button
+                className="nav-item"
+                onClick={() => signOut(auth)}
+                style={{ color: 'var(--red-400, #f87171)' }}
+              >
+                <span className="nav-icon">🚪</span>
+                Sair
+              </button>
+            </div>
           </div>
         </nav>
       </aside>

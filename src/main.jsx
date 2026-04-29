@@ -7,8 +7,6 @@ import Login from './Login';
 import EmailVerification from './EmailVerification';
 import VerificationSuccess from './VerificationSuccess';
 import LoadingScreen from './LoadingScreen';
-import { signOut } from 'firebase/auth';
-import { auth } from './firebase';
 
 const Root = () => {
   const { user, emailVerified, loading } = useAuth();
@@ -22,15 +20,7 @@ const Root = () => {
 
   if (!emailVerified) return <EmailVerification onVerified={() => setShowSuccess(true)} />;
 
-  return (
-    <>
-      <div style={{ position: 'fixed', top: 10, right: 10, zIndex: 9999 }}>
-        <span style={{ marginRight: 10 }}>{user.email}</span>
-        <button onClick={() => { signOut(auth); window.location.reload(); }}>Sair</button>
-      </div>
-      <App />
-    </>
-  );
+  return <App />;
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(

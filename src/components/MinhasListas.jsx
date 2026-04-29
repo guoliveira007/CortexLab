@@ -143,6 +143,7 @@ const MinhasListas = () => {
       acertou: letra === q.gabarito,
       tempo: 0,
       modo: 'lista',
+      materia: q.materia || null,
     });
   }, [sessaoQuestoes, respostas]);
 

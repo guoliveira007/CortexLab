@@ -18,4 +18,4 @@ const app = initializeApp(firebaseConfig);
 // evita conflito de instância que desativava o cache local.
 export const auth = getAuth(app);
 
-console.log("Firebase inicializado com sucesso!");
+// Firebase inicializado

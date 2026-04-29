@@ -146,7 +146,7 @@ const Freestyle = () => {
       const acertou = letra === q.gabarito;
       db.resultados.add({
         questaoId: id, data: new Date().toISOString(),
-        acertou, tempo: 0, modo: 'freestyle',
+        acertou, tempo: 0, modo: 'freestyle', materia: q.materia || null,
       });
       return sess;
     });

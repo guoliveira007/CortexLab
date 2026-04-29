@@ -154,6 +154,7 @@ const Simulado = () => {
       tempo:         0,
       modo:          'simulado',
       simuladoNome:  simAtual?.nome,
+      materia:       q.materia || null,
     }));
 
     await db.resultados.bulkAdd(registros);
