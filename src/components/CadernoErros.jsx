@@ -498,22 +498,24 @@ const CadernoErros = ({ onFechar }) => {
             </div>
           )}
 
-          {/* AutoSizer mede o espaço disponível e passa para FixedSizeList */}
+          {/* AutoSizer com altura calculada para funcionar fora do Electron */}
           {!carregando && questoesFiltradas.length > 0 && (
-            <AutoSizer>
-              {({ height, width }) => (
-                <List
-                  height={height}
-                  width={width}
-                  itemCount={questoesFiltradas.length}
-                  itemSize={ITEM_HEIGHT}
-                  itemData={itemData}
-                  overscanCount={3}
-                >
-                  {RowRenderer}
-                </List>
-              )}
-            </AutoSizer>
+            <div style={{ height: 'calc(85vh - 220px)', minHeight: '300px' }}>
+              <AutoSizer disableHeight>
+                {({ width }) => (
+                  <List
+                    height={Math.max(window.innerHeight * 0.85 - 220, 300)}
+                    width={width}
+                    itemCount={questoesFiltradas.length}
+                    itemSize={ITEM_HEIGHT}
+                    itemData={itemData}
+                    overscanCount={3}
+                  >
+                    {RowRenderer}
+                  </List>
+                )}
+              </AutoSizer>
+            </div>
           )}
         </div>
       </div>

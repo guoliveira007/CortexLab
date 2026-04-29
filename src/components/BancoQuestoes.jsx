@@ -457,12 +457,12 @@ const BancoQuestoes = () => {
               </div>
             </div>
           ) : (
-            /* Container flex para o AutoSizer funcionar corretamente */
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <AutoSizer>
-                {({ height, width }) => (
+            /* Container com altura calculada para AutoSizer funcionar corretamente */
+            <div style={{ height: 'calc(100vh - 220px)', minHeight: '300px' }}>
+              <AutoSizer disableHeight>
+                {({ width }) => (
                   <List
-                    height={height}
+                    height={Math.max(window.innerHeight - 220, 300)}
                     width={width}
                     itemCount={filtradas.length}
                     itemSize={ITEM_HEIGHT}
