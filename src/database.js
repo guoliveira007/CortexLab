@@ -274,11 +274,153 @@ const createCollectionHandler = (nome) => ({
 });
 
 // ──────────────────────────────────────────────
+// FACTORY DE COLEÇÕES GLOBAIS (sem escopo por usuário)
+// Usado por db.questoes: o dono escreve, todos leem.
+// ──────────────────────────────────────────────
+const createGlobalCollectionHandler = (nome) => ({
+  toArray: async () => {
+    const c = collection(firestoreDb, nome);
+    const snap = await getDocs(c);
+    return snap.docs.map(fromFirestore);
+  },
+
+  get: async (id) => {
+    if (!id) return undefined;
+    const dr = doc(firestoreDb, nome, String(id));
+    const snap = await getDoc(dr);
+    return snap.exists() ? fromFirestore(snap) : undefined;
+  },
+
+  add: async (item) => {
+    const c = collection(firestoreDb, nome);
+    const ref = await addDoc(c, toFirestore(item));
+    return ref.id;
+  },
+
+  bulkAdd: async (itens) => {
+    if (!itens || itens.length === 0) return [];
+    const ids = [];
+    const LOTE = 500;
+    for (let i = 0; i < itens.length; i += LOTE) {
+      const batch = writeBatch(firestoreDb);
+      const chunk = itens.slice(i, i + LOTE);
+      for (const item of chunk) {
+        const ref = doc(collection(firestoreDb, nome));
+        batch.set(ref, toFirestore(item));
+        ids.push(ref.id);
+      }
+      await batch.commit();
+    }
+    return ids;
+  },
+
+  bulkSet: async (itens) => {
+    if (!itens || itens.length === 0) return;
+    const LOTE = 500;
+    for (let i = 0; i < itens.length; i += LOTE) {
+      const batch = writeBatch(firestoreDb);
+      const chunk = itens.slice(i, i + LOTE);
+      for (const item of chunk) {
+        if (!item.id) continue;
+        const ref = doc(firestoreDb, nome, String(item.id));
+        batch.set(ref, toFirestore(item));
+      }
+      await batch.commit();
+    }
+  },
+
+  update: async (id, changes) => {
+    const dr = doc(firestoreDb, nome, String(id));
+    await updateDoc(dr, toFirestore(changes));
+  },
+
+  delete: async (id) => {
+    const dr = doc(firestoreDb, nome, String(id));
+    await deleteDoc(dr);
+  },
+
+  put: async (item) => {
+    const { id, ...data } = item;
+    if (id) {
+      const dr = doc(firestoreDb, nome, String(id));
+      await setDoc(dr, toFirestore(data), { merge: true });
+      return String(id);
+    } else {
+      const c = collection(firestoreDb, nome);
+      const ref = await addDoc(c, toFirestore(data));
+      return ref.id;
+    }
+  },
+
+  count: async () => {
+    const c = collection(firestoreDb, nome);
+    const snap = await getDocs(c);
+    return snap.size;
+  },
+
+  where: (campo) => ({
+    equals: async (valor) => {
+      const c = collection(firestoreDb, nome);
+      const q = query(c, where(campo, '==', valor));
+      const snap = await getDocs(q);
+      return snap.docs.map(fromFirestore);
+    },
+    anyOf: async (valores) => {
+      if (!valores || valores.length === 0) return [];
+      const c = collection(firestoreDb, nome);
+      const unique = [...new Set(valores)];
+      const results = [];
+      const CHUNK = 30;
+      for (let i = 0; i < unique.length; i += CHUNK) {
+        const chunk = unique.slice(i, i + CHUNK);
+        const q = query(c, where(campo, 'in', chunk));
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => results.push(fromFirestore(d)));
+      }
+      return results;
+    },
+    belowOrEqual: async (valor) => {
+      const c = collection(firestoreDb, nome);
+      const q = query(c, where(campo, '<=', valor));
+      const snap = await getDocs(q);
+      return snap.docs.map(fromFirestore);
+    },
+  }),
+
+  getByIds: async (ids) => {
+    if (!ids || ids.length === 0) return [];
+    const stringIds = [...new Set(ids.map(String))];
+    const results = [];
+    const CHUNK = 30;
+    for (let i = 0; i < stringIds.length; i += CHUNK) {
+      const chunk = stringIds.slice(i, i + CHUNK);
+      const c = collection(firestoreDb, nome);
+      const q = query(c, where(documentId(), 'in', chunk));
+      const snap = await getDocs(q);
+      snap.docs.forEach((d) => results.push(fromFirestore(d)));
+    }
+    return results;
+  },
+
+  clear: async () => {
+    const c = collection(firestoreDb, nome);
+    const snap = await getDocs(c);
+    const LOTE = 500;
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += LOTE) {
+      const batch = writeBatch(firestoreDb);
+      docs.slice(i, i + LOTE).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  },
+});
+
+// ──────────────────────────────────────────────
 // INICIALIZAÇÃO DAS COLEÇÕES
 // ──────────────────────────────────────────────
 const db = {};
 
-db.questoes        = createCollectionHandler('questoes');
+db.questoes        = createGlobalCollectionHandler('questoes'); // global: dono escreve, todos leem
 db.resultados      = createCollectionHandler('resultados');
 db.revisaoEspacada = createCollectionHandler('revisaoEspacada');
 db.sessoes         = createCollectionHandler('sessoes');

@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Questões globais ─────────────────────────────────────
+    // Qualquer usuário autenticado pode ler.
+    // Só o dono pode criar, editar e deletar.
+    match /questoes/{questaoId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.token.email == 'gusta.oli.fernandes@gmail.com';
+    }
+
+    // ── Dados por usuário ────────────────────────────────────
+    // Cada usuário acessa apenas os próprios dados.
+    match /usuarios/{userId}/{document=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+  }
+}
