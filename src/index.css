@@ -125,12 +125,15 @@ body {
 }
 
 .sidebar-logo {
-  height: 72px;          /* altura fixa — não empurra as abas */
+  height: 110px;         /* logo maior */
   padding: 0 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: none;   /* sem linha separadora — o logo "flui" para as abas */
   display: flex;
-  align-items: center;   /* centraliza verticalmente dentro dos 72px */
+  align-items: center;
   flex-shrink: 0;
+  margin-bottom: -28px;  /* abas sobem sobre a área transparente inferior do logo */
+  position: relative;
+  z-index: 1;            /* logo fica acima das abas no overlap */
 }
 
 .sidebar-logo h1 {
