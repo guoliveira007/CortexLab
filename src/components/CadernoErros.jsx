@@ -397,6 +397,7 @@ const CadernoErros = ({ onFechar }) => {
             <option value="freestyle">Freestyle</option>
             <option value="lista">Lista</option>
             <option value="simulado">Simulado</option>
+            <option value="revisao">Revisão Espaçada</option>
           </select>
 
           <select

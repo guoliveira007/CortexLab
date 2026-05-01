@@ -32,7 +32,7 @@ const baixarJSON = (dados) => {
   URL.revokeObjectURL(url);
 };
 
-/* ── Função de importação otimizada para Firestore (bulkAdd/writeBatch) ── */
+/* ── Função de importação otimizada para Firestore (bulkSet/writeBatch) ── */
 const importarBanco = async (dados, modo) => {
   if (!dados._versao) throw new Error('Arquivo de backup inválido.');
   for (const tabela of TABELAS) {
@@ -43,9 +43,11 @@ const importarBanco = async (dados, modo) => {
       } catch (e) {
         console.warn(`Erro ao limpar tabela ${tabela}:`, e);
       }
-      // substituir: recria tudo via bulkAdd (usa writeBatch internamente)
+      // substituir: usa bulkSet (não bulkAdd) para PRESERVAR os IDs originais.
+      // bulkAdd atribui IDs novos às questões, quebrando todas as referências
+      // em resultados, revisaoEspacada e listas que guardam o questaoId antigo.
       try {
-        await db[tabela].bulkAdd(dados[tabela]);
+        await db[tabela].bulkSet(dados[tabela]);
       } catch (e) {
         console.warn(`Erro ao importar tabela ${tabela}:`, e);
       }

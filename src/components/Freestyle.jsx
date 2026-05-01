@@ -142,14 +142,21 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
     toast.success(`${embaralhadas.length} questão(ões) carregada(s)!`);
   }, [filtradas, setPagina]);
 
-  const sessaoRef = useRef(null);
-  useEffect(() => { sessaoRef.current = sessao; }, [sessao]);
+  const sessaoRef    = useRef(null);
+  const respostasRef = useRef({});
+  useEffect(() => { sessaoRef.current    = sessao; },    [sessao]);
+  useEffect(() => { respostasRef.current = respostas; }, [respostas]);
 
   const responder = useCallback(async (id, letra) => {
     const sess = sessaoRef.current;
     if (!sess) return;
     const q = sess.find(q => q.id === id);
     if (!q) return;
+
+    // Guard explícito: impede double-save por clique duplo antes do re-render.
+    // setResp tem o mesmo guard, mas o estado React é assíncrono — o ref
+    // é síncrono e garante que db.resultados.add seja chamado uma única vez.
+    if (respostasRef.current[id]) return;
 
     // Atualiza UI imediatamente
     setResp(prev => {

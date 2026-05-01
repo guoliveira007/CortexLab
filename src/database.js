@@ -155,6 +155,7 @@ const createCollectionHandler = (nome) => ({
 
   // ✅ bulkAdd — salva múltiplos itens usando writeBatch (lotes de 500)
   // Usado por ImportarIA (index.jsx) para salvar questões extraídas do PDF.
+  // NÃO preserva o campo id — cada item recebe um ID novo do Firestore.
   bulkAdd: async (itens) => {
     if (!itens || itens.length === 0) return [];
     const uid = await getUserId();
@@ -171,6 +172,26 @@ const createCollectionHandler = (nome) => ({
       await batch.commit();
     }
     return ids;
+  },
+
+  // ✅ bulkSet — salva múltiplos itens PRESERVANDO o id original de cada um.
+  // Usado pelo BackupRestaurar no modo "substituir": sem isso, bulkAdd atribuiria
+  // IDs novos às questões, quebrando todas as referências em resultados,
+  // revisaoEspacada e listas, que guardam o questaoId/questoes[] antigo.
+  bulkSet: async (itens) => {
+    if (!itens || itens.length === 0) return;
+    const uid = await getUserId();
+    const LOTE = 500;
+    for (let i = 0; i < itens.length; i += LOTE) {
+      const batch = writeBatch(firestoreDb);
+      const chunk = itens.slice(i, i + LOTE);
+      for (const item of chunk) {
+        if (!item.id) continue; // item sem id cai fora — não tem como preservar
+        const ref = doc(firestoreDb, 'usuarios', uid, nome, String(item.id));
+        batch.set(ref, toFirestore(item));
+      }
+      await batch.commit();
+    }
   },
 
   update: async (id, changes) => {
