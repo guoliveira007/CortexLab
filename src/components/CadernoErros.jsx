@@ -274,20 +274,19 @@ const CadernoErros = ({ onFechar }) => {
   }, []);
 
   /* ── FIX: Remove questão do caderno apagando seus resultados errados ── */
+  // Remove do caderno inserindo resultado revisado — sem apagar histórico
   const removerDoCaderno = useCallback(async (questaoId) => {
     const idStr = String(questaoId);
     setRemovendo(prev => new Set([...prev, idStr]));
     try {
-      const todos = await db.resultados.toArray();
-      const idsParaDeletar = todos
-        .filter(r => {
-          const id = String(r.questaoId || r.id_questao || '');
-          return id === idStr && (r.acertou === false || r.acertou === 0);
-        })
-        .map(r => r.id)
-        .filter(Boolean);
-
-      await Promise.all(idsParaDeletar.map(id => db.resultados.delete(id)));
+      await db.resultados.add({
+        questaoId,
+        data:    new Date().toISOString(),
+        acertou: true,
+        tempo:   0,
+        modo:    'caderno',
+        materia: null,
+      });
       setQuestoesErradas(prev => prev.filter(q => String(q.id) !== idStr));
       toast.success('Removida do caderno de erros.');
     } catch {
