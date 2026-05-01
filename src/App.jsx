@@ -34,6 +34,7 @@ import BadgeRevisoes  from './components/BadgeRevisoes';
 // ── Tutorial ──
 import Tutorial, { BotaoTutorial } from './components/Tutorial';
 import { useTutorial } from './components/useTutorial';
+import AvatarPerfil from './components/AvatarPerfil';
 
 // ── UX / Visual ──
 import TabTransition from './components/TabTransition';
@@ -207,33 +208,13 @@ export default function App() {
           <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <button
               className="nav-item"
-              onClick={abrirTut}
-              title="Ver tutorial desta aba"
-            >
-              <span className="nav-icon">❓</span>
-              Tutorial
-            </button>
-            <button
-              className="nav-item"
               onClick={() => setAjudaAberta(true)}
               title="Atalhos de teclado (Alt+?)"
             >
               <span className="nav-icon">⌨️</span>
               Atalhos
             </button>
-            <button
-              className="nav-item"
-              onClick={() => setConfigAberta(true)}
-            >
-              <span className="nav-icon">⚙️</span>
-              Configurações
-            </button>
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '4px', paddingTop: '8px' }}>
-              {user?.email && (
-                <p style={{ fontSize: '11px', color: 'var(--gray-400)', padding: '0 12px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.email}
-                </p>
-              )}
               <button
                 className="nav-item"
                 onClick={() => signOut(auth)}
@@ -248,6 +229,24 @@ export default function App() {
       </aside>
 
       <main className="main-content">
+        {/* Avatar de perfil fixo no canto superior direito */}
+        <div style={{
+          position: 'fixed',
+          top: '14px',
+          right: '20px',
+          zIndex: 7000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}>
+          <BotaoTutorial tabId={tab} onClick={abrirTut} />
+          <AvatarPerfil
+            userEmail={user?.email}
+            onAbrirConfig={() => setConfigAberta(true)}
+            onIrParaBackup={() => setTab('backup')}
+          />
+        </div>
+
         <OfflineBanner />
         <ErrorBoundary>
           <TabTransition tabKey={tab}>

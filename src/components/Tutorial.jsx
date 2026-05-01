@@ -656,7 +656,8 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
    BOTÃO FLUTUANTE — Reabre o tutorial da aba atual
    ═══════════════════════════════════════════════════════════ */
 export const BotaoTutorial = ({ tabId, onClick }) => {
-  if (!TUTORIAL_STEPS[tabId]) return null;
+  // Conquistas já tem seu próprio "como funciona" nativo
+  if (!TUTORIAL_STEPS[tabId] || tabId === 'conquistas') return null;
   return (
     <button
       onClick={onClick}
