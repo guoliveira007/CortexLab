@@ -43,6 +43,11 @@ import OfflineBanner from './components/OfflineBanner';
 // ── Error Boundary ──
 import ErrorBoundary from './components/ErrorBoundary';
 
+import {
+  LayoutDashboard, Target, FileText, ClipboardList, Database,
+  BarChart2, Medal, Calendar, Trophy, MessageCircle, Brain,
+  CalendarClock, Keyboard,
+} from 'lucide-react';
 import logo from './assets/logo_sidebar.png';
 
 const LoadingFallback = () => (
@@ -56,24 +61,24 @@ const LoadingFallback = () => (
 );
 
 const TABS = [
-  { id: 'dashboard',    label: 'Dashboard',      icon: '🏠' },
-  { id: 'freestyle',    label: 'Freestyle',       icon: '🎯' },
-  { id: 'simulado',     label: 'Simulados',       icon: '📝' },
-  { id: 'listas',       label: 'Listas',          icon: '📋' },
-  { id: 'banco',        label: 'Banco',           icon: '🗃️' },
-  { id: 'desempenho',   label: 'Desempenho',      icon: '📈' },
-  { id: 'metas',        label: 'Metas',           icon: '🎖️' },
-  { id: 'planejamento', label: 'Planejamento',    icon: '📅' },
-  { id: 'conquistas',   label: 'Conquistas',      icon: '🏆' },
+  { id: 'dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
+  { id: 'freestyle',    label: 'Freestyle',       icon: Target },
+  { id: 'simulado',     label: 'Simulados',       icon: FileText },
+  { id: 'listas',       label: 'Listas',          icon: ClipboardList },
+  { id: 'banco',        label: 'Banco',           icon: Database },
+  { id: 'desempenho',   label: 'Desempenho',      icon: BarChart2 },
+  { id: 'metas',        label: 'Metas',           icon: Medal },
+  { id: 'planejamento', label: 'Planejamento',    icon: Calendar },
+  { id: 'conquistas',   label: 'Conquistas',      icon: Trophy },
 ];
 
 const TABS_IA = [
-  { id: 'chat',    label: 'Chat de Dúvidas',     icon: '💬' },
-  { id: 'resumo',  label: 'Resumo por Matéria',  icon: '🧠' },
+  { id: 'chat',    label: 'Chat de Dúvidas',     icon: MessageCircle },
+  { id: 'resumo',  label: 'Resumo por Matéria',  icon: Brain },
 ];
 
 const TABS_REVISAO = [
-  { id: 'previsao',  label: 'Previsão de Revisões', icon: '📆', badge: true },
+  { id: 'previsao',  label: 'Previsão de Revisões', icon: CalendarClock, badge: true },
 ];
 
 export default function App() {
@@ -145,18 +150,21 @@ export default function App() {
   const NavGroup = ({ titulo, items }) => (
     <>
       <p className="nav-label">{titulo}</p>
-      {items.map(t => (
-        <button
-          key={t.id}
-          className={`nav-item ${tab === t.id ? 'active' : ''}`}
-          onClick={() => setTab(t.id)}
-          style={{ position: 'relative' }}
-        >
-          <span className="nav-icon">{t.icon}</span>
-          {t.label}
-          {t.badge && <BadgeRevisoes />}
-        </button>
-      ))}
+      {items.map(t => {
+        const Icon = t.icon;
+        return (
+          <button
+            key={t.id}
+            className={`nav-item ${tab === t.id ? 'active' : ''}`}
+            onClick={() => setTab(t.id)}
+            style={{ position: 'relative' }}
+          >
+            <Icon size={17} strokeWidth={1.75} className="nav-icon" />
+            {t.label}
+            {t.badge && <BadgeRevisoes />}
+          </button>
+        );
+      })}
     </>
   );
 
@@ -170,16 +178,19 @@ export default function App() {
         </div>
 
         <nav className="sidebar-nav">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              className={`nav-item ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
-              <span className="nav-icon">{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                className={`nav-item ${tab === t.id ? 'active' : ''}`}
+                onClick={() => setTab(t.id)}
+              >
+                <Icon size={17} strokeWidth={1.75} className="nav-icon" />
+                {t.label}
+              </button>
+            );
+          })}
 
           <NavGroup titulo="Revisão" items={TABS_REVISAO} />
           <NavGroup titulo="Inteligência Artificial" items={TABS_IA} />
@@ -190,7 +201,7 @@ export default function App() {
               onClick={() => setAjudaAberta(true)}
               title="Atalhos de teclado (Alt+?)"
             >
-              <span className="nav-icon">⌨️</span>
+              <Keyboard size={17} strokeWidth={1.75} className="nav-icon" />
               Atalhos
             </button>
           </div>
