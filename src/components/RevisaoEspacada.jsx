@@ -183,9 +183,21 @@ const RevisaoEspacada = ({ onFechar }) => {
         ...novoEstado,
       });
 
+      // Salva em db.resultados para que o Dashboard, Desempenho, streak e
+      // conquistas contabilizem a questão — sem isso, estudar só pela revisão
+      // espaçada não contava como estudo em nenhuma estatística.
+      await db.resultados.add({
+        questaoId: questaoAtual.id,
+        data:      new Date().toISOString(),
+        acertou,
+        tempo:     0,
+        modo:      'revisao',
+        materia:   questaoAtual.materia || null,
+      });
+
       window.dispatchEvent(new CustomEvent('revisao:concluida'));
     } catch (err) {
-      console.error('Erro ao salvar SM-2:', err);
+      console.error('Erro ao salvar revisão:', err);
     }
 
     setStats(prev => ({

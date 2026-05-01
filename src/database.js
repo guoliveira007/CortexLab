@@ -338,9 +338,10 @@ db.salvarMeta = async ({ tipo, valor, label }) => {
 };
 
 db.getProgressoMetas = async () => {
-  const [metas, resultados] = await Promise.all([
+  const [metas, resultados, sessoes] = await Promise.all([
     db.metas.toArray(),
     db.resultados.toArray(),
+    db.sessoes.toArray().catch(() => []),
   ]);
 
   const hoje = new Date();
@@ -352,22 +353,37 @@ db.getProgressoMetas = async () => {
     return d.toDateString() === hojeStr;
   });
 
-  // Streak de dias consecutivos
-  const datas = [...new Set(resultados.map((r) => {
+  // ── Streak leniente: igual ao getDashboardData ──
+  // Se ainda não estudou hoje, começa a contar a partir de ontem.
+  const datasUnicas = new Set(resultados.map((r) => {
     const d = r.data ? new Date(r.data) : new Date(0);
     return d.toDateString();
-  }))];
+  }));
   let streak = 0;
-  let dCheck = new Date(hoje);
-  while (datas.includes(dCheck.toDateString())) {
-    streak++;
+  const dCheck = new Date(hoje);
+  if (!datasUnicas.has(dCheck.toDateString())) {
     dCheck.setDate(dCheck.getDate() - 1);
+  }
+  for (let i = 0; i < 365; i++) {
+    if (datasUnicas.has(dCheck.toDateString())) {
+      streak++;
+      dCheck.setDate(dCheck.getDate() - 1);
+    } else break;
   }
 
   const totalR   = resultados.length;
   const acertosR = resultados.filter((r) => r.acertou).length;
   const taxaGeral = totalR ? Math.round((acertosR / totalR) * 100) : 0;
-  const tempoHojeMin = Math.round(hojeRs.reduce((acc, r) => acc + (r.tempo || 0), 0) / 60);
+
+  // ── Tempo hoje: vem das sessões do Pomodoro (igual ao getDashboardData) ──
+  // r.tempo dos resultados é 0 para Freestyle/Simulado/Lista — não serve aqui.
+  const sessoesHoje = sessoes.filter((s) => {
+    const d = s.data ? new Date(s.data) : new Date(0);
+    return d.toDateString() === hojeStr;
+  });
+  const tempoHojeMin = Math.round(
+    sessoesHoje.reduce((acc, s) => acc + (s.duracao || 0), 0) / 60
+  );
 
   // Valores atuais por tipo de meta
   const ATUAIS = {
@@ -531,7 +547,7 @@ db.getStatsConquistas = async () => {
   const acertos = resultados.filter(r => r.acertou).length;
   const taxa    = total ? Number(((acertos / total) * 100).toFixed(1)) : 0;
 
-  // streak — dias consecutivos com pelo menos 1 resultado
+  // streak — dias consecutivos (leniente: se hoje está vazio, começa ontem)
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const datasCompletas = new Set(resultados.map(r => {
@@ -541,9 +557,14 @@ db.getStatsConquistas = async () => {
   }));
   let streak = 0;
   const dCheck = new Date(hoje);
-  while (datasCompletas.has(dCheck.toDateString())) {
-    streak++;
+  if (!datasCompletas.has(dCheck.toDateString())) {
     dCheck.setDate(dCheck.getDate() - 1);
+  }
+  for (let i = 0; i < 365; i++) {
+    if (datasCompletas.has(dCheck.toDateString())) {
+      streak++;
+      dCheck.setDate(dCheck.getDate() - 1);
+    } else break;
   }
 
   // simulados — conjuntos únicos de resultados com modo 'simulado'

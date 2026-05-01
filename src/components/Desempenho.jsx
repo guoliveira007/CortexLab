@@ -14,6 +14,7 @@ const modos = [
   { id: 'freestyle', label: 'Freestyle' },
   { id: 'lista',     label: 'Listas' },
   { id: 'simulado',  label: 'Simulados' },
+  { id: 'revisao',   label: 'Revisão Espaçada' },
 ];
 
 const filtrarPorPeriodo = (resultados, periodo) => {
@@ -449,6 +450,7 @@ const Desempenho = () => {
     { label: 'Freestyle', emoji: '🎯', modo: 'freestyle', cor: '#6366f1', bg: '#eef2ff' },
     { label: 'Listas', emoji: '📋', modo: 'lista', cor: '#10b981', bg: '#ecfdf5' },
     { label: 'Simulados', emoji: '📝', modo: 'simulado', cor: '#f59e0b', bg: '#fffbeb' },
+    { label: 'Revisão', emoji: '🧠', modo: 'revisao', cor: '#8b5cf6', bg: '#f5f3ff' },
   ];
 
   return (
