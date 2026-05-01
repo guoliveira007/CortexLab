@@ -3,26 +3,42 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 
 export const AVATARES = [
-  { id: 'av_01', emoji: '🧑🏻‍💻', label: 'Estudante Tech' },
-  { id: 'av_02', emoji: '🧑🏼‍💻', label: 'Estudante Tech' },
-  { id: 'av_03', emoji: '🧑🏽‍💻', label: 'Estudante Tech' },
-  { id: 'av_04', emoji: '🧑🏾‍💻', label: 'Estudante Tech' },
-  { id: 'av_05', emoji: '🧑🏿‍💻', label: 'Estudante Tech' },
-  { id: 'av_06', emoji: '👩🏻‍🎓', label: 'Estudante' },
-  { id: 'av_07', emoji: '👩🏼‍🎓', label: 'Estudante' },
-  { id: 'av_08', emoji: '👩🏽‍🎓', label: 'Estudante' },
-  { id: 'av_09', emoji: '👩🏾‍🎓', label: 'Estudante' },
-  { id: 'av_10', emoji: '👩🏿‍🎓', label: 'Estudante' },
-  { id: 'av_11', emoji: '👨🏻‍🎓', label: 'Estudante' },
-  { id: 'av_12', emoji: '👨🏼‍🎓', label: 'Estudante' },
-  { id: 'av_13', emoji: '👨🏽‍🎓', label: 'Estudante' },
-  { id: 'av_14', emoji: '👨🏾‍🎓', label: 'Estudante' },
-  { id: 'av_15', emoji: '👨🏿‍🎓', label: 'Estudante' },
-  { id: 'av_16', emoji: '🧑🏻‍🏫', label: 'Professor' },
-  { id: 'av_17', emoji: '🧑🏼‍🏫', label: 'Professor' },
-  { id: 'av_18', emoji: '🧑🏽‍🏫', label: 'Professor' },
-  { id: 'av_19', emoji: '🧑🏾‍🏫', label: 'Professor' },
-  { id: 'av_20', emoji: '🧑🏿‍🏫', label: 'Professor' },
+  // Estudantes graduação — tons variados
+  { id: 'av_01', emoji: '👩🏻‍🎓', label: 'Estudante' },
+  { id: 'av_02', emoji: '👩🏼‍🎓', label: 'Estudante' },
+  { id: 'av_03', emoji: '👩🏽‍🎓', label: 'Estudante' },
+  { id: 'av_04', emoji: '👩🏾‍🎓', label: 'Estudante' },
+  { id: 'av_05', emoji: '👩🏿‍🎓', label: 'Estudante' },
+  { id: 'av_06', emoji: '👨🏻‍🎓', label: 'Estudante' },
+  { id: 'av_07', emoji: '👨🏼‍🎓', label: 'Estudante' },
+  { id: 'av_08', emoji: '👨🏽‍🎓', label: 'Estudante' },
+  { id: 'av_09', emoji: '👨🏾‍🎓', label: 'Estudante' },
+  { id: 'av_10', emoji: '👨🏿‍🎓', label: 'Estudante' },
+  // Tech
+  { id: 'av_11', emoji: '👩🏻‍💻', label: 'Dev' },
+  { id: 'av_12', emoji: '👩🏽‍💻', label: 'Dev' },
+  { id: 'av_13', emoji: '👩🏿‍💻', label: 'Dev' },
+  { id: 'av_14', emoji: '👨🏼‍💻', label: 'Dev' },
+  { id: 'av_15', emoji: '👨🏾‍💻', label: 'Dev' },
+  // Ciência / Lab
+  { id: 'av_16', emoji: '👩🏻‍🔬', label: 'Cientista' },
+  { id: 'av_17', emoji: '👩🏽‍🔬', label: 'Cientista' },
+  { id: 'av_18', emoji: '👨🏼‍🔬', label: 'Cientista' },
+  { id: 'av_19', emoji: '👨🏾‍🔬', label: 'Cientista' },
+  { id: 'av_20', emoji: '👨🏿‍🔬', label: 'Cientista' },
+  // Professores
+  { id: 'av_21', emoji: '👩🏻‍🏫', label: 'Professora' },
+  { id: 'av_22', emoji: '👩🏼‍🏫', label: 'Professora' },
+  { id: 'av_23', emoji: '👨🏽‍🏫', label: 'Professor' },
+  { id: 'av_24', emoji: '👨🏾‍🏫', label: 'Professor' },
+  // Loiras/loiros explícitos (tom de pele claro)
+  { id: 'av_25', emoji: '👱🏻‍♀️', label: 'Loira' },
+  { id: 'av_26', emoji: '👱🏻‍♂️', label: 'Loiro' },
+  // Extras divertidos
+  { id: 'av_27', emoji: '🧑🏻‍🎨', label: 'Artista' },
+  { id: 'av_28', emoji: '🧑🏾‍🎨', label: 'Artista' },
+  { id: 'av_29', emoji: '🧑🏻‍⚕️', label: 'Saúde' },
+  { id: 'av_30', emoji: '🧑🏿‍⚕️', label: 'Saúde' },
 ];
 
 const STORAGE_KEY = 'cortexlab_perfil';
@@ -32,9 +48,9 @@ const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d))
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
   const [curso, setCurso] = useState(perfil.curso || '');
-  const [avatarId, setAvatarId] = useState(perfil.avatarId || 'av_06');
+  const [avatarId, setAvatarId] = useState(perfil.avatarId || 'av_01');
   const salvar = () => { onSalvar({ nome, curso, avatarId }); onFechar(); };
-  const avatarAtual = AVATARES.find(a => a.id === avatarId) || AVATARES[5];
+  const avatarAtual = AVATARES.find(a => a.id === avatarId) || AVATARES[0];
 
   return (
     <>
@@ -49,15 +65,18 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
           <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative' }}>
             <div style={{ width:'56px',height:'56px',borderRadius:'50%',background:'rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'32px',flexShrink:0,border:'2px solid rgba(255,255,255,0.35)' }}>{avatarAtual.emoji}</div>
             <div>
-              <p style={{ color:'white',fontWeight:800,fontSize:'18px',fontFamily:'var(--font-display)' }}>Editar Perfil</p>
-              <p style={{ color:'rgba(255,255,255,0.75)',fontSize:'13px',marginTop:'2px' }}>Estudante</p>
+              <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
+              {curso
+                ? <p style={{ color:'rgba(255,255,255,0.75)',fontSize:'13px',marginTop:'2px' }}>🎯 {curso}</p>
+                : <p style={{ color:'rgba(255,255,255,0.6)',fontSize:'12px',marginTop:'2px' }}>Sem curso alvo definido</p>
+              }
             </div>
             <button onClick={onFechar} style={{ position:'absolute',top:'14px',right:'14px',width:'30px',height:'30px',background:'rgba(255,255,255,0.15)',border:'none',borderRadius:'50%',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px',color:'white' }} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.25)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.15)'}>×</button>
           </div>
 
           <div style={{ padding:'22px 24px' }}>
             <p style={{ fontSize:'11px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--gray-400)',marginBottom:'10px' }}>Escolha seu avatar</p>
-            <div style={{ display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'18px',maxHeight:'160px',overflowY:'auto',padding:'4px' }}>
+            <div style={{ display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'18px',maxHeight:'200px',overflowY:'auto',padding:'4px' }}>
               {AVATARES.map(av => (
                 <button key={av.id} onClick={()=>setAvatarId(av.id)} title={av.label} style={{ width:'48px',height:'48px',borderRadius:'12px',border:av.id===avatarId?'2.5px solid #6366f1':'2px solid var(--gray-200)',background:av.id===avatarId?'var(--brand-50)':'var(--gray-50)',cursor:'pointer',fontSize:'24px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s',boxShadow:av.id===avatarId?'0 0 0 3px rgba(99,102,241,0.18)':'none' }} onMouseEnter={e=>{ if(av.id!==avatarId) e.currentTarget.style.borderColor='#a5b4fc'; }} onMouseLeave={e=>{ if(av.id!==avatarId) e.currentTarget.style.borderColor='var(--gray-200)'; }}>{av.emoji}</button>
               ))}
@@ -89,7 +108,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const containerRef = useRef(null);
-  const avatar = AVATARES.find(a => a.id === perfilData.avatarId) || AVATARES[5];
+  const avatar = AVATARES.find(a => a.id === perfilData.avatarId) || AVATARES[0];
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
