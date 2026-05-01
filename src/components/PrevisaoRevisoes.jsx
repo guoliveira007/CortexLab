@@ -69,11 +69,11 @@ const PrevisaoRevisoes = () => {
   const [diaSel, setDiaSel]           = useState(null);
   const [questoesDia, setQuestoesDia] = useState([]);
   const [mesOffset, setMesOffset]     = useState(0);
+  const [carregando, setCarregando]   = useState(true);
+  const [tentativas, setTentativas]   = useState(0);
 
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
 
-  // FIX: ao entrar na aba, marca o badge como "visto hoje" para que desapareça
-  // do item de navegação enquanto durar o dia.
   useEffect(() => {
     const dataHoje = new Date().toDateString();
     localStorage.setItem('previsao_badge_visto', dataHoje);
@@ -82,15 +82,28 @@ const PrevisaoRevisoes = () => {
 
   useEffect(() => { carregarDados(); }, []);
 
-  const carregarDados = async () => {
-    const [estadosArr, questoesArr] = await Promise.all([
-      db.revisaoEspacada.toArray(),
-      db.questoes.toArray(),
-    ]);
-    setEstados(estadosArr);
-    const mapa = {};
-    questoesArr.forEach(q => { mapa[String(q.id)] = q; });
-    setQuestoesMap(mapa);
+  const carregarDados = async (tentativa = 0) => {
+    setCarregando(true);
+    try {
+      const [estadosArr, questoesArr] = await Promise.all([
+        db.revisaoEspacada.toArray(),
+        db.questoes.toArray(),
+      ]);
+      setEstados(estadosArr);
+      const mapa = {};
+      questoesArr.forEach(q => { mapa[String(q.id)] = q; });
+      setQuestoesMap(mapa);
+      setTentativas(0);
+    } catch (e) {
+      if (tentativa < 3) {
+        // Tenta novamente automaticamente (500ms, 1s, 2s)
+        setTimeout(() => carregarDados(tentativa + 1), 500 * Math.pow(2, tentativa));
+      } else {
+        setTentativas(tentativa);
+      }
+    } finally {
+      setCarregando(false);
+    }
   };
 
   // Agrupa estados por data de próxima revisão
@@ -137,6 +150,23 @@ const PrevisaoRevisoes = () => {
       sm2: e,
     })).filter(q => q.id));
   };
+
+  if (carregando) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'var(--gray-400)', gap: '10px', fontSize: '14px' }}>
+      <span style={{ fontSize: '20px' }}>⏳</span> Carregando…
+    </div>
+  );
+
+  if (tentativas >= 3) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', textAlign: 'center' }}>
+      <span style={{ fontSize: '40px' }}>😕</span>
+      <p style={{ fontWeight: 600, color: 'var(--gray-700)', fontSize: '16px' }}>Não conseguimos carregar seus dados</p>
+      <p style={{ color: 'var(--gray-400)', fontSize: '14px' }}>Verifique sua conexão e tente novamente.</p>
+      <button onClick={() => carregarDados(0)} style={{ padding: '10px 24px', background: 'var(--gradient-brand)', border: 'none', borderRadius: 'var(--r-md)', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>
+        Tentar novamente
+      </button>
+    </div>
+  );
 
   return (
     <div>
