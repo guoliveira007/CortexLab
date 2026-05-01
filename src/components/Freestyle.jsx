@@ -142,21 +142,31 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
     toast.success(`${embaralhadas.length} questão(ões) carregada(s)!`);
   }, [filtradas, setPagina]);
 
+  const sessaoRef = useRef(null);
+  useEffect(() => { sessaoRef.current = sessao; }, [sessao]);
+
   const responder = useCallback(async (id, letra) => {
+    const sess = sessaoRef.current;
+    if (!sess) return;
+    const q = sess.find(q => q.id === id);
+    if (!q) return;
+
+    // Atualiza UI imediatamente
     setResp(prev => {
       if (prev[id]) return prev;
       return { ...prev, [id]: letra };
     });
-    setSessao(sess => {
-      const q = sess?.find(q => q.id === id);
-      if (!q) return sess;
-      const acertou = letra === q.gabarito;
-      db.resultados.add({
-        questaoId: id, data: new Date().toISOString(),
-        acertou, tempo: 0, modo: 'freestyle', materia: q.materia || null,
-      });
-      return sess;
-    });
+
+    // Salva no banco fora de qualquer state updater
+    const acertou = letra === q.gabarito;
+    db.resultados.add({
+      questaoId: id,
+      data: new Date().toISOString(),
+      acertou,
+      tempo: 0,
+      modo: 'freestyle',
+      materia: q.materia || null,
+    }).catch(err => console.error('[Freestyle] Erro ao salvar resultado:', err));
   }, []);
 
   if (!sessao) return (

@@ -388,43 +388,63 @@ db.getProgressoMetas = async () => {
 // DASHBOARD
 // ──────────────────────────────────────────────
 db.getDashboardData = async () => {
-  const [questoes, resultados, , , revisoes] = await Promise.all([
+  const [questoes, resultados, sessoes, revisoes] = await Promise.all([
     db.questoes.toArray(),
     db.resultados.toArray(),
-    db.metas.toArray(),
-    db.planejamento.toArray(),
-    db.revisaoEspacada.toArray(),
+    db.sessoes.toArray().catch(() => []),
+    db.revisaoEspacada.toArray().catch(() => []),
   ]);
-
-  const total   = resultados.length;
-  const acertos = resultados.filter((r) => r.acertou).length;
-  const taxa    = total ? Number(((acertos / total) * 100).toFixed(1)) : 0;
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const hojeDS  = hoje.toDateString();
   const hojeIso = hoje.toISOString().split('T')[0];
 
+  const idsExistentes = new Set(questoes.map((q) => String(q.id)));
+
+  // ── Stats gerais ──────────────────────────────────
+  const total   = resultados.length;
+  const acertos = resultados.filter((r) => r.acertou).length;
+  const taxa    = total ? Number(((acertos / total) * 100).toFixed(1)) : 0;
+
+  // ── Resultados de hoje ────────────────────────────
   const hojeRs = resultados.filter((r) => {
     const d = r.data ? new Date(r.data) : new Date(0);
     return d.toDateString() === hojeDS;
   });
 
-  const datasCompletas = [...new Set(resultados.map((r) => {
-    const d = r.data ? new Date(r.data) : new Date(0);
-    return d.toDateString();
-  }))];
+  // ── Tempo hoje: vem das sessões do Pomodoro ───────
+  const sessoesHoje = sessoes.filter((s) => {
+    const d = s.data ? new Date(s.data) : new Date(0);
+    return d.toDateString() === hojeDS;
+  });
+  const tempoHojeMin = Math.round(
+    sessoesHoje.reduce((acc, s) => acc + (s.duracao || 0), 0) / 60
+  );
+
+  // ── Streak: leniente — se hoje está vazio, começa ontem ──
+  const datasUnicas = new Set(
+    resultados.map((r) => (r.data ? new Date(r.data).toDateString() : ''))
+  );
   let streak = 0;
-  let dCheck = new Date(hoje);
-  while (datasCompletas.includes(dCheck.toDateString())) {
-    streak++;
-    dCheck.setDate(dCheck.getDate() - 1);
+  const dStreak = new Date(hoje);
+  // Se não estudou hoje, recua um dia antes de checar
+  if (!datasUnicas.has(dStreak.toDateString())) {
+    dStreak.setDate(dStreak.getDate() - 1);
+  }
+  for (let i = 0; i < 365; i++) {
+    if (datasUnicas.has(dStreak.toDateString())) {
+      streak++;
+      dStreak.setDate(dStreak.getDate() - 1);
+    } else break;
   }
 
-  const tempoHojeMin = Math.round(hojeRs.reduce((acc, r) => acc + (r.tempo || 0), 0) / 60);
-  const revisoesHoje = revisoes.filter((rev) => rev.proximaRevisao <= hojeIso).length;
+  // ── Revisões pendentes (filtra questões deletadas) ──
+  const revisoesHoje = revisoes.filter(
+    (rev) => rev.proximaRevisao <= hojeIso && idsExistentes.has(String(rev.questaoId))
+  ).length;
 
-  const idsExistentes = new Set(questoes.map((q) => String(q.id)));
+  // ── Caderno de erros: último resultado por questão ──
   const ultimoPorQuestao = {};
   resultados.forEach((r) => {
     const qid = String(r.questaoId || r.id_questao || '');
@@ -435,18 +455,19 @@ db.getDashboardData = async () => {
   });
   const errosCount = Object.values(ultimoPorQuestao).filter((r) => !r.acertou).length;
 
+  // ── Últimos 7 dias ────────────────────────────────
   const ultimos7 = Array.from({ length: 7 }, (_, i) => {
     const dia = new Date();
     dia.setDate(dia.getDate() - (6 - i));
     dia.setHours(0, 0, 0, 0);
-    const diaIso = dia.toISOString().split('T')[0];
+    const fim = new Date(dia); fim.setHours(23, 59, 59);
     const rs = resultados.filter((r) => {
-      const rd = r.data ? new Date(r.data).toISOString().split('T')[0] : '';
-      return rd === diaIso;
+      const rd = r.data ? new Date(r.data) : new Date(0);
+      return rd >= dia && rd <= fim;
     });
     return {
       label:   dia.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
-      data:    diaIso,
+      data:    dia.toISOString().split('T')[0],
       total:   rs.length,
       acertos: rs.filter((r) => r.acertou).length,
       isHoje:  dia.toDateString() === hojeDS,
