@@ -125,11 +125,12 @@ body {
 }
 
 .sidebar-logo {
-  padding: 22px 20px 20px;
+  height: 72px;          /* altura fixa — não empurra as abas */
+  padding: 0 16px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: center;   /* centraliza verticalmente dentro dos 72px */
+  flex-shrink: 0;
 }
 
 .sidebar-logo h1 {
