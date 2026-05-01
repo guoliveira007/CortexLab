@@ -4,8 +4,8 @@ import { db } from '../database';
 const periodos = [
   { id: 'hoje',   label: 'Hoje' },
   { id: 'semana', label: '7 dias' },
-  { id: 'mes',    label: 'Mês' },
-  { id: 'ano',    label: 'Ano' },
+  { id: 'mes',    label: '30 dias' },
+  { id: 'ano',    label: '365 dias' },
   { id: 'total',  label: 'Tudo' },
 ];
 
@@ -20,13 +20,21 @@ const filtrarPorPeriodo = (resultados, periodo) => {
   const agora = new Date();
   return resultados.filter(r => {
     const data = new Date(r.data);
-    if (periodo === 'hoje')   return data.toDateString() === agora.toDateString();
+    if (periodo === 'hoje') {
+      return data.toDateString() === agora.toDateString();
+    }
     if (periodo === 'semana') {
       const ini = new Date(agora); ini.setDate(ini.getDate() - 6); ini.setHours(0, 0, 0, 0);
       return data >= ini;
     }
-    if (periodo === 'mes') return data.getMonth() === agora.getMonth() && data.getFullYear() === agora.getFullYear();
-    if (periodo === 'ano')  return data.getFullYear() === agora.getFullYear();
+    if (periodo === 'mes') {
+      const ini = new Date(agora); ini.setDate(ini.getDate() - 29); ini.setHours(0, 0, 0, 0);
+      return data >= ini;
+    }
+    if (periodo === 'ano') {
+      const ini = new Date(agora); ini.setDate(ini.getDate() - 364); ini.setHours(0, 0, 0, 0);
+      return data >= ini;
+    }
     return true;
   });
 };
@@ -349,6 +357,9 @@ const Desempenho = () => {
 
   useEffect(() => {
     carregarDados();
+    const onFocus = () => carregarDados();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   useEffect(() => {
@@ -412,8 +423,11 @@ const Desempenho = () => {
   const porMateria = useMemo(() => {
     const map = {};
     resultadosFiltrados.forEach(r => {
-      const questao = questoesMap[r.questaoId] || questoesMap[r.id_questao];
-      const materia = questao?.materia || 'Sem matéria';
+      const qid = r.questaoId || r.id_questao;
+      const questao = questoesMap[qid];
+      // Ignora resultados de questões excluídas do banco
+      if (!questao) return;
+      const materia = questao.materia || r.materia || 'Sem matéria';
       if (!map[materia]) map[materia] = { total: 0, acertos: 0 };
       map[materia].total++;
       if (r.acertou) map[materia].acertos++;
