@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { SolarIcon } from 'solar-icon-set';
 import { useAuth } from './AuthContext';
 import { aplicarTema, getTema } from './components/Configuracoes';
 
@@ -43,11 +44,6 @@ import OfflineBanner from './components/OfflineBanner';
 // ── Error Boundary ──
 import ErrorBoundary from './components/ErrorBoundary';
 
-import {
-  LayoutDashboard, Target, FileText, ClipboardList, Database,
-  BarChart2, Medal, Calendar, Trophy, MessageCircle, Brain,
-  CalendarClock, Keyboard, Loader2,
-} from 'lucide-react';
 import logo from './assets/logo_sidebar.png';
 
 const LoadingFallback = () => (
@@ -55,30 +51,30 @@ const LoadingFallback = () => (
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     height: '300px', color: 'var(--gray-400)', fontSize: '14px', gap: '10px',
   }}>
-    <Loader2 size={20} strokeWidth={1.75} style={{ animation: 'spin 1s linear infinite' }} />
+    <SolarIcon iconName="Spinner" size={20} iconStyle="Linear" />
     Carregando…
   </div>
 );
 
 const TABS = [
-  { id: 'dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
-  { id: 'freestyle',    label: 'Freestyle',       icon: Target },
-  { id: 'simulado',     label: 'Simulados',       icon: FileText },
-  { id: 'listas',       label: 'Listas',          icon: ClipboardList },
-  { id: 'banco',        label: 'Banco',           icon: Database },
-  { id: 'desempenho',   label: 'Desempenho',      icon: BarChart2 },
-  { id: 'metas',        label: 'Metas',           icon: Medal },
-  { id: 'planejamento', label: 'Planejamento',    icon: Calendar },
-  { id: 'conquistas',   label: 'Conquistas',      icon: Trophy },
+  { id: 'dashboard',    label: 'Dashboard',      iconName: 'Widget5'           },
+  { id: 'freestyle',    label: 'Freestyle',       iconName: 'Target'            },
+  { id: 'simulado',     label: 'Simulados',       iconName: 'File Text'         },
+  { id: 'listas',       label: 'Listas',          iconName: 'Clipboard List'    },
+  { id: 'banco',        label: 'Banco',           iconName: 'Server'            },
+  { id: 'desempenho',   label: 'Desempenho',      iconName: 'Chart 2'           },
+  { id: 'metas',        label: 'Metas',           iconName: 'Medal Ribbons Star'},
+  { id: 'planejamento', label: 'Planejamento',    iconName: 'Calendar'          },
+  { id: 'conquistas',   label: 'Conquistas',      iconName: 'Trophy'            },
 ];
 
 const TABS_IA = [
-  { id: 'chat',    label: 'Chat de Dúvidas',     icon: MessageCircle },
-  { id: 'resumo',  label: 'Resumo por Matéria',  icon: Brain },
+  { id: 'chat',   label: 'Chat de Dúvidas',    iconName: 'Chat Round' },
+  { id: 'resumo', label: 'Resumo por Matéria', iconName: 'Atom'       },
 ];
 
 const TABS_REVISAO = [
-  { id: 'previsao',  label: 'Previsão de Revisões', icon: CalendarClock, badge: true },
+  { id: 'previsao', label: 'Previsão de Revisões', iconName: 'Calendar Mark', badge: true },
 ];
 
 export default function App() {
@@ -150,21 +146,18 @@ export default function App() {
   const NavGroup = ({ titulo, items }) => (
     <>
       <p className="nav-label">{titulo}</p>
-      {items.map(t => {
-        const Icon = t.icon;
-        return (
-          <button
-            key={t.id}
-            className={`nav-item ${tab === t.id ? 'active' : ''}`}
-            onClick={() => setTab(t.id)}
-            style={{ position: 'relative' }}
-          >
-            <Icon size={17} strokeWidth={1.75} className="nav-icon" />
-            {t.label}
-            {t.badge && <BadgeRevisoes />}
-          </button>
-        );
-      })}
+      {items.map(t => (
+        <button
+          key={t.id}
+          className={`nav-item ${tab === t.id ? 'active' : ''}`}
+          onClick={() => setTab(t.id)}
+          style={{ position: 'relative' }}
+        >
+          <SolarIcon iconName={t.iconName} size={18} iconStyle="Bold" className="nav-icon" />
+          {t.label}
+          {t.badge && <BadgeRevisoes />}
+        </button>
+      ))}
     </>
   );
 
@@ -178,19 +171,16 @@ export default function App() {
         </div>
 
         <nav className="sidebar-nav">
-          {TABS.map(t => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.id}
-                className={`nav-item ${tab === t.id ? 'active' : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                <Icon size={17} strokeWidth={1.75} className="nav-icon" />
-                {t.label}
-              </button>
-            );
-          })}
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              className={`nav-item ${tab === t.id ? 'active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              <SolarIcon iconName={t.iconName} size={18} iconStyle="Bold" className="nav-icon" />
+              {t.label}
+            </button>
+          ))}
 
           <NavGroup titulo="Revisão" items={TABS_REVISAO} />
           <NavGroup titulo="Inteligência Artificial" items={TABS_IA} />
@@ -201,7 +191,7 @@ export default function App() {
               onClick={() => setAjudaAberta(true)}
               title="Atalhos de teclado (Alt+?)"
             >
-              <Keyboard size={17} strokeWidth={1.75} className="nav-icon" />
+              <SolarIcon iconName="Keyboard" size={18} iconStyle="Bold" className="nav-icon" />
               Atalhos
             </button>
           </div>

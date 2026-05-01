@@ -47,7 +47,8 @@
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
     "react-virtualized-auto-sizer": "^2.0.3",
-    "react-window": "^2.2.7"
+    "react-window": "^2.2.7",
+    "solar-icon-set": "^2.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
