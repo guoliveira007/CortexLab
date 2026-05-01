@@ -1,16 +1,15 @@
+// src/components/useTutorial.js
 import { useState, useEffect, useCallback } from 'react';
+import { userStorage } from '../utils/storageUser';
 
 const STORAGE_KEY = 'cortexlab_tutorial_visto';
 
-const getVistos = () => {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
-  catch { return {}; }
-};
+const getVistos = () => userStorage.getJSON(STORAGE_KEY, {});
 
 const marcarVisto = (tabId) => {
   const vistos = getVistos();
   vistos[tabId] = true;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(vistos));
+  userStorage.setJSON(STORAGE_KEY, vistos);
 };
 
 export const useTutorial = (tabAtual) => {
@@ -19,7 +18,6 @@ export const useTutorial = (tabAtual) => {
   useEffect(() => {
     const vistos = getVistos();
     if (!vistos[tabAtual]) {
-      // Pequeno delay para o conteúdo renderizar primeiro
       const t = setTimeout(() => setAberto(true), 600);
       return () => clearTimeout(t);
     }
@@ -33,7 +31,7 @@ export const useTutorial = (tabAtual) => {
   }, [tabAtual]);
 
   const resetarTodos = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    userStorage.removeItem(STORAGE_KEY);
   };
 
   return { aberto, abrir, fechar, resetarTodos };

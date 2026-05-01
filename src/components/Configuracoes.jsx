@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { userStorage } from '../utils/storageUser';
 
-const TEMA_KEY = 'cortexlab_tema';
+const TEMA_KEY    = 'cortexlab_tema';
+const API_KEY_KEY = 'groq_api_key';
 
-export const getTema = () => localStorage.getItem(TEMA_KEY) || 'claro';
+export const getTema = () => userStorage.getItem(TEMA_KEY) || 'claro';
+
 export const aplicarTema = (tema) => {
-  localStorage.setItem(TEMA_KEY, tema);
+  userStorage.setItem(TEMA_KEY, tema);
   if (tema === 'escuro') document.body.classList.add('dark');
   else document.body.classList.remove('dark');
 };
 
-const Configuracoes = ({ onFechar }) => {
-  const [aba, setAba] = useState('ia');
-  const [apiKey, setApiKey] = useState('');
+// isOwner — passado pelo App.jsx
+// Aba "🤖 IA" (chave Groq) só aparece para o dono.
+// Aba "🎨 Aparência" (tema claro/escuro) aparece para todos.
+const Configuracoes = ({ onFechar, isOwner }) => {
+  const [aba, setAba]           = useState(isOwner ? 'ia' : 'aparencia');
+  const [apiKey, setApiKey]     = useState('');
   const [feedback, setFeedback] = useState(null);
-  const [tema, setTema] = useState(getTema());
+  const [tema, setTema]         = useState(getTema());
 
   useEffect(() => {
-    setApiKey(localStorage.getItem('groq_api_key') || '');
-  }, []);
+    if (isOwner) setApiKey(userStorage.getItem(API_KEY_KEY) || '');
+  }, [isOwner]);
 
   const salvarKey = () => {
-    localStorage.setItem('groq_api_key', apiKey);
+    userStorage.setItem(API_KEY_KEY, apiKey);
     setFeedback('salvo');
     setTimeout(() => setFeedback(null), 3000);
   };
 
   const removerKey = () => {
-    localStorage.removeItem('groq_api_key');
+    userStorage.removeItem(API_KEY_KEY);
     setApiKey('');
     setFeedback('removido');
     setTimeout(() => setFeedback(null), 3000);
@@ -38,8 +44,8 @@ const Configuracoes = ({ onFechar }) => {
   };
 
   const abas = [
-    { id: 'ia',        label: '🤖 IA',         },
-    { id: 'aparencia', label: '🎨 Aparência',   },
+    ...(isOwner ? [{ id: 'ia', label: '🤖 IA' }] : []),
+    { id: 'aparencia', label: '🎨 Aparência' },
   ];
 
   return (
@@ -52,18 +58,23 @@ const Configuracoes = ({ onFechar }) => {
           <button onClick={onFechar} style={{ background:'none',border:'none',fontSize:'24px',cursor:'pointer',color:'var(--gray-400)',lineHeight:1 }}>×</button>
         </div>
 
-        {/* Abas */}
-        <div style={{ display:'flex',gap:'4px',padding:'16px 24px 0',borderBottom:'1px solid var(--gray-100)' }}>
-          {abas.map(a => (
-            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:'8px 16px',borderRadius:'10px 10px 0 0',border:'none',fontFamily:'inherit',fontSize:'14px',fontWeight:600,cursor:'pointer',transition:'all 0.15s',background:aba===a.id?'var(--surface-card)':'none',color:aba===a.id?'var(--brand-500)':'var(--gray-400)',borderBottom:aba===a.id?'2px solid var(--brand-500)':'2px solid transparent',marginBottom:'-1px' }}>{a.label}</button>
-          ))}
-        </div>
+        {/* Abas — só mostra barra se houver mais de uma aba */}
+        {abas.length > 1 && (
+          <div style={{ display:'flex',gap:'4px',padding:'16px 24px 0',borderBottom:'1px solid var(--gray-100)' }}>
+            {abas.map(a => (
+              <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:'8px 16px',borderRadius:'10px 10px 0 0',border:'none',fontFamily:'inherit',fontSize:'14px',fontWeight:600,cursor:'pointer',transition:'all 0.15s',background:aba===a.id?'var(--surface-card)':'none',color:aba===a.id?'var(--brand-500)':'var(--gray-400)',borderBottom:aba===a.id?'2px solid var(--brand-500)':'2px solid transparent',marginBottom:'-1px' }}>{a.label}</button>
+            ))}
+          </div>
+        )}
+        {abas.length === 1 && (
+          <div style={{ borderBottom:'1px solid var(--gray-100)',marginTop:'16px' }} />
+        )}
 
         {/* Conteúdo */}
         <div style={{ padding:'24px' }}>
 
-          {/* ── ABA IA ── */}
-          {aba === 'ia' && (
+          {/* ── ABA IA — somente dono ── */}
+          {aba === 'ia' && isOwner && (
             <div>
               <p style={{ fontSize:'14px',color:'var(--gray-600)',marginBottom:'16px',lineHeight:'1.6' }}>
                 Configure sua chave da API GroqCloud para usar as explicações com IA quando você errar uma questão.
@@ -96,7 +107,7 @@ const Configuracoes = ({ onFechar }) => {
             </div>
           )}
 
-          {/* ── ABA APARÊNCIA ── */}
+          {/* ── ABA APARÊNCIA — todos os usuários ── */}
           {aba === 'aparencia' && (
             <div>
               <p style={{ fontSize:'14px',color:'var(--gray-600)',marginBottom:'20px',lineHeight:'1.6' }}>

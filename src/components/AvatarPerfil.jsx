@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
+import { userStorage } from '../utils/storageUser';
 
 export const AVATARES = [
-  // Estudantes graduação — tons variados
   { id: 'av_01', emoji: '👩🏻‍🎓', label: 'Estudante' },
   { id: 'av_02', emoji: '👩🏼‍🎓', label: 'Estudante' },
   { id: 'av_03', emoji: '👩🏽‍🎓', label: 'Estudante' },
@@ -14,27 +14,22 @@ export const AVATARES = [
   { id: 'av_08', emoji: '👨🏽‍🎓', label: 'Estudante' },
   { id: 'av_09', emoji: '👨🏾‍🎓', label: 'Estudante' },
   { id: 'av_10', emoji: '👨🏿‍🎓', label: 'Estudante' },
-  // Tech
   { id: 'av_11', emoji: '👩🏻‍💻', label: 'Dev' },
   { id: 'av_12', emoji: '👩🏽‍💻', label: 'Dev' },
   { id: 'av_13', emoji: '👩🏿‍💻', label: 'Dev' },
   { id: 'av_14', emoji: '👨🏼‍💻', label: 'Dev' },
   { id: 'av_15', emoji: '👨🏾‍💻', label: 'Dev' },
-  // Ciência / Lab
   { id: 'av_16', emoji: '👩🏻‍🔬', label: 'Cientista' },
   { id: 'av_17', emoji: '👩🏽‍🔬', label: 'Cientista' },
   { id: 'av_18', emoji: '👨🏼‍🔬', label: 'Cientista' },
   { id: 'av_19', emoji: '👨🏾‍🔬', label: 'Cientista' },
   { id: 'av_20', emoji: '👨🏿‍🔬', label: 'Cientista' },
-  // Professores
   { id: 'av_21', emoji: '👩🏻‍🏫', label: 'Professora' },
   { id: 'av_22', emoji: '👩🏼‍🏫', label: 'Professora' },
   { id: 'av_23', emoji: '👨🏽‍🏫', label: 'Professor' },
   { id: 'av_24', emoji: '👨🏾‍🏫', label: 'Professor' },
-  // Loiras/loiros explícitos (tom de pele claro)
   { id: 'av_25', emoji: '👱🏻‍♀️', label: 'Loira' },
   { id: 'av_26', emoji: '👱🏻‍♂️', label: 'Loiro' },
-  // Médicas e médicos
   { id: 'av_27', emoji: '👩🏻‍⚕️', label: 'Médica' },
   { id: 'av_28', emoji: '👩🏼‍⚕️', label: 'Médica' },
   { id: 'av_29', emoji: '👩🏽‍⚕️', label: 'Médica' },
@@ -45,14 +40,15 @@ export const AVATARES = [
   { id: 'av_34', emoji: '👨🏽‍⚕️', label: 'Médico' },
   { id: 'av_35', emoji: '👨🏾‍⚕️', label: 'Médico' },
   { id: 'av_36', emoji: '👨🏿‍⚕️', label: 'Médico' },
-  // Extras divertidos
   { id: 'av_37', emoji: '🧑🏻‍🎨', label: 'Artista' },
   { id: 'av_38', emoji: '🧑🏾‍🎨', label: 'Artista' },
 ];
 
 const STORAGE_KEY = 'cortexlab_perfil';
-export const getPerfil = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } };
-const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+
+// Perfil agora é por usuário — usa userStorage com uid como prefixo
+export const getPerfil = () => userStorage.getJSON(STORAGE_KEY, {});
+const salvarPerfil = (d) => userStorage.setJSON(STORAGE_KEY, d);
 
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
@@ -80,14 +76,14 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
                 : <p style={{ color:'rgba(255,255,255,0.6)',fontSize:'12px',marginTop:'2px' }}>Sem curso alvo definido</p>
               }
             </div>
-            <button onClick={onFechar} style={{ position:'absolute',top:'14px',right:'14px',width:'30px',height:'30px',background:'rgba(255,255,255,0.15)',border:'none',borderRadius:'50%',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px',color:'white' }} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.25)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.15)'}>×</button>
+            <button onClick={onFechar} style={{ position:'absolute',top:'14px',right:'14px',width:'30px',height:'30px',background:'rgba(255,255,255,0.15)',border:'none',borderRadius:'50%',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px',color:'white' }}>×</button>
           </div>
 
           <div style={{ padding:'22px 24px' }}>
             <p style={{ fontSize:'11px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--gray-400)',marginBottom:'10px' }}>Escolha seu avatar</p>
             <div style={{ display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'18px',maxHeight:'200px',overflowY:'auto',padding:'4px' }}>
               {AVATARES.map(av => (
-                <button key={av.id} onClick={()=>setAvatarId(av.id)} title={av.label} style={{ width:'48px',height:'48px',borderRadius:'12px',border:av.id===avatarId?'2.5px solid #6366f1':'2px solid var(--gray-200)',background:av.id===avatarId?'var(--brand-50)':'var(--gray-50)',cursor:'pointer',fontSize:'24px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s',boxShadow:av.id===avatarId?'0 0 0 3px rgba(99,102,241,0.18)':'none' }} onMouseEnter={e=>{ if(av.id!==avatarId) e.currentTarget.style.borderColor='#a5b4fc'; }} onMouseLeave={e=>{ if(av.id!==avatarId) e.currentTarget.style.borderColor='var(--gray-200)'; }}>{av.emoji}</button>
+                <button key={av.id} onClick={()=>setAvatarId(av.id)} title={av.label} style={{ width:'48px',height:'48px',borderRadius:'12px',border:av.id===avatarId?'2.5px solid #6366f1':'2px solid var(--gray-200)',background:av.id===avatarId?'var(--brand-50)':'var(--gray-50)',cursor:'pointer',fontSize:'24px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s',boxShadow:av.id===avatarId?'0 0 0 3px rgba(99,102,241,0.18)':'none' }}>{av.emoji}</button>
               ))}
             </div>
 
@@ -103,8 +99,8 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
           </div>
 
           <div style={{ padding:'14px 24px 20px',display:'flex',gap:'10px',justifyContent:'flex-end',borderTop:'1px solid var(--gray-100)' }}>
-            <button onClick={onFechar} style={{ padding:'9px 18px',background:'var(--gray-100)',border:'none',borderRadius:'10px',color:'var(--gray-600)',fontSize:'14px',fontWeight:600,cursor:'pointer' }} onMouseEnter={e=>e.currentTarget.style.background='var(--gray-200)'} onMouseLeave={e=>e.currentTarget.style.background='var(--gray-100)'}>Cancelar</button>
-            <button onClick={salvar} style={{ padding:'9px 22px',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'10px',color:'white',fontSize:'14px',fontWeight:700,cursor:'pointer',boxShadow:'0 4px 16px rgba(99,102,241,0.35)' }} onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(99,102,241,0.45)'; }} onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 16px rgba(99,102,241,0.35)'; }}>✓ Salvar</button>
+            <button onClick={onFechar} style={{ padding:'9px 18px',background:'var(--gray-100)',border:'none',borderRadius:'10px',color:'var(--gray-600)',fontSize:'14px',fontWeight:600,cursor:'pointer' }}>Cancelar</button>
+            <button onClick={salvar} style={{ padding:'9px 22px',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'10px',color:'white',fontSize:'14px',fontWeight:700,cursor:'pointer',boxShadow:'0 4px 16px rgba(99,102,241,0.35)' }}>✓ Salvar</button>
           </div>
         </div>
       </div>
@@ -112,7 +108,8 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   );
 };
 
-const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
+// isOwner — passado pelo App.jsx — controla visibilidade do item Configurações
+const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail, isOwner }) => {
   const [perfilData, setPerfilData] = useState(getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
@@ -128,16 +125,28 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const handleSalvar = (d) => { salvarPerfil(d); setPerfilData(d); };
   const nomeExibido = perfilData.nome || userEmail?.split('@')[0] || 'Meu perfil';
 
+  // Itens base — disponíveis para todos
   const menuItems = [
-    { icon:'👤', label:'Editar perfil',       action:()=>{ setDropdownAberto(false); setModalAberto(true); } },
-    { icon:'⚙️', label:'Configurações',        action:()=>{ setDropdownAberto(false); onAbrirConfig(); } },
-    { icon:'💾', label:'Backup & Restauração', action:()=>{ setDropdownAberto(false); onIrParaBackup(); } },
+    { icon: '👤', label: 'Editar perfil',       action: () => { setDropdownAberto(false); setModalAberto(true); } },
+    { icon: '💾', label: 'Backup & Restauração', action: () => { setDropdownAberto(false); onIrParaBackup(); } },
   ];
+
+  // Item exclusivo do dono
+  if (isOwner) {
+    menuItems.splice(1, 0, {
+      icon: '⚙️', label: 'Configurações',
+      action: () => { setDropdownAberto(false); onAbrirConfig(); },
+    });
+  }
 
   return (
     <>
-      <div ref={containerRef} style={{ position:'relative' }}>
-        <button onClick={()=>setDropdownAberto(d=>!d)} title="Perfil" style={{ width:'52px',height:'52px',borderRadius:'50%',background:dropdownAberto?'linear-gradient(135deg,#6366f1,#8b5cf6)':'linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))',border:dropdownAberto?'2.5px solid #6366f1':'2px solid rgba(99,102,241,0.25)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'26px',transition:'all 0.2s',flexShrink:0,boxShadow:dropdownAberto?'0 0 0 4px rgba(99,102,241,0.15)':'none' }} onMouseEnter={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.5)'; }}} onMouseLeave={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.25)'; }}}>
+      <div ref={containerRef} style={{ position: 'relative' }}>
+        <button
+          onClick={() => setDropdownAberto(d => !d)}
+          title="Perfil"
+          style={{ width:'52px',height:'52px',borderRadius:'50%',background:dropdownAberto?'linear-gradient(135deg,#6366f1,#8b5cf6)':'linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))',border:dropdownAberto?'2.5px solid #6366f1':'2px solid rgba(99,102,241,0.25)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'26px',transition:'all 0.2s',flexShrink:0,boxShadow:dropdownAberto?'0 0 0 4px rgba(99,102,241,0.15)':'none' }}
+        >
           {avatar.emoji}
         </button>
 
@@ -145,6 +154,8 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
           <>
             <style>{`@keyframes dd-in { from { opacity:0; transform:translateY(-8px) scale(0.96); } to { opacity:1; transform:none; } }`}</style>
             <div className="dark-modal" style={{ position:'absolute',top:'calc(100% + 10px)',right:0,background:'var(--surface-card)',borderRadius:'16px',boxShadow:'0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)',minWidth:'220px',overflow:'hidden',zIndex:8000,animation:'dd-in 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
+
+              {/* Header com email e curso */}
               <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px' }}>
                 <div style={{ width:'42px',height:'42px',borderRadius:'50%',background:'rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px',flexShrink:0,border:'2px solid rgba(255,255,255,0.3)' }}>{avatar.emoji}</div>
                 <div style={{ overflow:'hidden' }}>
@@ -153,18 +164,24 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
                     ? <p style={{ color:'rgba(255,255,255,0.7)',fontSize:'12px',marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>🎯 {perfilData.curso}</p>
                     : userEmail && <p style={{ color:'rgba(255,255,255,0.55)',fontSize:'11px',marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{userEmail}</p>
                   }
+                  {isOwner && (
+                    <p style={{ color:'#fcd34d',fontSize:'10px',fontWeight:700,marginTop:'3px',letterSpacing:'0.05em' }}>
+                      👑 Administrador
+                    </p>
+                  )}
                 </div>
               </div>
 
+              {/* Itens de menu */}
               <div style={{ padding:'6px' }}>
-                {menuItems.map((item,i) => (
+                {menuItems.map((item, i) => (
                   <button key={i} onClick={item.action} style={{ width:'100%',padding:'10px 12px',background:'none',border:'none',borderRadius:'10px',display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',textAlign:'left',fontSize:'14px',fontWeight:500,color:'var(--gray-700)',transition:'background 0.12s' }} onMouseEnter={e=>e.currentTarget.style.background='var(--gray-50)'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
                     <span style={{ fontSize:'16px',width:'20px',textAlign:'center' }}>{item.icon}</span>
                     {item.label}
                   </button>
                 ))}
                 <div style={{ borderTop:'1px solid var(--gray-100)',margin:'4px 0' }} />
-                <button onClick={()=>{ setDropdownAberto(false); signOut(auth); }} style={{ width:'100%',padding:'10px 12px',background:'none',border:'none',borderRadius:'10px',display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',textAlign:'left',fontSize:'14px',fontWeight:500,color:'#ef4444',transition:'background 0.12s' }} onMouseEnter={e=>e.currentTarget.style.background='#fef2f2'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                <button onClick={() => { setDropdownAberto(false); signOut(auth); }} style={{ width:'100%',padding:'10px 12px',background:'none',border:'none',borderRadius:'10px',display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',textAlign:'left',fontSize:'14px',fontWeight:500,color:'#ef4444',transition:'background 0.12s' }} onMouseEnter={e=>e.currentTarget.style.background='#fef2f2'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
                   <span style={{ fontSize:'16px',width:'20px',textAlign:'center' }}>🚪</span>
                   Sair
                 </button>
@@ -174,7 +191,9 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
         )}
       </div>
 
-      {modalAberto && <ModalPerfil perfil={perfilData} onFechar={()=>setModalAberto(false)} onSalvar={handleSalvar} />}
+      {modalAberto && (
+        <ModalPerfil perfil={perfilData} onFechar={() => setModalAberto(false)} onSalvar={handleSalvar} />
+      )}
     </>
   );
 };

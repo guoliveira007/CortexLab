@@ -6,8 +6,16 @@ import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
 import Alternativas from './Alternativas';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
+import { userStorage } from '../utils/storageUser';
 
 const POR_PAGINA = 10;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMPORTANTE: a chave de storage NÃO é uma constante de módulo —
+// ela precisa ser avaliada em tempo de execução para incluir o uid atual.
+// Por isso usamos uma função em vez de const STORAGE_KEY = '...'.
+// ─────────────────────────────────────────────────────────────────────────────
+const FREESTYLE_KEY = 'cortexlab_freestyle_sessao';
 
 export const QuestaoCard = memo(({ questao, numero, resposta, onResponder }) => {
   const respondida = !!resposta;
@@ -79,7 +87,6 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
   const [sessao, setSessao]  = useState(null);
   const [respostas, setResp] = useState({});
   const restauradoRef        = useRef(false);
-  const STORAGE_KEY          = 'cortexlab_freestyle_sessao';
 
   const {
     filtros,
@@ -94,7 +101,7 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
   } = useQuestaoFilters(todas, {
     pageSize: POR_PAGINA,
     includeCurriculo: true,
-    storageKey: 'freestyle_filtros',
+    storageKey: 'freestyle_filtros', // já será prefixado pelo userStorage dentro do hook
   });
 
   useEffect(() => { db.questoes.toArray().then(setTodas); }, []);
@@ -105,30 +112,36 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
     if (onMateriaAplicada) onMateriaAplicada();
   }, [materiaInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Restaurar sessão salva (escopo do usuário atual) ──
   useEffect(() => {
     if (!todas.length || restauradoRef.current) return;
     restauradoRef.current = true;
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+
+    const salvo = userStorage.getJSON(FREESTYLE_KEY);
+    if (!salvo) return;
+
     try {
-      const { ids, respostas: resp, pagina: pag } = JSON.parse(raw);
+      const { ids, respostas: resp, pagina: pag } = salvo;
       const map = Object.fromEntries(todas.map(q => [q.id, q]));
       const ordered = ids.map(id => map[id]).filter(Boolean);
-      if (!ordered.length) { localStorage.removeItem(STORAGE_KEY); return; }
+      if (!ordered.length) { userStorage.removeItem(FREESTYLE_KEY); return; }
       setSessao(ordered);
       setResp(resp || {});
       setPagina(pag || 1);
       toast('Sessão restaurada! Continuando de onde parou 🔄');
-    } catch { localStorage.removeItem(STORAGE_KEY); }
+    } catch {
+      userStorage.removeItem(FREESTYLE_KEY);
+    }
   }, [todas]);
 
+  // ── Persistir sessão (escopo do usuário atual) ──
   useEffect(() => {
-    if (!sessao) { localStorage.removeItem(STORAGE_KEY); return; }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    if (!sessao) { userStorage.removeItem(FREESTYLE_KEY); return; }
+    userStorage.setJSON(FREESTYLE_KEY, {
       ids: sessao.map(q => q.id),
       respostas,
       pagina,
-    }));
+    });
   }, [sessao, respostas, pagina]);
 
   const iniciar = useCallback(() => {
@@ -222,7 +235,7 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
         </div>
         <button
           className="btn-secondary"
-          onClick={() => { localStorage.removeItem(STORAGE_KEY); setSessao(null); }}
+          onClick={() => { userStorage.removeItem(FREESTYLE_KEY); setSessao(null); }}
           style={{ fontSize: '13px', padding: '7px 14px' }}
         >
           ← Novo filtro

@@ -4,9 +4,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useAuth } from './AuthContext';
 import { aplicarTema, getTema } from './components/Configuracoes';
-
-// Aplicar tema salvo ao inicializar
-aplicarTema(getTema());
+import { useIsOwner } from './hooks/useIsOwner';
 
 // ── Componentes leves — importados estaticamente ──
 import Dashboard        from './components/Dashboard';
@@ -33,16 +31,12 @@ import { useAtalhos } from './components/useAtalhos';
 import AjudaAtalhos   from './components/AjudaAtalhos';
 import BadgeRevisoes  from './components/BadgeRevisoes';
 
-// ── Tutorial ──
 import Tutorial, { BotaoTutorial } from './components/Tutorial';
 import { useTutorial } from './components/useTutorial';
 import AvatarPerfil from './components/AvatarPerfil';
 
-// ── UX / Visual ──
 import TabTransition from './components/TabTransition';
 import OfflineBanner from './components/OfflineBanner';
-
-// ── Error Boundary ──
 import ErrorBoundary from './components/ErrorBoundary';
 
 import {
@@ -62,16 +56,38 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Tela exibida quando um usuário comum tenta acessar uma rota restrita
+const TelaAcessoRestrito = () => (
+  <div style={{
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', height: '60vh', gap: '16px',
+    color: 'var(--gray-500)', textAlign: 'center', padding: '32px',
+  }}>
+    <span style={{ fontSize: '56px' }}>🔒</span>
+    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, color: 'var(--gray-700)', margin: 0 }}>
+      Acesso restrito
+    </h2>
+    <p style={{ fontSize: '15px', lineHeight: '1.6', maxWidth: '380px', margin: 0 }}>
+      Esta área é exclusiva para o administrador da plataforma.
+    </p>
+  </div>
+);
+
+// Tabs visíveis para todos os usuários
 const TABS = [
   { id: 'dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
   { id: 'freestyle',    label: 'Freestyle',       icon: Target },
   { id: 'simulado',     label: 'Simulados',       icon: FileText },
   { id: 'listas',       label: 'Listas',          icon: ClipboardList },
-  { id: 'banco',        label: 'Banco',           icon: Database },
   { id: 'desempenho',   label: 'Desempenho',      icon: BarChart2 },
   { id: 'metas',        label: 'Metas',           icon: Medal },
   { id: 'planejamento', label: 'Planejamento',    icon: Calendar },
   { id: 'conquistas',   label: 'Conquistas',      icon: Trophy },
+];
+
+// Tab exclusiva do dono — aparece no sidebar apenas para o owner
+const TABS_OWNER = [
+  { id: 'banco', label: 'Banco de Questões', icon: Database },
 ];
 
 const TABS_IA = [
@@ -80,18 +96,23 @@ const TABS_IA = [
 ];
 
 const TABS_REVISAO = [
-  { id: 'previsao',  label: 'Previsão de Revisões', icon: CalendarClock, badge: true },
+  { id: 'previsao', label: 'Previsão de Revisões', icon: CalendarClock, badge: true },
 ];
 
 export default function App() {
   const { user } = useAuth();
-  const [tab, setTab]                   = useState('dashboard');
+  const isOwner  = useIsOwner();
+
+  const [tab, setTab]                           = useState('dashboard');
   const [materiaFreestyle, setMateriaFreestyle] = useState('');
-  const [configAberta, setConfigAberta] = useState(false);
-  const [ajudaAberta, setAjudaAberta]   = useState(false);
-  const [dbVersion, setDbVersion]       = useState(0);
+  const [configAberta, setConfigAberta]         = useState(false);
+  const [ajudaAberta, setAjudaAberta]           = useState(false);
+  const [dbVersion, setDbVersion]               = useState(0);
 
   const { aberto: tutAberto, abrir: abrirTut, fechar: fecharTut } = useTutorial(tab);
+
+  // Aplica tema do usuário logado (com escopo por uid)
+  useEffect(() => { aplicarTema(getTema()); }, [user?.uid]);
 
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
@@ -118,15 +139,21 @@ export default function App() {
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.altKey && e.key === '?') {
-        e.preventDefault();
-        setAjudaAberta(a => !a);
-      }
+      if (e.altKey && e.key === '?') { e.preventDefault(); setAjudaAberta(a => !a); }
       if (e.key === 'Escape') setAjudaAberta(false);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  // Se um usuário comum tentar acessar rota restrita (ex: via atalho de teclado),
+  // redireciona para o dashboard silenciosamente.
+  useEffect(() => {
+    const rotasRestritas = ['banco'];
+    if (!isOwner && rotasRestritas.includes(tab)) {
+      setTab('dashboard');
+    }
+  }, [tab, isOwner]);
 
   const renderPage = () => {
     switch (tab) {
@@ -136,16 +163,18 @@ export default function App() {
       case 'listas':       return <MinhasListas />;
       case 'revisao':      return <RevisaoEspacada onFechar={() => setTab('dashboard')} />;
       case 'caderno':      return <CadernoErros    onFechar={() => setTab('dashboard')} />;
-      case 'banco':        return <BancoQuestoes />;
+      // ── Rotas restritas ao dono ──
+      case 'banco':        return isOwner ? <BancoQuestoes /> : <TelaAcessoRestrito />;
+      // ── Rotas comuns ──
       case 'desempenho':   return <Desempenho />;
       case 'metas':        return <Metas />;
       case 'planejamento': return <Planejamento />;
       case 'conquistas':   return <Conquistas />;
-      case 'chat':    return <Suspense fallback={<LoadingFallback />}><ChatDuvidas /></Suspense>;
-      case 'resumo':  return <Suspense fallback={<LoadingFallback />}><ResumoMateria /></Suspense>;
-      case 'previsao':return <Suspense fallback={<LoadingFallback />}><PrevisaoRevisoes /></Suspense>;
-      case 'backup':  return <Suspense fallback={<LoadingFallback />}><BackupRestaurar /></Suspense>;
-      default:        return <Dashboard onNavigate={setTab} />;
+      case 'chat':         return <Suspense fallback={<LoadingFallback />}><ChatDuvidas /></Suspense>;
+      case 'resumo':       return <Suspense fallback={<LoadingFallback />}><ResumoMateria /></Suspense>;
+      case 'previsao':     return <Suspense fallback={<LoadingFallback />}><PrevisaoRevisoes /></Suspense>;
+      case 'backup':       return <Suspense fallback={<LoadingFallback />}><BackupRestaurar /></Suspense>;
+      default:             return <Dashboard onNavigate={setTab} />;
     }
   };
 
@@ -196,6 +225,11 @@ export default function App() {
             );
           })}
 
+          {/* Banco de Questões — exclusivo para o dono */}
+          {isOwner && (
+            <NavGroup titulo="Administração" items={TABS_OWNER} />
+          )}
+
           <NavGroup titulo="Revisão" items={TABS_REVISAO} />
           <NavGroup titulo="Inteligência Artificial" items={TABS_IA} />
 
@@ -214,17 +248,13 @@ export default function App() {
 
       <main className="main-content">
         <div style={{
-          position: 'fixed',
-          top: '14px',
-          right: '20px',
-          zIndex: 7000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
+          position: 'fixed', top: '14px', right: '20px',
+          zIndex: 7000, display: 'flex', alignItems: 'center', gap: '10px',
         }}>
           <BotaoTutorial tabId={tab} onClick={abrirTut} />
           <AvatarPerfil
             userEmail={user?.email}
+            isOwner={isOwner}
             onAbrirConfig={() => setConfigAberta(true)}
             onIrParaBackup={() => setTab('backup')}
           />
@@ -242,7 +272,11 @@ export default function App() {
         <Pomodoro />
       </ErrorBoundary>
 
-      {configAberta && <Configuracoes onFechar={() => setConfigAberta(false)} />}
+      {/* Configurações — só abre se for o dono */}
+      {configAberta && isOwner && (
+        <Configuracoes onFechar={() => setConfigAberta(false)} />
+      )}
+
       <AjudaAtalhos visivel={ajudaAberta} onFechar={() => setAjudaAberta(false)} />
       <Tutorial tabId={tab} aberto={tutAberto} onFechar={fecharTut} />
     </div>
