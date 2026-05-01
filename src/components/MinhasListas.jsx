@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { toast } from 'react-hot-toast';
+import { ClipboardList, CheckCircle, XCircle, BarChart2, Shuffle, Hand, Save, Play, Trash2 } from 'lucide-react';
 import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
@@ -7,7 +8,7 @@ import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
 
 const POR_PAGINA = 10;
 
-/* ─── Card de questão puro — memo evita re-render dos demais cards ao responder ─── */
+/* ─── Card de questão puro ─── */
 const QuestaoCardLista = memo(({ questao, numero, resposta, onResponder }) => {
   const acertou = resposta === questao.gabarito;
 
@@ -78,7 +79,6 @@ const MinhasListas = () => {
   const [respostas, setRespostas]       = useState({});
   const [paginaEstudo, setPagEst]       = useState(1);
 
-  // Hook de filtros – sem mesclagem com currículo
   const { filtros, setFiltro, opcoes, filtradas, resetar } = useQuestaoFilters(todasQuestoes, {
     includeCurriculo: false,
   });
@@ -147,7 +147,7 @@ const MinhasListas = () => {
     });
   }, [sessaoQuestoes, respostas]);
 
-  /* ── ABA ESTUDAR (inalterada) ── */
+  /* ── ABA ESTUDAR ── */
   if (aba === 'estudar') {
     const totalP   = Math.ceil(sessaoQuestoes.length / POR_PAGINA);
     const paginaQ  = sessaoQuestoes.slice((paginaEstudo - 1) * POR_PAGINA, paginaEstudo * POR_PAGINA);
@@ -170,10 +170,20 @@ const MinhasListas = () => {
           marginBottom: '20px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)',
           flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: '14px', color: 'var(--gray-600)' }}>📋 <strong>{sessaoQuestoes.length}</strong> questões</span>
-          <span style={{ fontSize: '14px', color: 'var(--accent-green)', fontWeight: 700 }}>✅ {acertos}</span>
-          <span style={{ fontSize: '14px', color: 'var(--accent-red)', fontWeight: 700 }}>❌ {respondidas - acertos}</span>
-          {respondidas > 0 && <span style={{ fontSize: '14px', color: 'var(--brand-500)', fontWeight: 700 }}>📊 {taxa}%</span>}
+          <span style={{ fontSize: '14px', color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <ClipboardList size={15} /> <strong>{sessaoQuestoes.length}</strong> questões
+          </span>
+          <span style={{ fontSize: '14px', color: 'var(--accent-green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <CheckCircle size={15} /> {acertos}
+          </span>
+          <span style={{ fontSize: '14px', color: 'var(--accent-red)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <XCircle size={15} /> {respondidas - acertos}
+          </span>
+          {respondidas > 0 && (
+            <span style={{ fontSize: '14px', color: 'var(--brand-500)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <BarChart2 size={15} /> {taxa}%
+            </span>
+          )}
           <div style={{ flex: 1, minWidth: '120px' }} className="progress-track">
             <div className="progress-fill" style={{ width: `${(respondidas / sessaoQuestoes.length) * 100}%`, background: 'var(--gradient-brand)' }} />
           </div>
@@ -237,9 +247,17 @@ const MinhasListas = () => {
         <div className="card" style={{ marginBottom: '20px' }}>
           <p className="section-title">Modo de Seleção</p>
           <div className="tab-group" style={{ marginBottom: '18px', width: 'fit-content' }}>
-            {[{ id: 'aleatorio', label: '🎲 Aleatório' }, { id: 'manual', label: '✋ Manual' }].map(m => (
-              <button key={m.id} className={`tab-btn ${modoSelecao === m.id ? 'active' : ''}`} onClick={() => setModoSelecao(m.id)}>
-                {m.label}
+            {[
+              { id: 'aleatorio', label: 'Aleatório', icon: <Shuffle size={14} /> },
+              { id: 'manual', label: 'Manual', icon: <Hand size={14} /> },
+            ].map(m => (
+              <button
+                key={m.id}
+                className={`tab-btn ${modoSelecao === m.id ? 'active' : ''}`}
+                onClick={() => setModoSelecao(m.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {m.icon} {m.label}
               </button>
             ))}
           </div>
@@ -291,8 +309,9 @@ const MinhasListas = () => {
           )}
         </div>
 
-        <button className="btn-primary" onClick={criarLista} style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '15px' }}>
-          💾 Criar Lista
+        <button className="btn-primary" onClick={criarLista}
+          style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Save size={16} /> Criar Lista
         </button>
         {erros.questoes && <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '8px', fontWeight: 500, textAlign: 'center' }}>⚠ {erros.questoes}</p>}
       </div>
@@ -347,8 +366,20 @@ const MinhasListas = () => {
               )}
             </div>
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-              <button className="btn-primary" onClick={() => iniciarEstudo(lista)} style={{ padding: '8px 18px', fontSize: '14px' }}>▶ Estudar</button>
-              <button className="btn-danger" onClick={() => excluirLista(lista.id, lista.nome)}>🗑️</button>
+              <button
+                className="btn-primary"
+                onClick={() => iniciarEstudo(lista)}
+                style={{ padding: '8px 18px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Play size={14} /> Estudar
+              </button>
+              <button
+                className="btn-danger"
+                onClick={() => excluirLista(lista.id, lista.nome)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Trash2 size={15} />
+              </button>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
+import { Edit, Plus, Save, Check, Trash2, Download, FileText, Bot } from 'lucide-react';
 import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ImportarCSV from './ImportarCSV';
@@ -20,7 +21,6 @@ const toBase64 = f => new Promise((res, rej) => {
   const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f);
 });
 
-/* ── Estilos inline para select com aparência de input-modern ── */
 const selectStyle = {
   width: '100%',
   padding: '9px 12px',
@@ -40,11 +40,9 @@ const selectStyle = {
   paddingRight: '32px',
 };
 
-/* ── Helper de mensagem de erro inline ── */
 const ErroInline = ({ msg }) =>
   msg ? <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>⚠ {msg}</p> : null;
 
-/* ── CamposMetadados ── */
 const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro = () => {} }) => {
   const conteudosCurr = getConteudos(form.materia);
   const topicosCurr   = getTopicos(form.materia, form.conteudo);
@@ -59,8 +57,6 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-
-      {/* Banca — input livre com sugestões */}
       <div>
         <label className="field-label">Banca *</label>
         <input
@@ -77,7 +73,6 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
         <ErroInline msg={erros.banca} />
       </div>
 
-      {/* Ano — input numérico */}
       <div>
         <label className="field-label">Ano</label>
         <input
@@ -89,7 +84,6 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
         />
       </div>
 
-      {/* Matéria — select currículo completo */}
       <div>
         <label className="field-label">Matéria *</label>
         <select
@@ -103,7 +97,6 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
         <ErroInline msg={erros.materia} />
       </div>
 
-      {/* Conteúdo — cascateia pela matéria */}
       <div>
         <label className="field-label">Conteúdo</label>
         {conteudosCurr.length > 0 ? (
@@ -130,7 +123,6 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
         )}
       </div>
 
-      {/* Tópico — cascateia pelo conteúdo */}
       <div>
         <label className="field-label">Tópico</label>
         {topicosCurr.length > 0 ? (
@@ -156,7 +148,6 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
         )}
       </div>
 
-      {/* Assunto — sempre livre */}
       <div>
         <label className="field-label">Assunto</label>
         <input
@@ -170,7 +161,6 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
   );
 };
 
-/* ── Formulario ── */
 const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalvar }) => {
   const [form, setForm]   = useState(formInicial);
   const [erros, setErros] = useState({});
@@ -197,8 +187,11 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--gray-900)' }}>
-          {editandoId ? '✏️ Editar Questão' : '➕ Nova Questão'}
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {editandoId
+            ? <><Edit size={18} /> Editar Questão</>
+            : <><Plus size={18} /> Nova Questão</>
+          }
         </h3>
         <button className="btn-secondary" onClick={onCancelar}>← Cancelar</button>
       </div>
@@ -265,17 +258,16 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
       </div>
 
       <button className="btn-primary" onClick={salvar}
-        style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '15px' }}>
-        {editandoId ? '💾 Salvar Alterações' : '✅ Salvar Questão'}
+        style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {editandoId
+          ? <><Save size={16} /> Salvar Alterações</>
+          : <><Check size={16} /> Salvar Questão</>
+        }
       </button>
     </div>
   );
 };
 
-// Altura fixa de cada card de questão na lista virtualizada (em px)
-const ITEM_HEIGHT = 110;
-
-/* ── Card de questão memoizado para react-window ── */
 const CardQuestao = React.memo(({ questao, onEditar, onExcluir }) => {
   const q = questao;
   return (
@@ -303,12 +295,18 @@ const CardQuestao = React.memo(({ questao, onEditar, onExcluir }) => {
           borderRadius: 'var(--r-md)', cursor: 'pointer',
           background: 'var(--brand-50)', color: 'var(--brand-600)',
           fontSize: '13px', fontWeight: 600,
-        }}>✏️ Editar</button>
+          display: 'flex', alignItems: 'center', gap: '5px',
+        }}>
+          <Edit size={13} /> Editar
+        </button>
         <button onClick={() => onExcluir(q.id)} style={{
           padding: '7px 12px', border: '1.5px solid #fecaca',
           borderRadius: 'var(--r-md)', cursor: 'pointer',
           background: '#fef2f2', color: 'var(--accent-red)', fontSize: '13px',
-        }}>🗑️</button>
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Trash2 size={14} />
+        </button>
       </div>
     </div>
   );
@@ -326,7 +324,6 @@ const BancoQuestoes = () => {
   const [modalPDF, setModalPDF] = useState(false);
   const [modalIA, setModalIA]   = useState(false);
 
-  // Hook de filtros unificado — sem paginação (react-window cuida disso)
   const {
     filtros,
     setFiltro,
@@ -334,7 +331,7 @@ const BancoQuestoes = () => {
     filtradas,
     resetar,
   } = useQuestaoFilters(todas, {
-    pageSize: Infinity, // desabilita paginação — virtualização assume o controle
+    pageSize: Infinity,
     includeCurriculo: true,
   });
 
@@ -389,9 +386,18 @@ const BancoQuestoes = () => {
         <h2 className="page-title">Banco de Questões</h2>
         {aba === 'listar' && (
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn-secondary" onClick={() => setModalCSV(true)}>📥 Importar CSV</button>
-            <button className="btn-secondary" onClick={() => setModalPDF(true)} style={{ borderColor: '#fca5a5', color: '#dc2626', background: '#fef2f2' }}>📄 Importar PDF</button>
-            <button className="btn-secondary" onClick={() => setModalIA(true)} style={{ borderColor: '#a78bfa', color: '#7c3aed', background: '#f5f3ff' }}>🤖 Importar com IA</button>
+            <button className="btn-secondary" onClick={() => setModalCSV(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Download size={14} /> Importar CSV
+            </button>
+            <button className="btn-secondary" onClick={() => setModalPDF(true)}
+              style={{ borderColor: '#fca5a5', color: '#dc2626', background: '#fef2f2', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FileText size={14} /> Importar PDF
+            </button>
+            <button className="btn-secondary" onClick={() => setModalIA(true)}
+              style={{ borderColor: '#a78bfa', color: '#7c3aed', background: '#f5f3ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Bot size={14} /> Importar com IA
+            </button>
             <button className="btn-primary" onClick={abrirNova}>+ Nova Questão</button>
           </div>
         )}
@@ -434,7 +440,6 @@ const BancoQuestoes = () => {
               </div>
             </div>
           ) : (
-            /* Lista simples sem virtualização */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {filtradas.map(q => (
                 <CardQuestao key={q.id} questao={q} onEditar={editar} onExcluir={excluir} />

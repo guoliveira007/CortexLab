@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
+import { FileText, Timer, Flag, RotateCcw, Shuffle, Hand, ClipboardList, Play, Trash2, BookOpen } from 'lucide-react';
 import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
@@ -34,14 +35,12 @@ const Simulado = () => {
   const restauradoRef = useRef(false);
   const STORAGE_KEY_SIM = 'cortexlab_simulado_sessao';
 
-  // Hook de filtros – sem mesclagem de currículo, opções vêm só do banco
   const { filtros, setFiltro, opcoes, filtradas, resetar } = useQuestaoFilters(todasQuestoes, {
     includeCurriculo: false,
   });
 
   useEffect(() => { carregarDados(); }, []);
 
-  // ── Restaura sessão salva após as questões carregarem ──
   useEffect(() => {
     if (!todasQuestoes.length || restauradoRef.current) return;
     restauradoRef.current = true;
@@ -52,7 +51,6 @@ const Simulado = () => {
       const map = Object.fromEntries(todasQuestoes.map(q => [q.id, q]));
       const ordered = ids.map(id => map[id]).filter(Boolean);
       if (!ordered.length) { localStorage.removeItem(STORAGE_KEY_SIM); return; }
-      // Desconta o tempo que passou enquanto o app estava fechado
       const elapsed = Math.floor((Date.now() - savedAt) / 1000);
       const tempoAjustado = Math.max(0, tempo - elapsed);
       salvandoRef.current = false;
@@ -67,7 +65,6 @@ const Simulado = () => {
     } catch { localStorage.removeItem(STORAGE_KEY_SIM); }
   }, [todasQuestoes]);
 
-  // ── Persiste sessão a cada resposta, mudança de questão ou tick do timer ──
   useEffect(() => {
     if (aba !== 'realizando' || encerrado || !simAtual || !sessaoQ.length) return;
     localStorage.setItem(STORAGE_KEY_SIM, JSON.stringify({
@@ -113,7 +110,7 @@ const Simulado = () => {
   const iniciarSimulado = async (sim) => {
     const qs = (await db.questoes.getByIds(sim.questoes.map(String))).filter(Boolean);
     if (!qs.length) { toast.error('Nenhuma questão disponível neste simulado.'); return; }
-    salvandoRef.current = false; // reseta a trava a cada nova sessão
+    salvandoRef.current = false;
     setSessaoQ(qs); setSimAtual(sim); setRespostas({});
     setIdx(0); setEncerrado(false);
     setTempoR(sim.tempoLimite * 60);
@@ -126,15 +123,11 @@ const Simulado = () => {
     carregarDados();
   };
 
-  /* ── Timer do simulado ── */
   useEffect(() => {
     if (aba !== 'realizando' || encerrado) return;
     timerRef.current = setInterval(() => {
       setTempoR(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(timerRef.current); return 0; }
         return prev - 1;
       });
     }, 1000);
@@ -144,7 +137,6 @@ const Simulado = () => {
   const salvarResultados = useCallback(async () => {
     if (salvandoRef.current) return;
     salvandoRef.current = true;
-
     const agora = new Date().toISOString();
     const registros = sessaoQ.map(q => ({
       questaoId:     q.id,
@@ -156,7 +148,6 @@ const Simulado = () => {
       simuladoNome:  simAtual?.nome,
       materia:       q.materia || null,
     }));
-
     await db.resultados.bulkAdd(registros);
   }, [sessaoQ, respostas, simAtual]);
 
@@ -168,7 +159,6 @@ const Simulado = () => {
     setAba('resultado');
   }, [salvarResultados]);
 
-  /* Encerra automaticamente quando o tempo chega a 0 */
   useEffect(() => {
     if (aba === 'realizando' && !encerrado && tempoRestante === 0 && simAtual) {
       encerrarSimulado();
@@ -183,11 +173,11 @@ const Simulado = () => {
 
   /* ── ABA: RESULTADO ── */
   if (aba === 'resultado') {
-    const acertos              = sessaoQ.filter(q => respostas[q.id] === q.gabarito).length;
-    const taxa                 = sessaoQ.length ? Math.round((acertos / sessaoQ.length) * 100) : 0;
-    const corT                 = taxa >= 70 ? '#10b981' : taxa >= 50 ? '#f59e0b' : '#ef4444';
-    const questoesErradas      = sessaoQ.filter(q => respostas[q.id] && respostas[q.id] !== q.gabarito);
-    const questoesNaoResp      = sessaoQ.filter(q => !respostas[q.id]);
+    const acertos         = sessaoQ.filter(q => respostas[q.id] === q.gabarito).length;
+    const taxa            = sessaoQ.length ? Math.round((acertos / sessaoQ.length) * 100) : 0;
+    const corT            = taxa >= 70 ? '#10b981' : taxa >= 50 ? '#f59e0b' : '#ef4444';
+    const questoesErradas = sessaoQ.filter(q => respostas[q.id] && respostas[q.id] !== q.gabarito);
+    const questoesNaoResp = sessaoQ.filter(q => !respostas[q.id]);
 
     return (
       <div>
@@ -201,9 +191,9 @@ const Simulado = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '32px' }}>
             {[
-              { label: 'Acertos', valor: acertos,                   cor: '#10b981', bg: '#ecfdf5' },
-              { label: 'Erros',   valor: sessaoQ.length - acertos,  cor: '#ef4444', bg: '#fef2f2' },
-              { label: 'Taxa',    valor: `${taxa}%`,                cor: corT,      bg: corT + '15' },
+              { label: 'Acertos', valor: acertos,               cor: '#10b981', bg: '#ecfdf5' },
+              { label: 'Erros',   valor: sessaoQ.length - acertos, cor: '#ef4444', bg: '#fef2f2' },
+              { label: 'Taxa',    valor: `${taxa}%`,             cor: corT,      bg: corT + '15' },
             ].map(s => (
               <div key={s.label} style={{ background: s.bg, borderRadius: 'var(--r-lg)', padding: '18px' }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 800, color: s.cor }}>{s.valor}</div>
@@ -221,7 +211,6 @@ const Simulado = () => {
             </div>
           </div>
 
-          {/* Questões não respondidas */}
           {questoesNaoResp.length > 0 && (
             <div style={{ marginTop: '32px', textAlign: 'left', borderTop: '1px solid var(--gray-200)', paddingTop: '24px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#92400e' }}>
@@ -244,11 +233,10 @@ const Simulado = () => {
             </div>
           )}
 
-          {/* Questões erradas */}
           {questoesErradas.length > 0 && (
             <div style={{ marginTop: '32px', textAlign: 'left', borderTop: questoesNaoResp.length > 0 ? 'none' : '1px solid var(--gray-200)', paddingTop: '24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#dc2626' }}>
-                📓 Questões que você errou ({questoesErradas.length})
+              <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BookOpen size={18} /> Questões que você errou ({questoesErradas.length})
               </h3>
               {questoesErradas.map((q, i) => {
                 const respostaErrada = respostas[q.id];
@@ -284,9 +272,11 @@ const Simulado = () => {
             >← Voltar</button>
             <button
               className="btn-primary"
-              style={{ flex: 1, justifyContent: 'center', padding: '12px' }}
+              style={{ flex: 1, justifyContent: 'center', padding: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
               onClick={() => iniciarSimulado(simAtual)}
-            >🔄 Refazer</button>
+            >
+              <RotateCcw size={15} /> Refazer
+            </button>
           </div>
         </div>
       </div>
@@ -312,8 +302,8 @@ const Simulado = () => {
         }}>
           <div style={{ display: 'flex', gap: '18px', fontSize: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, color: 'var(--gray-700)' }}>{simAtual?.nome}</span>
-            <span style={{ color: 'var(--gray-500)' }}>
-              📝 <strong>{respondidas}</strong>/{sessaoQ.length} respondidas
+            <span style={{ color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <FileText size={14} /> <strong>{respondidas}</strong>/{sessaoQ.length} respondidas
             </span>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -321,20 +311,20 @@ const Simulado = () => {
               fontFamily: 'monospace', fontSize: '20px', fontWeight: 800,
               color: corTempo, background: corTempo + '15',
               padding: '4px 12px', borderRadius: 'var(--r-md)',
+              display: 'flex', alignItems: 'center', gap: '6px',
             }}>
-              ⏱ {fmtTempo(tempoRestante)}
+              <Timer size={18} /> {fmtTempo(tempoRestante)}
             </span>
             <button
-              onClick={() => {
-                if (window.confirm('Encerrar o simulado agora?')) encerrarSimulado();
-              }}
+              onClick={() => { if (window.confirm('Encerrar o simulado agora?')) encerrarSimulado(); }}
               style={{
                 padding: '8px 16px', background: '#fef2f2',
                 border: '1.5px solid #fecaca', borderRadius: 'var(--r-md)',
                 color: '#dc2626', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
-              🏁 Encerrar
+              <Flag size={14} /> Encerrar
             </button>
           </div>
         </div>
@@ -344,31 +334,20 @@ const Simulado = () => {
           <div className="progress-fill" style={{ width: `${tempoPerc}%`, background: corTempo, transition: 'width 1s linear' }} />
         </div>
 
-        {/* Layout: painel lateral + questão */}
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-
-          {/* ── Painel de navegação lateral (esquerda) ── */}
+          {/* Painel lateral */}
           <div style={{
-            position: 'sticky',
-            top: '16px',
-            width: '176px',
-            flexShrink: 0,
-            background: 'white',
-            borderRadius: 'var(--r-xl)',
-            padding: '16px',
-            boxShadow: 'var(--shadow-sm)',
-            border: '1px solid var(--gray-100)',
-            maxHeight: 'calc(100vh - 160px)',
-            overflowY: 'auto',
+            position: 'sticky', top: '16px', width: '176px', flexShrink: 0,
+            background: 'white', borderRadius: 'var(--r-xl)', padding: '16px',
+            boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)',
+            maxHeight: 'calc(100vh - 160px)', overflowY: 'auto',
           }}>
             <p style={{
               fontSize: '11px', fontWeight: 700, letterSpacing: '0.6px',
-              color: 'var(--gray-400)', textTransform: 'uppercase',
-              marginBottom: '10px',
+              color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: '10px',
             }}>
               Questões
             </p>
-
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '14px' }}>
               {sessaoQ.map((qq, i) => {
                 const respondida = !!respostas[qq.id];
@@ -379,14 +358,12 @@ const Simulado = () => {
                     onClick={() => setIdx(i)}
                     title={respondida ? 'Respondida' : 'Pendente'}
                     style={{
-                      width: '34px', height: '34px',
-                      borderRadius: 'var(--r-md)',
+                      width: '34px', height: '34px', borderRadius: 'var(--r-md)',
                       border: `2px solid ${atual ? 'var(--brand-500)' : respondida ? 'var(--accent-green)' : 'var(--gray-200)'}`,
                       background: atual ? 'var(--brand-50)' : respondida ? '#ecfdf5' : 'white',
                       color: atual ? 'var(--brand-600)' : respondida ? '#065f46' : 'var(--gray-500)',
                       fontWeight: atual || respondida ? 700 : 400,
-                      fontSize: '12px', cursor: 'pointer',
-                      transition: 'all 0.15s',
+                      fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
                     }}
                   >
                     {i + 1}
@@ -394,8 +371,6 @@ const Simulado = () => {
                 );
               })}
             </div>
-
-            {/* Legenda */}
             <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <span style={{ fontSize: '11px', color: '#065f46', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ecfdf5', border: '2px solid var(--accent-green)', display: 'inline-block' }} />
@@ -408,7 +383,7 @@ const Simulado = () => {
             </div>
           </div>
 
-          {/* ── Questão atual (direita) ── */}
+          {/* Questão atual */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {q && (
               <div className="questao-card">
@@ -472,7 +447,6 @@ const Simulado = () => {
                   );
                 })}
 
-                {/* Navegação prev/next */}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                   <button
                     className="btn-secondary"
@@ -490,15 +464,16 @@ const Simulado = () => {
                     <button
                       className="btn-primary"
                       onClick={() => { if (window.confirm('Finalizar e ver resultados?')) encerrarSimulado(); }}
-                      style={{ flex: 1, justifyContent: 'center', padding: '10px', background: '#10b981' }}
-                    >🏁 Finalizar</button>
+                      style={{ flex: 1, justifyContent: 'center', padding: '10px', background: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Flag size={15} /> Finalizar
+                    </button>
                   )}
                 </div>
               </div>
             )}
           </div>
-
-        </div>{/* fim do layout flex */}
+        </div>
       </div>
     );
   }
@@ -546,11 +521,17 @@ const Simulado = () => {
             <button
               className={`tab-btn ${modoSelecao === 'aleatorio' ? 'active' : ''}`}
               onClick={() => setModoSel('aleatorio')}
-            >🎲 Aleatório</button>
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Shuffle size={14} /> Aleatório
+            </button>
             <button
               className={`tab-btn ${modoSelecao === 'manual' ? 'active' : ''}`}
               onClick={() => setModoSel('manual')}
-            >✋ Manual</button>
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Hand size={14} /> Manual
+            </button>
           </div>
 
           <PainelFiltros
@@ -617,8 +598,7 @@ const Simulado = () => {
                           padding: '12px 16px',
                           background: sel ? 'var(--brand-50)' : i % 2 === 0 ? 'white' : 'var(--gray-50)',
                           borderBottom: '1px solid var(--gray-100)',
-                          cursor: 'pointer',
-                          transition: 'background 0.1s',
+                          cursor: 'pointer', transition: 'background 0.1s',
                         }}
                       >
                         <span style={{
@@ -658,9 +638,9 @@ const Simulado = () => {
         <button
           className="btn-primary"
           onClick={criarSimulado}
-          style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px' }}
+          style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          📝 Criar Simulado
+          <FileText size={16} /> Criar Simulado
         </button>
       </div>
     );
@@ -672,9 +652,7 @@ const Simulado = () => {
       <div className="page-header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <h2 className="page-title">Simulados</h2>
-          <button className="btn-primary" onClick={() => setAba('criar')}>
-            + Novo Simulado
-          </button>
+          <button className="btn-primary" onClick={() => setAba('criar')}>+ Novo Simulado</button>
         </div>
       </div>
 
@@ -684,9 +662,7 @@ const Simulado = () => {
             <div className="empty-state-icon">📝</div>
             <p className="empty-state-title">Nenhum simulado criado</p>
             <p className="empty-state-desc">Crie seu primeiro simulado para testar seus conhecimentos.</p>
-            <button className="btn-primary" onClick={() => setAba('criar')}>
-              + Criar Simulado
-            </button>
+            <button className="btn-primary" onClick={() => setAba('criar')}>+ Criar Simulado</button>
           </div>
         </div>
       ) : (
@@ -705,18 +681,23 @@ const Simulado = () => {
                 }}>
                   {sim.nome}
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--gray-500)' }}>
-                  📋 {sim.total} questões · ⏱ {sim.tempoLimite} min ·{' '}
-                  {new Date(sim.criado).toLocaleDateString('pt-BR')}
+                <p style={{ fontSize: '13px', color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <ClipboardList size={13} /> {sim.total} questões
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Timer size={13} /> {sim.tempoLimite} min
+                  </span>
+                  <span>· {new Date(sim.criado).toLocaleDateString('pt-BR')}</span>
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <button
                   className="btn-primary"
                   onClick={() => iniciarSimulado(sim)}
-                  style={{ padding: '8px 18px' }}
+                  style={{ padding: '8px 18px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  ▶ Iniciar
+                  <Play size={14} /> Iniciar
                 </button>
                 <button
                   onClick={() => {
@@ -725,9 +706,12 @@ const Simulado = () => {
                   style={{
                     padding: '8px 12px', background: '#fef2f2',
                     border: '1.5px solid #fecaca', borderRadius: 'var(--r-md)',
-                    color: '#dc2626', cursor: 'pointer', fontSize: '15px',
+                    color: '#dc2626', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
-                >🗑️</button>
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           ))}

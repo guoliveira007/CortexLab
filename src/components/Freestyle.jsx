@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { toast } from 'react-hot-toast';
+import { ClipboardList, CheckCircle, BookOpen, TrendingUp, Rocket } from 'lucide-react';
 import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
 import Alternativas from './Alternativas';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
-import {
-  ClipboardList, CheckCircle2, BookOpen, TrendingUp, Play, ArrowLeft,
-  CheckCircle, XCircle,
-} from 'lucide-react';
 
 const POR_PAGINA = 10;
 
@@ -60,10 +57,7 @@ export const QuestaoCard = memo(({ questao, numero, resposta, onResponder }) => 
         onResponder={(letra) => onResponder(questao.id, letra)}
         feedbackTexto={
           resposta
-            ? (acertou
-                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><CheckCircle size={14} strokeWidth={2} /> Acertou!</span>
-                : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><XCircle size={14} strokeWidth={2} /> Resposta correta: {questao.gabarito}</span>
-              )
+            ? (acertou ? '✅ Acertou!' : `❌ Resposta correta: ${questao.gabarito}`)
             : null
         }
         explicacao={questao.explicacao}
@@ -111,7 +105,6 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
     if (onMateriaAplicada) onMateriaAplicada();
   }, [materiaInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Restaura sessão salva após as questões carregarem ──
   useEffect(() => {
     if (!todas.length || restauradoRef.current) return;
     restauradoRef.current = true;
@@ -125,11 +118,10 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
       setSessao(ordered);
       setResp(resp || {});
       setPagina(pag || 1);
-      toast('Sessão restaurada! Continuando de onde parou');
+      toast('Sessão restaurada! Continuando de onde parou 🔄');
     } catch { localStorage.removeItem(STORAGE_KEY); }
   }, [todas]);
 
-  // ── Persiste sessão a cada resposta/mudança de página ──
   useEffect(() => {
     if (!sessao) { localStorage.removeItem(STORAGE_KEY); return; }
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -158,14 +150,11 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
     if (!sess) return;
     const q = sess.find(q => q.id === id);
     if (!q) return;
-
     if (respostasRef.current[id]) return;
-
     setResp(prev => {
       if (prev[id]) return prev;
       return { ...prev, [id]: letra };
     });
-
     const acertou = letra === q.gabarito;
     db.resultados.add({
       questaoId: id,
@@ -196,8 +185,7 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
           onClick={iniciar}
           style={{ width: '100%', marginTop: '20px', padding: '12px', justifyContent: 'center', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <Play size={16} strokeWidth={2} />
-          Iniciar Freestyle
+          <Rocket size={16} /> Iniciar Freestyle
         </button>
       </div>
     </div>
@@ -218,31 +206,26 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
       }}>
         <div style={{ display: 'flex', gap: '20px', fontSize: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <ClipboardList size={15} strokeWidth={1.75} />
-            <strong>{total}</strong> questões
+            <ClipboardList size={15} /> <strong>{total}</strong> questões
           </span>
-          <span style={{ color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <CheckCircle2 size={15} strokeWidth={1.75} />
-            {acertos} acertos
+          <span style={{ color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <CheckCircle size={15} /> {acertos} acertos
           </span>
-          <span style={{ color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <BookOpen size={15} strokeWidth={1.75} />
-            {respondidas}/{total}
+          <span style={{ color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <BookOpen size={15} /> {respondidas}/{total}
           </span>
           {respondidas > 0 && (
-            <span style={{ color: 'var(--brand-500)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <TrendingUp size={15} strokeWidth={1.75} />
-              {taxa}%
+            <span style={{ color: 'var(--brand-500)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <TrendingUp size={15} /> {taxa}%
             </span>
           )}
         </div>
         <button
           className="btn-secondary"
           onClick={() => { localStorage.removeItem(STORAGE_KEY); setSessao(null); }}
-          style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+          style={{ fontSize: '13px', padding: '7px 14px' }}
         >
-          <ArrowLeft size={14} strokeWidth={1.75} />
-          Novo filtro
+          ← Novo filtro
         </button>
       </div>
 

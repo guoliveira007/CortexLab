@@ -1,25 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
+import { Eye, Brain, Trash2, BookOpen, X, Loader2 } from 'lucide-react';
 import { db } from '../database';
 import { estadoInicial } from './sm2';
 import ProgressBar from './ProgressBar';
 
-/**
- * CadernoErros — Tela dedicada de erros + widget para Dashboard.
- *
- * MELHORIA DE PERFORMANCE: A lista de questões agora usa react-window
- * (FixedSizeList) para renderizar apenas os itens visíveis na tela.
- * Com centenas/milhares de questões, a UI permanece fluida.
- *
- * Filtra db.resultados onde acertou === false e cruza com db.questoes.
- *
- * FIX: Agora exibe apenas questões cujo RESULTADO MAIS RECENTE foi errado,
- * evitando que questões já acertadas posteriormente permaneçam no caderno.
- * Também inclui botão "Remover do caderno" para remoção manual.
- */
-
-/* ─── Helpers ─── */
 const formatarData = (dataStr) => {
   if (!dataStr) return '—';
   try {
@@ -27,13 +13,9 @@ const formatarData = (dataStr) => {
   } catch { return '—'; }
 };
 
-// Altura fixa de cada item da lista virtualizada (em px).
-// Deve ser a altura máxima que um card pode ocupar.
 const ITEM_HEIGHT = 170;
 
-/* ─── Card de questão — componente separado e memoizado ─── */
-// Recebe todos os dados via props para que react-window possa renderizá-lo
-// sem fechar sobre o estado do pai, evitando re-renders desnecessários.
+/* ─── Card de questão ─── */
 const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdicionarRevisao, onRemover, onPreview }) => {
   const q         = questao;
   const idStr     = String(q.id);
@@ -53,7 +35,6 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
     >
       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-        {/* Indicador de erros */}
         <div style={{
           flexShrink: 0, width: '44px', height: '44px',
           background: '#fef2f2', border: '2px solid #fecaca',
@@ -67,9 +48,7 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
           <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>erro{taxaErro !== 1 ? 's' : ''}</span>
         </div>
 
-        {/* Conteúdo */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Tags */}
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '6px' }}>
             {[q.banca, q.ano, q.materia, q.topico].filter(Boolean).map((v, i) => (
               <span key={i} style={{
@@ -90,7 +69,6 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
             </span>
           </div>
 
-          {/* Enunciado resumido */}
           <p style={{
             fontSize: '13px', color: 'var(--gray-700)',
             lineHeight: '1.5', marginBottom: '10px',
@@ -100,12 +78,10 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
             {q.enunciado || q.comando || 'Questão sem enunciado'}
           </p>
 
-          {/* Barra de frequência de erros */}
           <div style={{ marginBottom: '10px' }}>
             <ProgressBar valor={Math.min(taxaErro * 20, 100)} cor='#ef4444' />
           </div>
 
-          {/* Ações */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               onClick={() => onPreview(q)}
@@ -113,8 +89,11 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
                 padding: '5px 12px', background: 'var(--gray-50)',
                 border: '1px solid var(--gray-200)', borderRadius: 'var(--r-md)',
                 fontSize: '12px', color: 'var(--gray-600)', cursor: 'pointer', fontWeight: 500,
+                display: 'flex', alignItems: 'center', gap: '5px',
               }}
-            >👁 Ver questão</button>
+            >
+              <Eye size={12} /> Ver questão
+            </button>
 
             {!q.emRevisao ? (
               <button
@@ -126,8 +105,14 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
                   border: '1px solid var(--brand-200)', borderRadius: 'var(--r-md)',
                   fontSize: '12px', color: 'var(--brand-600)',
                   cursor: adicionando ? 'wait' : 'pointer', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: '5px',
                 }}
-              >{adicionando ? '...' : '🧠 Adicionar à Revisão Espaçada'}</button>
+              >
+                {adicionando
+                  ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                  : <Brain size={12} />}
+                {adicionando ? '...' : 'Adicionar à Revisão Espaçada'}
+              </button>
             ) : (
               <span style={{
                 padding: '5px 12px', background: '#f0fdf4',
@@ -146,8 +131,12 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
                 fontSize: '12px', color: '#dc2626',
                 cursor: removendoQ ? 'wait' : 'pointer', fontWeight: 600,
                 marginLeft: 'auto',
+                display: 'flex', alignItems: 'center', gap: '5px',
               }}
-            >{removendoQ ? '...' : '🗑️ Remover'}</button>
+            >
+              <Trash2 size={12} />
+              {removendoQ ? '...' : 'Remover'}
+            </button>
           </div>
         </div>
       </div>
@@ -162,16 +151,14 @@ const CadernoErros = ({ onFechar }) => {
   const [carregando, setCarregando]           = useState(true);
   const [filtroMateria, setFiltroMateria]     = useState('');
   const [filtroModo, setFiltroModo]           = useState('');
-  const [ordenacao, setOrdenacao]             = useState('recente'); // 'recente' | 'erros' | 'materia'
-  const [filtroPeriodo, setFiltroPeriodo]     = useState('');        // '' | '7' | '30'
+  const [ordenacao, setOrdenacao]             = useState('recente');
+  const [filtroPeriodo, setFiltroPeriodo]     = useState('');
   const [materiasDisponiveis, setMaterias]    = useState([]);
   const [preview, setPreview]                 = useState(null);
   const [adicionandoSM2, setAdicionandoSM2]   = useState(new Set());
   const [removendo, setRemovendo]             = useState(new Set());
 
-  useEffect(() => {
-    carregarErros();
-  }, []);
+  useEffect(() => { carregarErros(); }, []);
 
   const carregarErros = async () => {
     setCarregando(true);
@@ -218,19 +205,16 @@ const CadernoErros = ({ onFechar }) => {
           }
         });
 
-      // Busca os dados das questões
       const ids = new Set(Object.keys(agrupado).map(id => isNaN(id) ? id : Number(id)));
       const todasQuestoes = await db.questoes.toArray();
       const questoes = todasQuestoes.filter(q => ids.has(q.id) || ids.has(String(q.id)));
 
-      // Busca estados SM-2 existentes
       const idsAgrupado = new Set(Object.keys(agrupado));
       const todasRevisoes = await db.revisaoEspacada.toArray();
       const sm2Estados = todasRevisoes.filter(e => idsAgrupado.has(String(e.questaoId)));
       const sm2PorId = {};
       sm2Estados.forEach(e => { sm2PorId[e.questaoId] = e; });
 
-      // Mescla tudo
       const resultado = questoes.map(q => {
         const idStr = String(q.id);
         const meta  = agrupado[idStr] || agrupado[q.id] || {};
@@ -255,7 +239,6 @@ const CadernoErros = ({ onFechar }) => {
     }
   };
 
-  /* ── Adiciona questão à revisão espaçada ── */
   const adicionarRevisao = useCallback(async (questao) => {
     const idStr = String(questao.id);
     setAdicionandoSM2(prev => new Set([...prev, idStr]));
@@ -273,8 +256,6 @@ const CadernoErros = ({ onFechar }) => {
     }
   }, []);
 
-  /* ── FIX: Remove questão do caderno apagando seus resultados errados ── */
-  // Remove do caderno inserindo resultado revisado — sem apagar histórico
   const removerDoCaderno = useCallback(async (questaoId) => {
     const idStr = String(questaoId);
     setRemovendo(prev => new Set([...prev, idStr]));
@@ -298,7 +279,6 @@ const CadernoErros = ({ onFechar }) => {
 
   const abrirPreview = useCallback((q) => setPreview(q), []);
 
-  /* ── Filtragem ── */
   const questoesFiltradas = useMemo(() => {
     const corte = filtroPeriodo
       ? new Date(Date.now() - Number(filtroPeriodo) * 86_400_000)
@@ -314,12 +294,10 @@ const CadernoErros = ({ onFechar }) => {
       .sort((a, b) => {
         if (ordenacao === 'erros')   return (b.meta.totalErros ?? 0) - (a.meta.totalErros ?? 0);
         if (ordenacao === 'materia') return (a.materia ?? '').localeCompare(b.materia ?? '');
-        // 'recente' — padrão
         return (b.meta.ultimoErro ?? '') > (a.meta.ultimoErro ?? '') ? 1 : -1;
       });
   }, [questoesErradas, filtroMateria, filtroModo, filtroPeriodo, ordenacao]);
 
-  /* ─── Render ─── */
   return createPortal(
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -348,14 +326,16 @@ const CadernoErros = ({ onFechar }) => {
               width: '44px', height: '44px', borderRadius: 'var(--r-lg)',
               background: 'linear-gradient(135deg, #ef4444, #dc2626)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '22px', boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
-            }}>📓</div>
+              boxShadow: '0 4px 14px rgba(239,68,68,0.3)',
+            }}>
+              <BookOpen size={22} color="white" />
+            </div>
             <div>
               <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--gray-900)' }}>
                 Caderno de Erros
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginTop: '1px' }}>
-                {questoesFiltradas.length} questão(ões) — clique em 🧠 para adicionar à revisão espaçada
+                {questoesFiltradas.length} questão(ões) — clique em Revisão Espaçada para adicionar
               </p>
             </div>
           </div>
@@ -435,17 +415,20 @@ const CadernoErros = ({ onFechar }) => {
                 padding: '6px 12px', background: 'white',
                 border: '1px solid var(--gray-200)', borderRadius: 'var(--r-md)',
                 fontSize: '12px', color: 'var(--gray-500)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px',
               }}
-            >✕ Limpar filtros</button>
+            >
+              <X size={12} /> Limpar filtros
+            </button>
           )}
         </div>
 
-        {/* Corpo — lista virtualizada */}
+        {/* Corpo */}
         <div style={{ flex: 1, padding: '16px 28px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {carregando && (
             <div style={{ textAlign: 'center', padding: '48px 0' }}>
-              <div style={{ fontSize: '36px', marginBottom: '12px' }}>⏳</div>
+              <Loader2 size={36} style={{ color: 'var(--gray-300)', margin: '0 auto 12px', display: 'block', animation: 'spin 1s linear infinite' }} />
               <p style={{ color: 'var(--gray-400)' }}>Carregando erros...</p>
             </div>
           )}
@@ -464,7 +447,6 @@ const CadernoErros = ({ onFechar }) => {
             </div>
           )}
 
-          {/* Lista simples sem virtualização */}
           {!carregando && questoesFiltradas.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1 }}>
               {questoesFiltradas.map(q => (
@@ -483,7 +465,7 @@ const CadernoErros = ({ onFechar }) => {
         </div>
       </div>
 
-      {/* Modal de preview (inalterado) */}
+      {/* Modal de preview */}
       {preview && (
         <div
           style={{
