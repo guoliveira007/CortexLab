@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { signOut } from 'firebase/auth';
-import { auth } from './firebase';
 import { useAuth } from './AuthContext';
+import { aplicarTema, getTema } from './components/Configuracoes';
+
+// Aplicar tema salvo ao inicializar
+aplicarTema(getTema());
 
 // ── Componentes leves — importados estaticamente ──
 import Dashboard        from './components/Dashboard';
@@ -214,16 +216,7 @@ export default function App() {
               <span className="nav-icon">⌨️</span>
               Atalhos
             </button>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '4px', paddingTop: '8px' }}>
-              <button
-                className="nav-item"
-                onClick={() => signOut(auth)}
-                style={{ color: 'var(--red-400, #f87171)' }}
-              >
-                <span className="nav-icon">🚪</span>
-                Sair
-              </button>
-            </div>
+
           </div>
         </nav>
       </aside>

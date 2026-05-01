@@ -1,136 +1,133 @@
 import React, { useState, useEffect } from 'react';
 
-// ✅ FIX #6: aviso explícito de que a chave fica salva no localStorage do navegador
+const TEMA_KEY = 'cortexlab_tema';
+
+export const getTema = () => localStorage.getItem(TEMA_KEY) || 'claro';
+export const aplicarTema = (tema) => {
+  localStorage.setItem(TEMA_KEY, tema);
+  if (tema === 'escuro') document.body.classList.add('dark');
+  else document.body.classList.remove('dark');
+};
 
 const Configuracoes = ({ onFechar }) => {
+  const [aba, setAba] = useState('ia');
   const [apiKey, setApiKey] = useState('');
   const [feedback, setFeedback] = useState(null);
+  const [tema, setTema] = useState(getTema());
 
   useEffect(() => {
-    const saved = localStorage.getItem('groq_api_key') || '';
-    setApiKey(saved);
+    setApiKey(localStorage.getItem('groq_api_key') || '');
   }, []);
 
-  const salvar = () => {
+  const salvarKey = () => {
     localStorage.setItem('groq_api_key', apiKey);
     setFeedback('salvo');
     setTimeout(() => setFeedback(null), 3000);
   };
 
-  const remover = () => {
+  const removerKey = () => {
     localStorage.removeItem('groq_api_key');
     setApiKey('');
     setFeedback('removido');
     setTimeout(() => setFeedback(null), 3000);
   };
 
+  const mudarTema = (novoTema) => {
+    setTema(novoTema);
+    aplicarTema(novoTema);
+  };
+
+  const abas = [
+    { id: 'ia',        label: '🤖 IA',         },
+    { id: 'aparencia', label: '🎨 Aparência',   },
+  ];
+
   return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 2000,
-    }}>
-      <div style={{
-        background: 'white', borderRadius: 'var(--r-2xl)',
-        padding: '28px', maxWidth: '480px', width: '90%',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700 }}>
-            🔑 Configurações da IA
-          </h3>
-          <button onClick={onFechar} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--gray-400)' }}>×</button>
+    <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2000 }}>
+      <div style={{ background:'var(--surface-card)',borderRadius:'var(--r-2xl)',maxWidth:'500px',width:'90%',boxShadow:'0 24px 64px rgba(0,0,0,0.25)',overflow:'hidden' }}>
+
+        {/* Header */}
+        <div style={{ padding:'22px 24px 0',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+          <h3 style={{ fontFamily:'var(--font-display)',fontSize:'20px',fontWeight:700,color:'var(--gray-900)' }}>⚙️ Configurações</h3>
+          <button onClick={onFechar} style={{ background:'none',border:'none',fontSize:'24px',cursor:'pointer',color:'var(--gray-400)',lineHeight:1 }}>×</button>
         </div>
 
-        <p style={{ fontSize: '14px', color: 'var(--gray-600)', marginBottom: '16px', lineHeight: '1.6' }}>
-          Para usar as explicações com IA quando você errar uma questão, configure sua chave da API GroqCloud (gratuita).
-          <br /><br />
-          <strong>🔗 Como obter (grátis, 14.400 req/dia):</strong>
-          <br />
-          1. Acesse <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-500)' }}>console.groq.com</a>
-          <br />
-          2. Faça login com sua conta Google
-          <br />
-          3. Vá em "API Keys" e clique em "Create API Key"
-          <br />
-          4. Copie a chave gerada (começa com gsk_...)
-        </p>
-
-        {/* ✅ FIX #6: aviso de segurança — localStorage é local ao navegador */}
-        <div style={{
-          display: 'flex', gap: '10px', alignItems: 'flex-start',
-          background: '#fffbeb', border: '1px solid #fde68a',
-          borderRadius: 'var(--r-md)', padding: '10px 14px',
-          marginBottom: '18px', fontSize: '12px', color: '#92400e', lineHeight: '1.5',
-        }}>
-          <span style={{ flexShrink: 0, fontSize: '14px' }}>🔒</span>
-          <span>
-            Sua chave é salva <strong>apenas no armazenamento local deste navegador</strong> (localStorage) e nunca enviada para servidores externos.
-            Ela só é usada diretamente nas chamadas à API Groq. Em computadores compartilhados, prefira remover a chave ao sair.
-          </span>
+        {/* Abas */}
+        <div style={{ display:'flex',gap:'4px',padding:'16px 24px 0',borderBottom:'1px solid var(--gray-100)' }}>
+          {abas.map(a => (
+            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:'8px 16px',borderRadius:'10px 10px 0 0',border:'none',fontFamily:'inherit',fontSize:'14px',fontWeight:600,cursor:'pointer',transition:'all 0.15s',background:aba===a.id?'var(--surface-card)':'none',color:aba===a.id?'var(--brand-500)':'var(--gray-400)',borderBottom:aba===a.id?'2px solid var(--brand-500)':'2px solid transparent',marginBottom:'-1px' }}>{a.label}</button>
+          ))}
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--gray-700)', display: 'block', marginBottom: '6px' }}>
-            Chave da API GroqCloud
-          </label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
-            placeholder="gsk_..."
-            style={{
-              width: '100%', padding: '12px 14px', borderRadius: 'var(--r-md)',
-              border: '1.5px solid var(--gray-200)', fontSize: '14px',
-              fontFamily: 'monospace',
-            }}
-          />
-        </div>
+        {/* Conteúdo */}
+        <div style={{ padding:'24px' }}>
 
-        {feedback === 'salvo' && (
-          <div style={{
-            background: '#ecfdf5', color: '#065f46',
-            padding: '10px', borderRadius: 'var(--r-md)',
-            fontSize: '13px', marginBottom: '16px', textAlign: 'center',
-          }}>
-            ✓ Chave salva com sucesso!
-          </div>
-        )}
-        {feedback === 'removido' && (
-          <div style={{
-            background: '#fef2f2', color: '#991b1b',
-            padding: '10px', borderRadius: 'var(--r-md)',
-            fontSize: '13px', marginBottom: '16px', textAlign: 'center',
-          }}>
-            🗑️ Chave removida.
-          </div>
-        )}
+          {/* ── ABA IA ── */}
+          {aba === 'ia' && (
+            <div>
+              <p style={{ fontSize:'14px',color:'var(--gray-600)',marginBottom:'16px',lineHeight:'1.6' }}>
+                Configure sua chave da API GroqCloud para usar as explicações com IA quando você errar uma questão.
+                <br /><br />
+                <strong>🔗 Como obter (grátis, 14.400 req/dia):</strong><br />
+                1. Acesse <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" style={{ color:'var(--brand-500)' }}>console.groq.com</a><br />
+                2. Faça login com sua conta Google<br />
+                3. Vá em "API Keys" e clique em "Create API Key"<br />
+                4. Copie a chave (começa com gsk_...)
+              </p>
 
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          {apiKey && (
-            <button onClick={remover} style={{
-              padding: '10px 20px', background: '#fef2f2',
-              border: '1.5px solid #fecaca', borderRadius: 'var(--r-md)',
-              color: '#dc2626', fontWeight: 600, cursor: 'pointer',
-            }}>
-              🗑️ Remover
-            </button>
+              <div style={{ display:'flex',gap:'10px',alignItems:'flex-start',background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'var(--r-md)',padding:'10px 14px',marginBottom:'18px',fontSize:'12px',color:'#92400e',lineHeight:'1.5' }}>
+                <span style={{ flexShrink:0,fontSize:'14px' }}>🔒</span>
+                <span>Sua chave é salva <strong>apenas localmente neste navegador</strong> e nunca enviada para servidores externos.</span>
+              </div>
+
+              <div style={{ marginBottom:'20px' }}>
+                <label style={{ fontSize:'13px',fontWeight:600,color:'var(--gray-700)',display:'block',marginBottom:'6px' }}>Chave da API GroqCloud</label>
+                <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="gsk_..." style={{ width:'100%',padding:'12px 14px',borderRadius:'var(--r-md)',border:'1.5px solid var(--gray-200)',fontSize:'14px',fontFamily:'monospace',background:'var(--surface-card)',color:'var(--gray-800)',outline:'none',boxSizing:'border-box' }} onFocus={e=>e.target.style.borderColor='#6366f1'} onBlur={e=>e.target.style.borderColor='var(--gray-200)'} />
+              </div>
+
+              {feedback === 'salvo'    && <div style={{ background:'#ecfdf5',color:'#065f46',padding:'10px',borderRadius:'var(--r-md)',fontSize:'13px',marginBottom:'16px',textAlign:'center' }}>✓ Chave salva!</div>}
+              {feedback === 'removido' && <div style={{ background:'#fef2f2',color:'#991b1b',padding:'10px',borderRadius:'var(--r-md)',fontSize:'13px',marginBottom:'16px',textAlign:'center' }}>🗑️ Chave removida.</div>}
+
+              <div style={{ display:'flex',gap:'10px',justifyContent:'flex-end' }}>
+                {apiKey && <button onClick={removerKey} style={{ padding:'10px 20px',background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:'var(--r-md)',color:'#dc2626',fontWeight:600,cursor:'pointer' }}>🗑️ Remover</button>}
+                <button onClick={onFechar} style={{ padding:'10px 20px',background:'var(--gray-100)',border:'none',borderRadius:'var(--r-md)',color:'var(--gray-600)',fontWeight:600,cursor:'pointer' }}>Cancelar</button>
+                <button onClick={salvarKey} style={{ padding:'10px 24px',background:'linear-gradient(135deg,var(--brand-500),var(--brand-600))',border:'none',borderRadius:'var(--r-md)',color:'white',fontWeight:700,cursor:'pointer' }}>💾 Salvar</button>
+              </div>
+            </div>
           )}
-          <button onClick={onFechar} style={{
-            padding: '10px 20px', background: 'var(--gray-100)',
-            border: 'none', borderRadius: 'var(--r-md)',
-            color: 'var(--gray-600)', fontWeight: 600, cursor: 'pointer',
-          }}>
-            Cancelar
-          </button>
-          <button onClick={salvar} style={{
-            padding: '10px 24px', background: 'linear-gradient(135deg, var(--brand-500), var(--brand-600))',
-            border: 'none', borderRadius: 'var(--r-md)',
-            color: 'white', fontWeight: 700, cursor: 'pointer',
-          }}>
-            💾 Salvar
-          </button>
+
+          {/* ── ABA APARÊNCIA ── */}
+          {aba === 'aparencia' && (
+            <div>
+              <p style={{ fontSize:'14px',color:'var(--gray-600)',marginBottom:'20px',lineHeight:'1.6' }}>
+                Escolha o tema visual da plataforma. A preferência é salva no seu navegador.
+              </p>
+
+              <div style={{ display:'flex',flexDirection:'column',gap:'12px',marginBottom:'28px' }}>
+                {[
+                  { valor:'claro',  icone:'☀️', titulo:'Modo Claro',  desc:'Fundo branco, ideal para ambientes bem iluminados.' },
+                  { valor:'escuro', icone:'🌙', titulo:'Modo Escuro',  desc:'Fundo escuro, menos cansativo à noite.' },
+                ].map(op => (
+                  <button key={op.valor} onClick={()=>mudarTema(op.valor)} style={{ display:'flex',alignItems:'center',gap:'14px',padding:'16px',borderRadius:'14px',border:tema===op.valor?'2px solid #6366f1':'2px solid var(--gray-200)',background:tema===op.valor?'#eef2ff':'var(--surface-bg)',cursor:'pointer',textAlign:'left',transition:'all 0.15s',boxShadow:tema===op.valor?'0 0 0 3px rgba(99,102,241,0.15)':'none' }}>
+                    <span style={{ fontSize:'28px',flexShrink:0 }}>{op.icone}</span>
+                    <div>
+                      <p style={{ fontWeight:700,fontSize:'15px',color:tema===op.valor?'#4f46e5':'var(--gray-800)',marginBottom:'2px' }}>{op.titulo}</p>
+                      <p style={{ fontSize:'13px',color:'var(--gray-500)',lineHeight:'1.4' }}>{op.desc}</p>
+                    </div>
+                    {tema === op.valor && (
+                      <div style={{ marginLeft:'auto',width:'22px',height:'22px',borderRadius:'50%',background:'#6366f1',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                        <span style={{ color:'white',fontSize:'12px',fontWeight:700 }}>✓</span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display:'flex',justifyContent:'flex-end' }}>
+                <button onClick={onFechar} style={{ padding:'10px 24px',background:'linear-gradient(135deg,var(--brand-500),var(--brand-600))',border:'none',borderRadius:'var(--r-md)',color:'white',fontWeight:700,cursor:'pointer' }}>✓ Fechar</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
