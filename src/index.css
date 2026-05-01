@@ -125,13 +125,13 @@ body {
 }
 
 .sidebar-logo {
-  height: 110px;         /* logo maior */
+  height: 140px;         /* logo maior */
   padding: 0 16px;
   border-bottom: none;   /* sem linha separadora — o logo "flui" para as abas */
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  margin-bottom: -28px;  /* abas sobem sobre a área transparente inferior do logo */
+  margin-bottom: -36px;  /* abas sobem sobre a área transparente inferior do logo */
   position: relative;
   z-index: 1;            /* logo fica acima das abas no overlap */
 }
