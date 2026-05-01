@@ -125,15 +125,25 @@ body {
 }
 
 .sidebar-logo {
-  height: 140px;         /* logo maior */
+  height: 90px;
   padding: 0 16px;
-  border-bottom: none;   /* sem linha separadora — o logo "flui" para as abas */
+  border-bottom: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   flex-shrink: 0;
-  margin-bottom: -36px;  /* abas sobem sobre a área transparente inferior do logo */
+  overflow: hidden;      /* corta as áreas transparentes */
+  margin-bottom: -20px;
   position: relative;
-  z-index: 1;            /* logo fica acima das abas no overlap */
+  z-index: 1;
+}
+
+.sidebar-logo img {
+  height: 260px;         /* imagem grande para o conteúdo aparecer no tamanho certo */
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  margin-top: -70px;     /* sobe para cortar a área transparente do topo */
+  flex-shrink: 0;
 }
 
 .sidebar-logo h1 {
