@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { SolarIcon } from 'solar-icon-set';
+import SolarIcon from 'solar-icon-set'; // ← DEFAULT import
 import { useAuth } from './AuthContext';
 import { aplicarTema, getTema } from './components/Configuracoes';
 
@@ -51,30 +51,30 @@ const LoadingFallback = () => (
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     height: '300px', color: 'var(--gray-400)', fontSize: '14px', gap: '10px',
   }}>
-    <SolarIcon iconName="Spinner" size={20} iconStyle="Linear" />
+    <SolarIcon iconName="spinner" size={20} iconStyle="Linear" />
     Carregando…
   </div>
 );
 
 const TABS = [
-  { id: 'dashboard',    label: 'Dashboard',      iconName: 'Widget5'           },
-  { id: 'freestyle',    label: 'Freestyle',       iconName: 'Target'            },
-  { id: 'simulado',     label: 'Simulados',       iconName: 'File Text'         },
-  { id: 'listas',       label: 'Listas',          iconName: 'Clipboard List'    },
-  { id: 'banco',        label: 'Banco',           iconName: 'Server'            },
-  { id: 'desempenho',   label: 'Desempenho',      iconName: 'Chart 2'           },
-  { id: 'metas',        label: 'Metas',           iconName: 'Medal Ribbons Star'},
-  { id: 'planejamento', label: 'Planejamento',    iconName: 'Calendar'          },
-  { id: 'conquistas',   label: 'Conquistas',      iconName: 'Trophy'            },
+  { id: 'dashboard',    label: 'Dashboard',      iconName: 'widget-5'           },
+  { id: 'freestyle',    label: 'Freestyle',       iconName: 'target'            },
+  { id: 'simulado',     label: 'Simulados',       iconName: 'file-text'         },
+  { id: 'listas',       label: 'Listas',          iconName: 'clipboard-list'    },
+  { id: 'banco',        label: 'Banco',           iconName: 'server'            },
+  { id: 'desempenho',   label: 'Desempenho',      iconName: 'chart-2'           },
+  { id: 'metas',        label: 'Metas',           iconName: 'medal-ribbons-star'},
+  { id: 'planejamento', label: 'Planejamento',    iconName: 'calendar'          },
+  { id: 'conquistas',   label: 'Conquistas',      iconName: 'trophy'            },
 ];
 
 const TABS_IA = [
-  { id: 'chat',   label: 'Chat de Dúvidas',    iconName: 'Chat Round' },
-  { id: 'resumo', label: 'Resumo por Matéria', iconName: 'Atom'       },
+  { id: 'chat',   label: 'Chat de Dúvidas',    iconName: 'chat-round' },
+  { id: 'resumo', label: 'Resumo por Matéria', iconName: 'atom'       },
 ];
 
 const TABS_REVISAO = [
-  { id: 'previsao', label: 'Previsão de Revisões', iconName: 'Calendar Mark', badge: true },
+  { id: 'previsao', label: 'Previsão de Revisões', iconName: 'calendar-mark', badge: true },
 ];
 
 export default function App() {
@@ -191,7 +191,7 @@ export default function App() {
               onClick={() => setAjudaAberta(true)}
               title="Atalhos de teclado (Alt+?)"
             >
-              <SolarIcon iconName="Keyboard" size={18} iconStyle="Bold" className="nav-icon" />
+              <SolarIcon iconName="keyboard" size={18} iconStyle="Bold" className="nav-icon" />
               Atalhos
             </button>
           </div>

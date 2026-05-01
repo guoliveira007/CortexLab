@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { SolarIcon } from 'solar-icon-set';
+import SolarIcon from 'solar-icon-set'; // ← DEFAULT import
 import { db } from '../database';
 import CadernoErros from './CadernoErros';
 import RevisaoEspacada from './RevisaoEspacada';
@@ -76,11 +76,11 @@ const Heatmap = memo(() => {
         <p className="section-title" style={{ margin: 0 }}>Histórico de Estudos</p>
         <div className="heatmap-stats">
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <SolarIcon iconName="Calendar" size={13} iconStyle="Bold" />
+            <SolarIcon iconName="calendar" size={13} iconStyle="Bold" />
             <strong>{diasAtivos}</strong> dias ativos
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <SolarIcon iconName="Book Open" size={13} iconStyle="Bold" />
+            <SolarIcon iconName="book-open" size={13} iconStyle="Bold" />
             <strong>{totalQuestoes}</strong> questões
           </span>
         </div>
@@ -201,38 +201,38 @@ const Dashboard = ({ onNavigate }) => {
       label: 'Taxa de Acerto',
       value: `${stats.taxa}%`,
       sub: `${stats.acertos} de ${stats.totalQuestoes} questões`,
-      iconName: 'Target',
+      iconName: 'target',
       style: { background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', boxShadow: '0 4px 20px rgba(99,102,241,0.25)' },
     },
     {
       label: 'Tempo Hoje',
       value: `${stats.tempoHoje}min`,
       sub: 'Foco total',
-      iconName: 'Stopwatch',
+      iconName: 'stopwatch',
       style: { background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 20px rgba(16,185,129,0.25)' },
     },
     {
       label: 'Questões Hoje',
       value: stats.questoesHoje,
       sub: 'Continue assim!',
-      iconName: 'File Text',
+      iconName: 'file-text',
       style: { background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', boxShadow: '0 4px 20px rgba(245,158,11,0.25)' },
     },
     {
       label: 'Sequência',
       value: `${streak}d`,
       sub: 'Dias seguidos',
-      iconName: 'Fire',
+      iconName: 'fire',
       style: { background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', boxShadow: '0 4px 20px rgba(239,68,68,0.25)' },
     },
   ];
 
   const modeCards = [
-    { iconName: 'Target',          label: 'Freestyle',     desc: 'Questões aleatórias com filtros avançados',  tab: 'freestyle',    accent: '#6366f1', tag: 'Popular'     },
-    { iconName: 'File Text',       label: 'Simulado',      desc: 'Prova cronometrada com gabarito completo',   tab: 'simulado',     accent: '#10b981', tag: 'Recomendado' },
-    { iconName: 'Clipboard List',  label: 'Minhas Listas', desc: 'Estude com listas personalizadas',           tab: 'listas',       accent: '#f59e0b', tag: null          },
-    { iconName: 'Calendar Date',   label: 'Planejamento',  desc: 'Organize sua semana de estudos',             tab: 'planejamento', accent: '#8b5cf6', tag: null          },
-    { iconName: 'Trophy',          label: 'Conquistas',    desc: 'Veja suas medalhas e progresso',             tab: 'conquistas',   accent: '#f59e0b', tag: null          },
+    { iconName: 'target',          label: 'Freestyle',     desc: 'Questões aleatórias com filtros avançados',  tab: 'freestyle',    accent: '#6366f1', tag: 'Popular'     },
+    { iconName: 'file-text',       label: 'Simulado',      desc: 'Prova cronometrada com gabarito completo',   tab: 'simulado',     accent: '#10b981', tag: 'Recomendado' },
+    { iconName: 'clipboard-list',  label: 'Minhas Listas', desc: 'Estude com listas personalizadas',           tab: 'listas',       accent: '#f59e0b', tag: null          },
+    { iconName: 'calendar-date',   label: 'Planejamento',  desc: 'Organize sua semana de estudos',             tab: 'planejamento', accent: '#8b5cf6', tag: null          },
+    { iconName: 'trophy',          label: 'Conquistas',    desc: 'Veja suas medalhas e progresso',             tab: 'conquistas',   accent: '#f59e0b', tag: null          },
   ];
 
   return (
@@ -251,7 +251,7 @@ const Dashboard = ({ onNavigate }) => {
       <div className="dashboard-kpi-grid">
         <div onClick={() => setAbrirCaderno(true)} className={`kpi-card${errosCount > 0 ? ' kpi-card--errors' : ''}`}>
           <div className={`kpi-card__icon${errosCount > 0 ? ' kpi-card__icon--errors' : ' kpi-card__icon--empty'}`}>
-            <SolarIcon iconName="Book Bookmark" size={22} iconStyle="Bold" />
+            <SolarIcon iconName="book-bookmark" size={22} iconStyle="Bold" />
           </div>
           <div className="kpi-card__body">
             <div className={`kpi-card__number${errosCount > 0 ? ' kpi-card__number--errors' : ' kpi-card__number--empty'}`}>
@@ -267,7 +267,7 @@ const Dashboard = ({ onNavigate }) => {
 
         <div onClick={() => setAbrirRevisao(true)} className={`kpi-card${revisoesHoje > 0 ? ' kpi-card--revision' : ''}`}>
           <div className={`kpi-card__icon${revisoesHoje > 0 ? ' kpi-card__icon--revision' : ' kpi-card__icon--empty'}`}>
-            <SolarIcon iconName="Atom" size={22} iconStyle="BoldDuotone" />
+            <SolarIcon iconName="atom" size={22} iconStyle="BoldDuotone" />
           </div>
           <div className="kpi-card__body">
             <div className={`kpi-card__number${revisoesHoje > 0 ? ' kpi-card__number--revision' : ' kpi-card__number--empty'}`}>
@@ -316,7 +316,7 @@ const Dashboard = ({ onNavigate }) => {
             <h3 className="mode-card__title">{m.label}</h3>
             <p className="mode-card__desc">{m.desc}</p>
             <div className="mode-card__cta" style={{ color: m.accent, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Acessar <SolarIcon iconName="Arrow Right" size={14} iconStyle="Bold" color={m.accent} />
+              Acessar <SolarIcon iconName="arrow-right" size={14} iconStyle="Bold" color={m.accent} />
             </div>
           </div>
         ))}
@@ -332,7 +332,7 @@ const Dashboard = ({ onNavigate }) => {
         <div className="card dashboard-empty">
           <div className="dashboard-empty__inner">
             <span className="dashboard-empty__icon">
-              <SolarIcon iconName="Lightbulb Bolt" size={32} iconStyle="BoldDuotone" />
+              <SolarIcon iconName="lightbulb-bolt" size={32} iconStyle="BoldDuotone" />
             </span>
             <div>
               <h3 className="dashboard-empty__title">Comece agora</h3>
