@@ -34,11 +34,20 @@ export const AVATARES = [
   // Loiras/loiros explícitos (tom de pele claro)
   { id: 'av_25', emoji: '👱🏻‍♀️', label: 'Loira' },
   { id: 'av_26', emoji: '👱🏻‍♂️', label: 'Loiro' },
+  // Médicas e médicos
+  { id: 'av_27', emoji: '👩🏻‍⚕️', label: 'Médica' },
+  { id: 'av_28', emoji: '👩🏼‍⚕️', label: 'Médica' },
+  { id: 'av_29', emoji: '👩🏽‍⚕️', label: 'Médica' },
+  { id: 'av_30', emoji: '👩🏾‍⚕️', label: 'Médica' },
+  { id: 'av_31', emoji: '👩🏿‍⚕️', label: 'Médica' },
+  { id: 'av_32', emoji: '👨🏻‍⚕️', label: 'Médico' },
+  { id: 'av_33', emoji: '👨🏼‍⚕️', label: 'Médico' },
+  { id: 'av_34', emoji: '👨🏽‍⚕️', label: 'Médico' },
+  { id: 'av_35', emoji: '👨🏾‍⚕️', label: 'Médico' },
+  { id: 'av_36', emoji: '👨🏿‍⚕️', label: 'Médico' },
   // Extras divertidos
-  { id: 'av_27', emoji: '🧑🏻‍🎨', label: 'Artista' },
-  { id: 'av_28', emoji: '🧑🏾‍🎨', label: 'Artista' },
-  { id: 'av_29', emoji: '🧑🏻‍⚕️', label: 'Saúde' },
-  { id: 'av_30', emoji: '🧑🏿‍⚕️', label: 'Saúde' },
+  { id: 'av_37', emoji: '🧑🏻‍🎨', label: 'Artista' },
+  { id: 'av_38', emoji: '🧑🏾‍🎨', label: 'Artista' },
 ];
 
 const STORAGE_KEY = 'cortexlab_perfil';
