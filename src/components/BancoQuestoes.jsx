@@ -372,11 +372,8 @@ const BancoQuestoes = () => {
   }, []);
 
   const excluir = useCallback(async id => {
-    if (!window.confirm('Excluir esta questão? Os resultados e revisões associados também serão removidos.')) return;
+    if (!window.confirm('Excluir esta questão? O histórico de respostas será mantido nas estatísticas gerais.')) return;
     await db.questoes.delete(id);
-    const resultadosDaQuestao = await db.resultados.where('questaoId').equals(id);
-    const idsResultados = resultadosDaQuestao.map((r) => r.id);
-    if (idsResultados.length > 0) await db.resultados.bulkDelete(idsResultados);
     await db.removerDaRevisao(String(id));
     window.dispatchEvent(new Event('revisao:concluida'));
     toast.success('Questão excluída!');
