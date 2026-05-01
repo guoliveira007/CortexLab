@@ -1,30 +1,16 @@
 /**
- * Alternativas.jsx — fix #1: Acessibilidade
+ * Alternativas.jsx
  *
- * Componente extraído para reutilização em Freestyle, Lista e RevisaoEspacada.
- *
- * MELHORIAS:
- * - role="radiogroup" / role="radio" para leitores de tela
- * - aria-checked para estado selecionado
- * - aria-disabled quando já respondida
- * - Navegação por teclado: setas ↑↓ movem entre alternativas, Enter/Espaço seleciona
- * - aria-label descritivo em cada opção
- * - aria-live="polite" no feedback para anunciar resultado
+ * Atalhos de teclado:
+ *   1 → A, 2 → B, 3 → C, 4 → D, 5 → E  (só antes de responder)
+ *   ↑↓ navegam entre alternativas com foco
+ *   Enter / Espaço selecionam a alternativa focada
  */
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E'];
+const NUMERO_PARA_LETRA = { '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E' };
 
-/**
- * @param {Object}   props
- * @param {Object}   props.alternativas         - { A: '...', B: '...', ... }
- * @param {Object}   [props.imagensAlternativas] - { A: url, ... }
- * @param {string}   props.gabarito             - 'A' | 'B' | ...
- * @param {string}   [props.resposta]           - letra respondida pelo usuário (null = não respondida)
- * @param {Function} props.onResponder          - (letra: string) => void
- * @param {string}   [props.feedbackTexto]      - texto de acerto/erro opcional
- * @param {string}   [props.explicacao]         - explicação após responder
- */
 const Alternativas = ({
   alternativas = {},
   imagensAlternativas = {},
@@ -37,6 +23,26 @@ const Alternativas = ({
   const respondida = !!resposta;
   const refs = useRef({});
 
+  // Atalhos 1–5 → A–E (só quando ainda não respondeu)
+  useEffect(() => {
+    if (respondida) return;
+
+    const handler = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+
+      const letra = NUMERO_PARA_LETRA[e.key];
+      if (letra && (alternativas[letra] || imagensAlternativas[letra])) {
+        e.preventDefault();
+        onResponder(letra);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [respondida, alternativas, imagensAlternativas, onResponder]);
+
   const handleKeyDown = (e, letra) => {
     if (respondida) return;
 
@@ -46,26 +52,27 @@ const Alternativas = ({
       return;
     }
 
-    // Navegação entre alternativas com setas
-    const visíveis = LETRAS.filter(l => alternativas[l]);
-    const idx = visíveis.indexOf(letra);
+    const visiveis = LETRAS.filter(l => alternativas[l] || imagensAlternativas[l]);
+    const idx = visiveis.indexOf(letra);
 
-    if (e.key === 'ArrowDown' && idx < visíveis.length - 1) {
+    if (e.key === 'ArrowDown' && idx < visiveis.length - 1) {
       e.preventDefault();
-      refs.current[visíveis[idx + 1]]?.focus();
+      refs.current[visiveis[idx + 1]]?.focus();
     }
     if (e.key === 'ArrowUp' && idx > 0) {
       e.preventDefault();
-      refs.current[visíveis[idx - 1]]?.focus();
+      refs.current[visiveis[idx - 1]]?.focus();
     }
   };
 
+  const letrasVisiveis = LETRAS.filter(l => alternativas[l] || imagensAlternativas[l]);
+  const letraParaNumero = Object.fromEntries(letrasVisiveis.map((l, i) => [l, i + 1]));
+
   return (
     <div>
-      {/* Alternativas */}
       <div
         role="radiogroup"
-        aria-label="Alternativas da questão"
+        aria-label="Alternativas da questao"
         aria-disabled={respondida}
       >
         {LETRAS.map(letra => {
@@ -73,21 +80,20 @@ const Alternativas = ({
           const img   = imagensAlternativas[letra];
           if (!texto && !img) return null;
 
-          const eGabarito   = letra === gabarito;
+          const eGabarito    = letra === gabarito;
           const eSelecionada = letra === resposta;
+          const numero       = letraParaNumero[letra];
 
-          // Classes e estilos visuais
           let extraClass = '';
           if (respondida) {
-            if (eGabarito)        extraClass = 'correta';
+            if (eGabarito)         extraClass = 'correta';
             else if (eSelecionada) extraClass = 'errada';
           }
 
-          // Aria-label descritivo
-          let ariaLabel = `Alternativa ${letra}: ${texto || ''}`;
+          let ariaLabel = 'Alternativa ' + letra + ': ' + (texto || '');
           if (respondida) {
-            if (eGabarito)        ariaLabel += ' — resposta correta';
-            else if (eSelecionada) ariaLabel += ' — sua resposta incorreta';
+            if (eGabarito)         ariaLabel += ' - resposta correta';
+            else if (eSelecionada) ariaLabel += ' - sua resposta incorreta';
           }
 
           return (
@@ -98,39 +104,62 @@ const Alternativas = ({
               aria-checked={eSelecionada}
               aria-label={ariaLabel}
               tabIndex={respondida ? -1 : 0}
-              className={`alternativa ${extraClass}`}
+              className={'alternativa ' + extraClass}
               onClick={() => !respondida && onResponder(letra)}
               onKeyDown={e => handleKeyDown(e, letra)}
               style={{ cursor: respondida ? 'default' : 'pointer' }}
             >
               <strong className="alt-letra">{letra})</strong>
+
               <div style={{ flex: 1 }}>
                 {texto && <span className="alt-texto">{texto}</span>}
                 {img && (
                   <img
                     src={img}
-                    alt={`Imagem da alternativa ${letra}`}
+                    alt={'Imagem da alternativa ' + letra}
                     className="alt-img"
                   />
                 )}
               </div>
-              {respondida && eGabarito   && <span aria-hidden="true">✅</span>}
+
+              {!respondida && numero >= 1 && numero <= 5 && (
+                <span style={{
+                  flexShrink: 0,
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '5px',
+                  background: 'var(--gray-100)',
+                  border: '1px solid var(--gray-200)',
+                  color: 'var(--gray-400)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'monospace',
+                  marginLeft: '8px',
+                }}>
+                  {numero}
+                </span>
+              )}
+
+              {respondida && eGabarito    && <span aria-hidden="true">✅</span>}
               {respondida && eSelecionada && !eGabarito && <span aria-hidden="true">❌</span>}
             </div>
           );
         })}
       </div>
 
-      {/* Feedback — aria-live anuncia o resultado para leitores de tela */}
       {respondida && (
         <div
           role="status"
           aria-live="polite"
           style={{
-            marginTop: '16px', padding: '14px 18px',
+            marginTop: '16px',
+            padding: '14px 18px',
             background: resposta === gabarito ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)',
             borderRadius: 'var(--r-md)',
-            borderLeft: `3px solid ${resposta === gabarito ? 'var(--accent-green)' : 'var(--accent-red)'}`,
+            borderLeft: '3px solid ' + (resposta === gabarito ? 'var(--accent-green)' : 'var(--accent-red)'),
           }}
         >
           {feedbackTexto && (
