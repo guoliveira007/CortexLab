@@ -46,7 +46,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import {
   LayoutDashboard, Target, FileText, ClipboardList, Database,
   BarChart2, Medal, Calendar, Trophy, MessageCircle, Brain,
-  CalendarClock, Keyboard,
+  CalendarClock, Keyboard, Loader2,
 } from 'lucide-react';
 import logo from './assets/logo_sidebar.png';
 
@@ -55,7 +55,7 @@ const LoadingFallback = () => (
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     height: '300px', color: 'var(--gray-400)', fontSize: '14px', gap: '10px',
   }}>
-    <span style={{ fontSize: '20px', animation: 'spin 1s linear infinite' }}>⏳</span>
+    <Loader2 size={20} strokeWidth={1.75} style={{ animation: 'spin 1s linear infinite' }} />
     Carregando…
   </div>
 );

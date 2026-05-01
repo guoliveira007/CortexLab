@@ -2,6 +2,11 @@ import React, { useState, useEffect, useMemo, memo } from 'react';
 import { db } from '../database';
 import CadernoErros from './CadernoErros';
 import RevisaoEspacada from './RevisaoEspacada';
+import {
+  Calendar, BookOpen, Target, Timer, FileText, Flame,
+  BookMarked, Brain, ClipboardList, CalendarDays, Trophy,
+  Lightbulb, ArrowRight, CheckCircle2,
+} from 'lucide-react';
 
 /* ─── Heatmap ──────────────────────────────────────────────── */
 const TAMANHO = 11;
@@ -74,8 +79,14 @@ const Heatmap = memo(() => {
       <div className="heatmap-header">
         <p className="section-title" style={{ margin: 0 }}>Histórico de Estudos</p>
         <div className="heatmap-stats">
-          <span>📅 <strong>{diasAtivos}</strong> dias ativos</span>
-          <span>📝 <strong>{totalQuestoes}</strong> questões</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Calendar size={13} strokeWidth={1.75} />
+            <strong>{diasAtivos}</strong> dias ativos
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <BookOpen size={13} strokeWidth={1.75} />
+            <strong>{totalQuestoes}</strong> questões
+          </span>
         </div>
       </div>
 
@@ -187,17 +198,6 @@ const Dashboard = ({ onNavigate }) => {
     };
   }, []);
 
-  // ✅ Corrigido: única chamada a getDashboardData() substitui as três
-  // chamadas anteriores (getEstatisticasGerais + getStreak +
-  // loadRevisaoCount + loadErrosCount), eliminando queries duplicadas.
-  //
-  // getDashboardData() agrega tudo em uma única passagem pelo banco e
-  // já inclui: total, acertos, taxa, tempoHojeMin, questoesHoje,
-  // streak, revisoesHoje e errosCount.
-  //
-  // ⚠️  Se os nomes dos campos retornados pela sua versão de
-  // getDashboardData diferirem dos usados abaixo, ajuste o mapeamento
-  // neste bloco (não há mais nenhum outro lugar para alterar).
   const loadStats = async () => {
     try {
       lastFetchRef.current = Date.now();
@@ -218,48 +218,45 @@ const Dashboard = ({ onNavigate }) => {
     }
   };
 
-  // ✅ loadRevisaoCount e loadErrosCount foram REMOVIDOS.
-  // Toda a lógica deles já está encapsulada em getDashboardData().
-
   /* ── Stat cards superiores ── */
   const statCards = [
     {
       label: 'Taxa de Acerto',
       value: `${stats.taxa}%`,
       sub: `${stats.acertos} de ${stats.totalQuestoes} questões`,
-      icon: '🎯',
+      Icon: Target,
       style: { background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', boxShadow: '0 4px 20px rgba(99,102,241,0.25)' },
     },
     {
       label: 'Tempo Hoje',
       value: `${stats.tempoHoje}min`,
       sub: 'Foco total',
-      icon: '⏱️',
+      Icon: Timer,
       style: { background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 20px rgba(16,185,129,0.25)' },
     },
     {
       label: 'Questões Hoje',
       value: stats.questoesHoje,
       sub: 'Continue assim!',
-      icon: '📝',
+      Icon: FileText,
       style: { background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', boxShadow: '0 4px 20px rgba(245,158,11,0.25)' },
     },
     {
       label: 'Sequência',
       value: `${streak}d`,
       sub: 'Dias seguidos',
-      icon: '🔥',
+      Icon: Flame,
       style: { background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', boxShadow: '0 4px 20px rgba(239,68,68,0.25)' },
     },
   ];
 
   /* ── Mode cards ── */
   const modeCards = [
-    { icon: '🎯', label: 'Freestyle',    desc: 'Questões aleatórias com filtros avançados',    tab: 'freestyle',    accent: '#6366f1', tag: 'Popular' },
-    { icon: '📝', label: 'Simulado',     desc: 'Prova cronometrada com gabarito completo',     tab: 'simulado',     accent: '#10b981', tag: 'Recomendado' },
-    { icon: '📋', label: 'Minhas Listas',desc: 'Estude com listas personalizadas',             tab: 'listas',       accent: '#f59e0b', tag: null },
-    { icon: '📅', label: 'Planejamento', desc: 'Organize sua semana de estudos',               tab: 'planejamento', accent: '#8b5cf6', tag: null },
-    { icon: '🏆', label: 'Conquistas',   desc: 'Veja suas medalhas e progresso',               tab: 'conquistas',   accent: '#f59e0b', tag: null },
+    { Icon: Target,       label: 'Freestyle',     desc: 'Questões aleatórias com filtros avançados',  tab: 'freestyle',    accent: '#6366f1', tag: 'Popular' },
+    { Icon: FileText,     label: 'Simulado',      desc: 'Prova cronometrada com gabarito completo',   tab: 'simulado',     accent: '#10b981', tag: 'Recomendado' },
+    { Icon: ClipboardList,label: 'Minhas Listas', desc: 'Estude com listas personalizadas',           tab: 'listas',       accent: '#f59e0b', tag: null },
+    { Icon: CalendarDays, label: 'Planejamento',  desc: 'Organize sua semana de estudos',             tab: 'planejamento', accent: '#8b5cf6', tag: null },
+    { Icon: Trophy,       label: 'Conquistas',    desc: 'Veja suas medalhas e progresso',             tab: 'conquistas',   accent: '#f59e0b', tag: null },
   ];
 
   return (
@@ -283,7 +280,7 @@ const Dashboard = ({ onNavigate }) => {
           className={`kpi-card${errosCount > 0 ? ' kpi-card--errors' : ''}`}
         >
           <div className={`kpi-card__icon${errosCount > 0 ? ' kpi-card__icon--errors' : ' kpi-card__icon--empty'}`}>
-            📓
+            <BookMarked size={22} strokeWidth={1.75} />
           </div>
           <div className="kpi-card__body">
             <div className={`kpi-card__number${errosCount > 0 ? ' kpi-card__number--errors' : ' kpi-card__number--empty'}`}>
@@ -305,7 +302,7 @@ const Dashboard = ({ onNavigate }) => {
           className={`kpi-card${revisoesHoje > 0 ? ' kpi-card--revision' : ''}`}
         >
           <div className={`kpi-card__icon${revisoesHoje > 0 ? ' kpi-card__icon--revision' : ' kpi-card__icon--empty'}`}>
-            🧠
+            <Brain size={22} strokeWidth={1.75} />
           </div>
           <div className="kpi-card__body">
             <div className={`kpi-card__number${revisoesHoje > 0 ? ' kpi-card__number--revision' : ' kpi-card__number--empty'}`}>
@@ -332,7 +329,9 @@ const Dashboard = ({ onNavigate }) => {
                 <p className="dashboard-stat-card__value">{s.value}</p>
                 <p className="dashboard-stat-card__sub">{s.sub}</p>
               </div>
-              <span className="dashboard-stat-card__icon">{s.icon}</span>
+              <span className="dashboard-stat-card__icon">
+                <s.Icon size={28} strokeWidth={1.5} color="rgba(255,255,255,0.9)" />
+              </span>
             </div>
           </div>
         ))}
@@ -356,11 +355,13 @@ const Dashboard = ({ onNavigate }) => {
                 style={{ background: m.accent + '20', color: m.accent }}
               >{m.tag}</span>
             )}
-            <div className="mode-card__icon">{m.icon}</div>
+            <div className="mode-card__icon">
+              <m.Icon size={26} strokeWidth={1.5} color={m.accent} />
+            </div>
             <h3 className="mode-card__title">{m.label}</h3>
             <p className="mode-card__desc">{m.desc}</p>
-            <div className="mode-card__cta" style={{ color: m.accent }}>
-              Acessar <span className="mode-card__cta-arrow">→</span>
+            <div className="mode-card__cta" style={{ color: m.accent, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Acessar <ArrowRight size={14} strokeWidth={2} />
             </div>
           </div>
         ))}
@@ -375,7 +376,9 @@ const Dashboard = ({ onNavigate }) => {
       {stats.totalQuestoes === 0 && (
         <div className="card dashboard-empty">
           <div className="dashboard-empty__inner">
-            <span className="dashboard-empty__icon">💡</span>
+            <span className="dashboard-empty__icon">
+              <Lightbulb size={32} strokeWidth={1.5} />
+            </span>
             <div>
               <h3 className="dashboard-empty__title">Comece agora</h3>
               <p className="dashboard-empty__text">

@@ -5,6 +5,10 @@ import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
 import Alternativas from './Alternativas';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
+import {
+  ClipboardList, CheckCircle2, BookOpen, TrendingUp, Play, ArrowLeft,
+  CheckCircle, XCircle,
+} from 'lucide-react';
 
 const POR_PAGINA = 10;
 
@@ -56,7 +60,10 @@ export const QuestaoCard = memo(({ questao, numero, resposta, onResponder }) => 
         onResponder={(letra) => onResponder(questao.id, letra)}
         feedbackTexto={
           resposta
-            ? (acertou ? '✅ Acertou!' : `❌ Resposta correta: ${questao.gabarito}`)
+            ? (acertou
+                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><CheckCircle size={14} strokeWidth={2} /> Acertou!</span>
+                : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><XCircle size={14} strokeWidth={2} /> Resposta correta: {questao.gabarito}</span>
+              )
             : null
         }
         explicacao={questao.explicacao}
@@ -98,7 +105,6 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
 
   useEffect(() => { db.questoes.toArray().then(setTodas); }, []);
 
-  // Quando vem do Pomodoro com sugestão de matéria, pré-aplica o filtro
   useEffect(() => {
     if (!materiaInicial) return;
     setFiltro('materia', materiaInicial);
@@ -119,7 +125,7 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
       setSessao(ordered);
       setResp(resp || {});
       setPagina(pag || 1);
-      toast('Sessão restaurada! Continuando de onde parou 🔄');
+      toast('Sessão restaurada! Continuando de onde parou');
     } catch { localStorage.removeItem(STORAGE_KEY); }
   }, [todas]);
 
@@ -153,18 +159,13 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
     const q = sess.find(q => q.id === id);
     if (!q) return;
 
-    // Guard explícito: impede double-save por clique duplo antes do re-render.
-    // setResp tem o mesmo guard, mas o estado React é assíncrono — o ref
-    // é síncrono e garante que db.resultados.add seja chamado uma única vez.
     if (respostasRef.current[id]) return;
 
-    // Atualiza UI imediatamente
     setResp(prev => {
       if (prev[id]) return prev;
       return { ...prev, [id]: letra };
     });
 
-    // Salva no banco fora de qualquer state updater
     const acertou = letra === q.gabarito;
     db.resultados.add({
       questaoId: id,
@@ -193,9 +194,10 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
         <button
           className="btn-primary"
           onClick={iniciar}
-          style={{ width: '100%', marginTop: '20px', padding: '12px', justifyContent: 'center', fontSize: '15px' }}
+          style={{ width: '100%', marginTop: '20px', padding: '12px', justifyContent: 'center', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          🚀 Iniciar Freestyle
+          <Play size={16} strokeWidth={2} />
+          Iniciar Freestyle
         </button>
       </div>
     </div>
@@ -214,20 +216,33 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
         marginBottom: '20px', boxShadow: 'var(--shadow-sm)',
         border: '1px solid var(--gray-100)',
       }}>
-        <div style={{ display: 'flex', gap: '20px', fontSize: '14px', flexWrap: 'wrap' }}>
-          <span style={{ color: 'var(--gray-600)' }}>📋 <strong>{total}</strong> questões</span>
-          <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>✅ {acertos} acertos</span>
-          <span style={{ color: 'var(--gray-500)' }}>📚 {respondidas}/{total}</span>
+        <div style={{ display: 'flex', gap: '20px', fontSize: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <ClipboardList size={15} strokeWidth={1.75} />
+            <strong>{total}</strong> questões
+          </span>
+          <span style={{ color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <CheckCircle2 size={15} strokeWidth={1.75} />
+            {acertos} acertos
+          </span>
+          <span style={{ color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <BookOpen size={15} strokeWidth={1.75} />
+            {respondidas}/{total}
+          </span>
           {respondidas > 0 && (
-            <span style={{ color: 'var(--brand-500)', fontWeight: 700 }}>📈 {taxa}%</span>
+            <span style={{ color: 'var(--brand-500)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <TrendingUp size={15} strokeWidth={1.75} />
+              {taxa}%
+            </span>
           )}
         </div>
         <button
           className="btn-secondary"
           onClick={() => { localStorage.removeItem(STORAGE_KEY); setSessao(null); }}
-          style={{ fontSize: '13px', padding: '7px 14px' }}
+          style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
         >
-          ← Novo filtro
+          <ArrowLeft size={14} strokeWidth={1.75} />
+          Novo filtro
         </button>
       </div>
 

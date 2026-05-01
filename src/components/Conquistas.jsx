@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { db } from '../database';
+import {
+  Trophy, HelpCircle, CheckCircle2, Search,
+  BookOpen, Target, Flame, ClipboardList, Timer,
+  Layers, Star, Eye, Lock, Gem,
+} from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    SISTEMA DE RARIDADE
@@ -14,15 +19,15 @@ export const RARIDADES = {
 };
 
 const CATEGORIAS = [
-  { id: 'todas',       label: '✨ Todas'       },
-  { id: 'questoes',    label: '📝 Questões'    },
-  { id: 'acerto',      label: '🎯 Acerto'      },
-  { id: 'streak',      label: '🔥 Sequência'   },
-  { id: 'simulados',   label: '📋 Simulados'   },
-  { id: 'foco',        label: '🍅 Foco'        },
-  { id: 'diversidade', label: '🌈 Diversidade' },
-  { id: 'especial',    label: '⭐ Especial'    },
-  { id: 'secreto',     label: '🔮 Secretas'    },
+  { id: 'todas',       label: 'Todas',      Icon: Layers    },
+  { id: 'questoes',    label: 'Questões',   Icon: BookOpen  },
+  { id: 'acerto',      label: 'Acerto',     Icon: Target    },
+  { id: 'streak',      label: 'Sequência',  Icon: Flame     },
+  { id: 'simulados',   label: 'Simulados',  Icon: ClipboardList },
+  { id: 'foco',        label: 'Foco',       Icon: Timer     },
+  { id: 'diversidade', label: 'Diversidade',Icon: Layers    },
+  { id: 'especial',    label: 'Especial',   Icon: Star      },
+  { id: 'secreto',     label: 'Secretas',   Icon: Eye       },
 ];
 
 // ✅ Renomeado para CONQUISTAS_BASE — sec_colecao é adicionada separadamente
@@ -57,11 +62,11 @@ const CONQUISTAS_BASE = [
   { id: 'streak365', cat: 'streak', raridade: 'lendario', icone: '🌠', nome: 'Um Ano de Dedicação', desc: 'Estudou por 365 dias seguidos — extraordinário',          check: s => s.streak >= 365, progresso: s => Math.min(s.streak / 365, 1), detalhe: s => `${Math.min(s.streak, 365)}/365 dias` },
 
   // ── SIMULADOS ──
-  { id: 'sim1',  cat: 'simulados', raridade: 'comum',    icone: '📝',  nome: 'Primeiro Simulado',  desc: 'Completou 1 simulado',                          check: s => s.simulados >= 1,  progresso: s => Math.min(s.simulados, 1),      detalhe: s => `${Math.min(s.simulados, 1)}/1` },
-  { id: 'sim5',  cat: 'simulados', raridade: 'comum',    icone: '📋',  nome: 'Simulador',          desc: 'Completou 5 simulados',                         check: s => s.simulados >= 5,  progresso: s => Math.min(s.simulados / 5, 1),  detalhe: s => `${Math.min(s.simulados, 5)}/5` },
-  { id: 'sim10', cat: 'simulados', raridade: 'raro',     icone: '🎖️', nome: 'Veterano',           desc: 'Completou 10 simulados',                        check: s => s.simulados >= 10, progresso: s => Math.min(s.simulados / 10, 1), detalhe: s => `${Math.min(s.simulados, 10)}/10` },
-  { id: 'sim20', cat: 'simulados', raridade: 'epico',    icone: '🎓',  nome: 'Simulador Avançado', desc: 'Completou 20 simulados',                        check: s => s.simulados >= 20, progresso: s => Math.min(s.simulados / 20, 1), detalhe: s => `${Math.min(s.simulados, 20)}/20` },
-  { id: 'sim50', cat: 'simulados', raridade: 'lendario', icone: '🏰',  nome: 'Mestre dos Simulados',desc: 'Completou 50 simulados — nível absurdo',       check: s => s.simulados >= 50, progresso: s => Math.min(s.simulados / 50, 1), detalhe: s => `${Math.min(s.simulados, 50)}/50` },
+  { id: 'sim1',  cat: 'simulados', raridade: 'comum',    icone: '📝',  nome: 'Primeiro Simulado',   desc: 'Completou 1 simulado',                          check: s => s.simulados >= 1,  progresso: s => Math.min(s.simulados, 1),      detalhe: s => `${Math.min(s.simulados, 1)}/1` },
+  { id: 'sim5',  cat: 'simulados', raridade: 'comum',    icone: '📋',  nome: 'Simulador',           desc: 'Completou 5 simulados',                         check: s => s.simulados >= 5,  progresso: s => Math.min(s.simulados / 5, 1),  detalhe: s => `${Math.min(s.simulados, 5)}/5` },
+  { id: 'sim10', cat: 'simulados', raridade: 'raro',     icone: '🎖️', nome: 'Veterano',            desc: 'Completou 10 simulados',                        check: s => s.simulados >= 10, progresso: s => Math.min(s.simulados / 10, 1), detalhe: s => `${Math.min(s.simulados, 10)}/10` },
+  { id: 'sim20', cat: 'simulados', raridade: 'epico',    icone: '🎓',  nome: 'Simulador Avançado',  desc: 'Completou 20 simulados',                        check: s => s.simulados >= 20, progresso: s => Math.min(s.simulados / 20, 1), detalhe: s => `${Math.min(s.simulados, 20)}/20` },
+  { id: 'sim50', cat: 'simulados', raridade: 'lendario', icone: '🏰',  nome: 'Mestre dos Simulados',desc: 'Completou 50 simulados — nível absurdo',        check: s => s.simulados >= 50, progresso: s => Math.min(s.simulados / 50, 1), detalhe: s => `${Math.min(s.simulados, 50)}/50` },
 
   // ── FOCO / POMODORO ──
   { id: 'pom1',   cat: 'foco', raridade: 'comum',    icone: '🍅', nome: 'Primeiro Foco', desc: 'Completou 1 sessão Pomodoro',                           check: s => s.pomodoros >= 1,   progresso: s => Math.min(s.pomodoros, 1),       detalhe: s => `${Math.min(s.pomodoros, 1)}/1` },
@@ -91,16 +96,8 @@ const CONQUISTAS_BASE = [
   { id: 'sec_simulado_perfeito', cat: 'secreto', raridade: 'secreto', icone: '🃏', secreta: true, nome: 'Gabaritou',      desc: 'Completou um simulado com 100% de acerto',                         check: s => s.simulados >= 1 && s.taxa >= 100, progresso: () => 0,                                                                                                   detalhe: () => '???' },
 ];
 
-// ✅ Pré-computado uma única vez: todas as conquistas não-secretas de
-// CONQUISTAS_BASE. Usar esta constante em sec_colecao tem dois benefícios:
-//   1. check() e progresso() não precisam re-filtrar o array a cada chamada.
-//   2. sec_colecao fica estruturalmente impossibilitada de se referenciar —
-//      a separação é explícita, não depende de guardar com c.id !== 'sec_colecao'.
 const CONQUISTAS_PARA_COLECAO = CONQUISTAS_BASE.filter(c => !c.secreta);
 
-// TODAS_CONQUISTAS inclui CONQUISTAS_BASE + sec_colecao.
-// sec_colecao fica fora do array original justamente para poder referenciar
-// CONQUISTAS_PARA_COLECAO sem circularidade.
 const TODAS_CONQUISTAS = [
   ...CONQUISTAS_BASE,
   {
@@ -114,12 +111,6 @@ const TODAS_CONQUISTAS = [
 
 /* ─── Utilitários ─── */
 const RARID_ORDER = { lendario: 0, epico: 1, raro: 2, comum: 3, secreto: 4 };
-const ordenarConquistas = (lista, stats) => {
-  const desbloqueadas = lista.filter(c => c.check(stats));
-  const bloqueadas    = lista.filter(c => !c.check(stats));
-  const sortRarid     = (a, b) => (RARID_ORDER[a.raridade] ?? 5) - (RARID_ORDER[b.raridade] ?? 5);
-  return [...desbloqueadas.sort(sortRarid), ...bloqueadas.sort(sortRarid)];
-};
 
 /* ════════════════════════════════════════════════════════════
    NOTIFICAÇÃO IN-APP DE CONQUISTA
@@ -189,7 +180,7 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
         cursor: 'pointer',
       }} onClick={fechar}>
 
-        {/* Ícone com glow */}
+        {/* Ícone da medalha (mantém emoji) */}
         <div style={{
           width: '52px', height: '52px', borderRadius: '12px', flexShrink: 0,
           background: c.raridade === 'lendario' ? '#2d1f0a'
@@ -205,10 +196,11 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Label topo */}
+          {/* Label topo com ícone Lucide */}
           <div style={{
             fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em',
             color: r.cor, marginBottom: '3px', textTransform: 'uppercase',
+            display: 'flex', alignItems: 'center', gap: '4px',
             ...(c.raridade === 'lendario' ? {
               background: 'linear-gradient(90deg, #f59e0b, #fcd34d, #f59e0b)',
               backgroundSize: '200% auto',
@@ -217,7 +209,8 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
               animation: 'shimmer 2s linear infinite',
             } : {}),
           }}>
-            🏆 Conquista Desbloqueada!
+            <Trophy size={11} strokeWidth={2} style={{ flexShrink: 0 }} />
+            Conquista Desbloqueada!
           </div>
 
           <div style={{
@@ -275,12 +268,12 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
 ════════════════════════════════════════════════════════════ */
 const TUTORIAL_STEPS = [
   {
-    icone: '🏆',
+    Icon: Trophy,
     titulo: 'Bem-vindo às Conquistas!',
     desc: 'Aqui você acompanha todas as suas medalhas e marcos de estudo. As conquistas são desbloqueadas automaticamente conforme você evolui na plataforma.',
   },
   {
-    icone: '💎',
+    Icon: Gem,
     titulo: 'Sistema de Raridade',
     desc: 'Cada conquista tem uma raridade: Comum, Raro, Épico e Lendário. Quanto mais rara, mais difícil de desbloquear — e mais especial ela é!',
     extra: (
@@ -295,17 +288,17 @@ const TUTORIAL_STEPS = [
     ),
   },
   {
-    icone: '🔮',
+    Icon: Eye,
     titulo: 'Conquistas Secretas',
     desc: 'Algumas conquistas estão ocultas! Você só descobre o nome e a descrição delas após desbloquear. Continue explorando a plataforma para encontrá-las.',
   },
   {
-    icone: '📊',
+    Icon: Target,
     titulo: 'Acompanhe seu Progresso',
     desc: 'Conquistas bloqueadas mostram uma barra de progresso indicando o quanto falta para desbloquear. Use os filtros por categoria e raridade para navegar melhor.',
   },
   {
-    icone: '🔔',
+    Icon: Trophy,
     titulo: 'Notificações em Tempo Real',
     desc: 'Ao desbloquear uma conquista, uma notificação aparecerá automaticamente na tela — mesmo se você estiver em outra aba da plataforma. Fique atento!',
   },
@@ -349,9 +342,9 @@ const TutorialModal = ({ onFechar }) => {
           ))}
         </div>
 
-        {/* Ícone */}
-        <div style={{ textAlign: 'center', fontSize: '52px', marginBottom: '16px' }}>
-          {s.icone}
+        {/* Ícone Lucide */}
+        <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+          <s.Icon size={52} strokeWidth={1.25} color="var(--brand-500)" />
         </div>
 
         {/* Conteúdo */}
@@ -381,7 +374,7 @@ const TutorialModal = ({ onFechar }) => {
             style={{ flex: 1 }}
             onClick={() => ultimo ? onFechar() : setStep(s => s + 1)}
           >
-            {ultimo ? '✅ Entendi!' : 'Próximo →'}
+            {ultimo ? 'Entendi!' : 'Próximo →'}
           </button>
         </div>
 
@@ -443,6 +436,7 @@ const ConquistaCard = memo(({ conquista, desbloqueada, pct, detalhe, dataDesbloq
       </div>
 
       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginTop: '2px' }}>
+        {/* Ícone: emoji da medalha quando desbloqueada, Lucide Lock quando bloqueada */}
         <div style={{
           width: '44px', height: '44px', borderRadius: 'var(--r-md)',
           background: desbloqueada ? (conquista.raridade === 'secreto' ? '#1e293b' : r.bg) : 'var(--gray-100)',
@@ -452,7 +446,12 @@ const ConquistaCard = memo(({ conquista, desbloqueada, pct, detalhe, dataDesbloq
           filter: desbloqueada ? 'none' : 'grayscale(100%)',
           opacity: desbloqueada ? 1 : 0.4,
         }}>
-          {segredo ? '🔮' : (desbloqueada ? conquista.icone : '🔒')}
+          {segredo
+            ? <Eye size={20} strokeWidth={1.5} color="#64748b" />
+            : desbloqueada
+              ? conquista.icone
+              : <Lock size={18} strokeWidth={1.75} color="var(--gray-400)" />
+          }
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -481,8 +480,9 @@ const ConquistaCard = memo(({ conquista, desbloqueada, pct, detalhe, dataDesbloq
           )}
 
           {desbloqueada && dataDesbloqueio && (
-            <p style={{ fontSize: '11px', color: conquista.raridade === 'secreto' ? '#64748b' : r.cor, fontWeight: 600 }}>
-              ✅ {new Date(dataDesbloqueio).toLocaleDateString('pt-BR')}
+            <p style={{ fontSize: '11px', color: conquista.raridade === 'secreto' ? '#64748b' : r.cor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle2 size={11} strokeWidth={2} />
+              {new Date(dataDesbloqueio).toLocaleDateString('pt-BR')}
             </p>
           )}
         </div>
@@ -491,8 +491,7 @@ const ConquistaCard = memo(({ conquista, desbloqueada, pct, detalhe, dataDesbloq
   );
 });
 ConquistaCard.displayName = 'ConquistaCard';
-// ✅ memo() aqui evita recalcular c.check(stats) para todas as conquistas
-// a cada re-render do componente pai (Conquistas). Só reavalia quando stats muda.
+
 const StatsRaridade = memo(({ stats }) => {
   const contagem = { comum: 0, raro: 0, epico: 0, lendario: 0, secreto: 0 };
   const total    = { comum: 0, raro: 0, epico: 0, lendario: 0, secreto: 0 };
@@ -533,12 +532,9 @@ const Conquistas = () => {
   const [novasConquistas, setNovas]     = useState([]);
   const [tutorial, setTutorial]         = useState(false);
 
-  // Abre tutorial automaticamente na primeira vez
   useEffect(() => {
     const jaViu = localStorage.getItem('cortexlab_tutorial_conquistas');
-    if (!jaViu) {
-      setTutorial(true);
-    }
+    if (!jaViu) setTutorial(true);
   }, []);
 
   const fecharTutorial = () => {
@@ -564,7 +560,6 @@ const Conquistas = () => {
       ));
       const atualizadas = await db.conquistas.toArray().catch(() => []);
       setConquistasDB(atualizadas);
-      // Dispara notificações in-app
       setNovas(novas);
     } else {
       setConquistasDB(cDB);
@@ -578,7 +573,6 @@ const Conquistas = () => {
   }, [conquistasDB]);
 
   const conquistasFiltradas = useMemo(() => {
-    // Sem stats ainda, retorna vazio — o guard !stats no JSX cuida disso
     if (!stats) return [];
 
     let lista = catSelecionada === 'todas'
@@ -593,8 +587,6 @@ const Conquistas = () => {
       );
     }
 
-    // ✅ Pré-computar check/progresso/detalhe uma única vez por conquista aqui
-    // dentro do useMemo, em vez de chamar as funções a cada render do map.
     const enriquecidas = lista.map(c => ({
       conquista: c,
       desbloqueada: c.check(stats),
@@ -602,7 +594,6 @@ const Conquistas = () => {
       detalhe: c.detalhe(stats),
     }));
 
-    // Ordenação inline reutilizando desbloqueada já computada (sem c.check extra)
     const sortRarid = (a, b) => (RARID_ORDER[a.conquista.raridade] ?? 5) - (RARID_ORDER[b.conquista.raridade] ?? 5);
     const desbloqueadas = enriquecidas.filter(e =>  e.desbloqueada).sort(sortRarid);
     const bloqueadas    = enriquecidas.filter(e => !e.desbloqueada).sort(sortRarid);
@@ -621,7 +612,6 @@ const Conquistas = () => {
 
   return (
     <div>
-      {/* Notificação de conquista desbloqueada */}
       {novasConquistas.length > 0 && (
         <NotificacaoConquista
           conquistas={novasConquistas}
@@ -629,7 +619,6 @@ const Conquistas = () => {
         />
       )}
 
-      {/* Tutorial */}
       {tutorial && <TutorialModal onFechar={fecharTutorial} />}
 
       <div className="page-header">
@@ -641,13 +630,14 @@ const Conquistas = () => {
             </p>
           )}
         </div>
-        {/* Botão de tutorial */}
         <button
           className="btn-secondary"
           onClick={() => setTutorial(true)}
           title="Ver tutorial do sistema de conquistas"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
         >
-          ❓ Como funciona
+          <HelpCircle size={15} strokeWidth={1.75} />
+          Como funciona
         </button>
       </div>
 
@@ -659,7 +649,10 @@ const Conquistas = () => {
           border: '1.5px solid #334155',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '15px' }}>🏆 Progresso Geral</span>
+            <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trophy size={17} strokeWidth={1.75} color="#f59e0b" />
+              Progresso Geral
+            </span>
             <span style={{ fontWeight: 800, color: '#f59e0b', fontSize: '18px' }}>{pctGeral}%</span>
           </div>
           <div style={{ height: '10px', background: '#334155', borderRadius: '99px', overflow: 'hidden' }}>
@@ -700,20 +693,25 @@ const Conquistas = () => {
                 key={cat.id}
                 className={`tab-btn ${catSelecionada === cat.id ? 'active' : ''}`}
                 onClick={() => setCat(cat.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
               >
+                <cat.Icon size={13} strokeWidth={1.75} />
                 {cat.label}
               </button>
             ))}
           </div>
         </div>
-        <input
-          type="text"
-          className="input-modern"
-          placeholder="🔍 Buscar conquista..."
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          style={{ maxWidth: '220px', fontSize: '13px' }}
-        />
+        <div style={{ position: 'relative', maxWidth: '220px' }}>
+          <Search size={13} strokeWidth={1.75} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            className="input-modern"
+            placeholder="Buscar conquista..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            style={{ paddingLeft: '30px', fontSize: '13px', width: '100%' }}
+          />
+        </div>
       </div>
 
       {/* Grid */}
@@ -722,7 +720,7 @@ const Conquistas = () => {
       ) : conquistasFiltradas.length === 0 ? (
         <div className="card">
           <div className="empty-state">
-            <div className="empty-state-icon">🔍</div>
+            <div className="empty-state-icon"><Search size={32} strokeWidth={1.5} /></div>
             <p className="empty-state-title">Nenhuma conquista encontrada</p>
             <p className="empty-state-desc">Tente outro termo ou categoria.</p>
           </div>
