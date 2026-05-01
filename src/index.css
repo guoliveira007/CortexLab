@@ -132,7 +132,7 @@ body {
   align-items: flex-start;
   flex-shrink: 0;
   overflow: hidden;      /* corta as áreas transparentes */
-  margin-bottom: -20px;
+  margin-bottom: -10px;
   position: relative;
   z-index: 1;
 }
