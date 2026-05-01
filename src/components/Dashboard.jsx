@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import SolarIcon from 'solar-icon-set'; // ← DEFAULT import
 import { db } from '../database';
 import CadernoErros from './CadernoErros';
 import RevisaoEspacada from './RevisaoEspacada';
+import {
+  Calendar, BookOpen, Target, Timer, FileText, Flame,
+  BookMarked, Brain, ClipboardList, CalendarDays, Trophy,
+  Lightbulb, ArrowRight, CheckCircle2,
+} from 'lucide-react';
 
 /* ─── Heatmap ──────────────────────────────────────────────── */
 const TAMANHO = 11;
@@ -76,11 +80,11 @@ const Heatmap = memo(() => {
         <p className="section-title" style={{ margin: 0 }}>Histórico de Estudos</p>
         <div className="heatmap-stats">
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <SolarIcon iconName="calendar" size={13} iconStyle="Bold" />
+            <Calendar size={13} strokeWidth={1.75} />
             <strong>{diasAtivos}</strong> dias ativos
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <SolarIcon iconName="book-open" size={13} iconStyle="Bold" />
+            <BookOpen size={13} strokeWidth={1.75} />
             <strong>{totalQuestoes}</strong> questões
           </span>
         </div>
@@ -88,19 +92,32 @@ const Heatmap = memo(() => {
 
       <div className="overflow-x-auto" style={{ paddingBottom: 4 }}>
         <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 0 }}>
+
+          {/* Labels dos meses */}
           <div style={{ display: 'flex', marginLeft: 22, marginBottom: 4, position: 'relative', height: 14 }}>
             {mesLabels.map(({ idx, label }) => (
-              <div key={idx} className="heatmap-month-label" style={{ left: `${idx * PASSO}px` }}>{label}</div>
+              <div
+                key={idx}
+                className="heatmap-month-label"
+                style={{ left: `${idx * PASSO}px` }}
+              >{label}</div>
             ))}
           </div>
 
+          {/* Grid */}
           <div className="flex">
+            {/* Labels dos dias */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: GAP + 2, flexShrink: 0 }}>
               {DIAS_PT.map((d, i) => (
-                <div key={i} className="heatmap-day-label" style={{ height: TAMANHO, lineHeight: `${TAMANHO}px` }}>{d}</div>
+                <div
+                  key={i}
+                  className="heatmap-day-label"
+                  style={{ height: TAMANHO, lineHeight: `${TAMANHO}px` }}
+                >{d}</div>
               ))}
             </div>
 
+            {/* Colunas de semanas */}
             <div style={{ display: 'flex', gap: GAP }}>
               {semanas.map((semana, si) => (
                 <div key={si} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
@@ -130,6 +147,7 @@ const Heatmap = memo(() => {
             </div>
           </div>
 
+          {/* Legenda */}
           <div className="heatmap-legend">
             <span>Menos</span>
             {[0, 3, 8, 15, 16].map((n, i) => (
@@ -141,7 +159,10 @@ const Heatmap = memo(() => {
       </div>
 
       {tooltip && (
-        <div className="heatmap-tooltip" style={{ top: tooltip.y - 36, left: tooltip.x - 60 }}>
+        <div
+          className="heatmap-tooltip"
+          style={{ top: tooltip.y - 36, left: tooltip.x - 60 }}
+        >
           {tooltip.text}
         </div>
       )}
@@ -181,6 +202,7 @@ const Dashboard = ({ onNavigate }) => {
     try {
       lastFetchRef.current = Date.now();
       const data = await db.getDashboardData();
+
       setStats({
         totalQuestoes: data.total,
         acertos:       data.acertos,
@@ -196,43 +218,45 @@ const Dashboard = ({ onNavigate }) => {
     }
   };
 
+  /* ── Stat cards superiores ── */
   const statCards = [
     {
       label: 'Taxa de Acerto',
       value: `${stats.taxa}%`,
       sub: `${stats.acertos} de ${stats.totalQuestoes} questões`,
-      iconName: 'target',
+      Icon: Target,
       style: { background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', boxShadow: '0 4px 20px rgba(99,102,241,0.25)' },
     },
     {
       label: 'Tempo Hoje',
       value: `${stats.tempoHoje}min`,
       sub: 'Foco total',
-      iconName: 'stopwatch',
+      Icon: Timer,
       style: { background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 20px rgba(16,185,129,0.25)' },
     },
     {
       label: 'Questões Hoje',
       value: stats.questoesHoje,
       sub: 'Continue assim!',
-      iconName: 'file-text',
+      Icon: FileText,
       style: { background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', boxShadow: '0 4px 20px rgba(245,158,11,0.25)' },
     },
     {
       label: 'Sequência',
       value: `${streak}d`,
       sub: 'Dias seguidos',
-      iconName: 'fire',
+      Icon: Flame,
       style: { background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', boxShadow: '0 4px 20px rgba(239,68,68,0.25)' },
     },
   ];
 
+  /* ── Mode cards ── */
   const modeCards = [
-    { iconName: 'target',          label: 'Freestyle',     desc: 'Questões aleatórias com filtros avançados',  tab: 'freestyle',    accent: '#6366f1', tag: 'Popular'     },
-    { iconName: 'file-text',       label: 'Simulado',      desc: 'Prova cronometrada com gabarito completo',   tab: 'simulado',     accent: '#10b981', tag: 'Recomendado' },
-    { iconName: 'clipboard-list',  label: 'Minhas Listas', desc: 'Estude com listas personalizadas',           tab: 'listas',       accent: '#f59e0b', tag: null          },
-    { iconName: 'calendar-date',   label: 'Planejamento',  desc: 'Organize sua semana de estudos',             tab: 'planejamento', accent: '#8b5cf6', tag: null          },
-    { iconName: 'trophy',          label: 'Conquistas',    desc: 'Veja suas medalhas e progresso',             tab: 'conquistas',   accent: '#f59e0b', tag: null          },
+    { Icon: Target,       label: 'Freestyle',     desc: 'Questões aleatórias com filtros avançados',  tab: 'freestyle',    accent: '#6366f1', tag: 'Popular' },
+    { Icon: FileText,     label: 'Simulado',      desc: 'Prova cronometrada com gabarito completo',   tab: 'simulado',     accent: '#10b981', tag: 'Recomendado' },
+    { Icon: ClipboardList,label: 'Minhas Listas', desc: 'Estude com listas personalizadas',           tab: 'listas',       accent: '#f59e0b', tag: null },
+    { Icon: CalendarDays, label: 'Planejamento',  desc: 'Organize sua semana de estudos',             tab: 'planejamento', accent: '#8b5cf6', tag: null },
+    { Icon: Trophy,       label: 'Conquistas',    desc: 'Veja suas medalhas e progresso',             tab: 'conquistas',   accent: '#f59e0b', tag: null },
   ];
 
   return (
@@ -247,11 +271,16 @@ const Dashboard = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* ── KPI Cards ── */}
+      {/* ── KPI Cards: Caderno de Erros + Revisão Espaçada ── */}
       <div className="dashboard-kpi-grid">
-        <div onClick={() => setAbrirCaderno(true)} className={`kpi-card${errosCount > 0 ? ' kpi-card--errors' : ''}`}>
+
+        {/* Caderno de Erros */}
+        <div
+          onClick={() => setAbrirCaderno(true)}
+          className={`kpi-card${errosCount > 0 ? ' kpi-card--errors' : ''}`}
+        >
           <div className={`kpi-card__icon${errosCount > 0 ? ' kpi-card__icon--errors' : ' kpi-card__icon--empty'}`}>
-            <SolarIcon iconName="book-bookmark" size={22} iconStyle="Bold" />
+            <BookMarked size={22} strokeWidth={1.75} />
           </div>
           <div className="kpi-card__body">
             <div className={`kpi-card__number${errosCount > 0 ? ' kpi-card__number--errors' : ' kpi-card__number--empty'}`}>
@@ -262,12 +291,18 @@ const Dashboard = ({ onNavigate }) => {
             </div>
             <p className="kpi-card__hint">Clique para revisar seus erros</p>
           </div>
-          {errosCount > 0 && <span className="kpi-card__cta kpi-card__cta--errors">Revisar →</span>}
+          {errosCount > 0 && (
+            <span className="kpi-card__cta kpi-card__cta--errors">Revisar →</span>
+          )}
         </div>
 
-        <div onClick={() => setAbrirRevisao(true)} className={`kpi-card${revisoesHoje > 0 ? ' kpi-card--revision' : ''}`}>
+        {/* Revisão Espaçada */}
+        <div
+          onClick={() => setAbrirRevisao(true)}
+          className={`kpi-card${revisoesHoje > 0 ? ' kpi-card--revision' : ''}`}
+        >
           <div className={`kpi-card__icon${revisoesHoje > 0 ? ' kpi-card__icon--revision' : ' kpi-card__icon--empty'}`}>
-            <SolarIcon iconName="atom" size={22} iconStyle="BoldDuotone" />
+            <Brain size={22} strokeWidth={1.75} />
           </div>
           <div className="kpi-card__body">
             <div className={`kpi-card__number${revisoesHoje > 0 ? ' kpi-card__number--revision' : ' kpi-card__number--empty'}`}>
@@ -278,7 +313,9 @@ const Dashboard = ({ onNavigate }) => {
             </div>
             <p className="kpi-card__hint">Revisão espaçada (SM-2)</p>
           </div>
-          {revisoesHoje > 0 && <span className="kpi-card__cta kpi-card__cta--revision">Iniciar →</span>}
+          {revisoesHoje > 0 && (
+            <span className="kpi-card__cta kpi-card__cta--revision">Iniciar →</span>
+          )}
         </div>
       </div>
 
@@ -293,7 +330,7 @@ const Dashboard = ({ onNavigate }) => {
                 <p className="dashboard-stat-card__sub">{s.sub}</p>
               </div>
               <span className="dashboard-stat-card__icon">
-                <SolarIcon iconName={s.iconName} size={28} iconStyle="BoldDuotone" color="rgba(255,255,255,0.9)" />
+                <s.Icon size={28} strokeWidth={1.5} color="rgba(255,255,255,0.9)" />
               </span>
             </div>
           </div>
@@ -306,17 +343,25 @@ const Dashboard = ({ onNavigate }) => {
       </div>
       <div className="dashboard-mode-grid">
         {modeCards.map(m => (
-          <div key={m.tab} className="mode-card" onClick={() => onNavigate(m.tab)} style={{ borderTopColor: m.accent }}>
+          <div
+            key={m.tab}
+            className="mode-card"
+            onClick={() => onNavigate(m.tab)}
+            style={{ borderTopColor: m.accent }}
+          >
             {m.tag && (
-              <span className="mode-card__tag" style={{ background: m.accent + '20', color: m.accent }}>{m.tag}</span>
+              <span
+                className="mode-card__tag"
+                style={{ background: m.accent + '20', color: m.accent }}
+              >{m.tag}</span>
             )}
             <div className="mode-card__icon">
-              <SolarIcon iconName={m.iconName} size={26} iconStyle="BoldDuotone" color={m.accent} />
+              <m.Icon size={26} strokeWidth={1.5} color={m.accent} />
             </div>
             <h3 className="mode-card__title">{m.label}</h3>
             <p className="mode-card__desc">{m.desc}</p>
             <div className="mode-card__cta" style={{ color: m.accent, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Acessar <SolarIcon iconName="arrow-right" size={14} iconStyle="Bold" color={m.accent} />
+              Acessar <ArrowRight size={14} strokeWidth={2} />
             </div>
           </div>
         ))}
@@ -332,7 +377,7 @@ const Dashboard = ({ onNavigate }) => {
         <div className="card dashboard-empty">
           <div className="dashboard-empty__inner">
             <span className="dashboard-empty__icon">
-              <SolarIcon iconName="lightbulb-bolt" size={32} iconStyle="BoldDuotone" />
+              <Lightbulb size={32} strokeWidth={1.5} />
             </span>
             <div>
               <h3 className="dashboard-empty__title">Comece agora</h3>

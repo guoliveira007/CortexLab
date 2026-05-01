@@ -39,6 +39,7 @@
     }
   },
   "dependencies": {
+    "@solar-icons/react": "^1.1.0",
     "dexie": "^4.0.11",
     "firebase": "^12.12.1",
     "keytar": "^7.9.0",
@@ -47,8 +48,7 @@
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
     "react-virtualized-auto-sizer": "^2.0.3",
-    "react-window": "^2.2.7",
-    "solar-icon-set": "^2.0.1"
+    "react-window": "^2.2.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
