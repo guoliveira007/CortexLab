@@ -43,8 +43,8 @@ const Configuracoes = ({ onFechar }) => {
   ];
 
   return (
-    <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:2000 }}>
-      <div style={{ background:'var(--surface-card)',borderRadius:'var(--r-2xl)',maxWidth:'500px',width:'90%',boxShadow:'0 24px 64px rgba(0,0,0,0.25)',overflow:'hidden' }}>
+    <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9000 }}>
+      <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'var(--r-2xl)',maxWidth:'500px',width:'90%',boxShadow:'0 24px 64px rgba(0,0,0,0.25)',overflow:'hidden' }}>
 
         {/* Header */}
         <div style={{ padding:'22px 24px 0',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
@@ -108,7 +108,7 @@ const Configuracoes = ({ onFechar }) => {
                   { valor:'claro',  icone:'☀️', titulo:'Modo Claro',  desc:'Fundo branco, ideal para ambientes bem iluminados.' },
                   { valor:'escuro', icone:'🌙', titulo:'Modo Escuro',  desc:'Fundo escuro, menos cansativo à noite.' },
                 ].map(op => (
-                  <button key={op.valor} onClick={()=>mudarTema(op.valor)} style={{ display:'flex',alignItems:'center',gap:'14px',padding:'16px',borderRadius:'14px',border:tema===op.valor?'2px solid #6366f1':'2px solid var(--gray-200)',background:tema===op.valor?'#eef2ff':'var(--surface-bg)',cursor:'pointer',textAlign:'left',transition:'all 0.15s',boxShadow:tema===op.valor?'0 0 0 3px rgba(99,102,241,0.15)':'none' }}>
+                  <button key={op.valor} onClick={()=>mudarTema(op.valor)} style={{ display:'flex',alignItems:'center',gap:'14px',padding:'16px',borderRadius:'14px',border:tema===op.valor?'2px solid #6366f1':'2px solid var(--gray-200)',background:tema===op.valor?'var(--brand-50)':'var(--surface-bg)',cursor:'pointer',textAlign:'left',transition:'all 0.15s',boxShadow:tema===op.valor?'0 0 0 3px rgba(99,102,241,0.15)':'none' }}>
                     <span style={{ fontSize:'28px',flexShrink:0 }}>{op.icone}</span>
                     <div>
                       <p style={{ fontWeight:700,fontSize:'15px',color:tema===op.valor?'#4f46e5':'var(--gray-800)',marginBottom:'2px' }}>{op.titulo}</p>

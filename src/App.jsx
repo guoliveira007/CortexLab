@@ -22,8 +22,6 @@ import CadernoErros     from './components/CadernoErros';
 import Configuracoes    from './components/Configuracoes';
 
 // ── Componentes pesados — lazy loaded ──
-// Esses módulos só são baixados quando o usuário navega até a aba.
-// Reduz o bundle inicial em ~30–40% dependendo do tamanho de cada módulo.
 const ChatDuvidas      = lazy(() => import('./components/ChatDuvidas'));
 const ResumoMateria    = lazy(() => import('./components/ResumoMateria'));
 const PrevisaoRevisoes = lazy(() => import('./components/PrevisaoRevisoes'));
@@ -47,7 +45,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 import logo from './assets/logo_sidebar.png';
 
-// ── Fallback de carregamento exibido enquanto o chunk lazy é baixado ──
 const LoadingFallback = () => (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -79,24 +76,16 @@ const TABS_REVISAO = [
   { id: 'previsao',  label: 'Previsão de Revisões', icon: '📆', badge: true },
 ];
 
-const TABS_CONFIG = [
-  { id: 'backup', label: 'Backup & Restauração', icon: '💾' },
-];
-
 export default function App() {
   const { user } = useAuth();
   const [tab, setTab]                   = useState('dashboard');
   const [materiaFreestyle, setMateriaFreestyle] = useState('');
   const [configAberta, setConfigAberta] = useState(false);
   const [ajudaAberta, setAjudaAberta]   = useState(false);
-  // Incrementado quando outra aba invalida o cache via BroadcastChannel.
-  // Passado como key ao Dashboard para forçar re-fetch dos dados.
   const [dbVersion, setDbVersion]       = useState(0);
 
-  // ── Tutorial ──
   const { aberto: tutAberto, abrir: abrirTut, fechar: fecharTut } = useTutorial(tab);
 
-  // ── BroadcastChannel — reage a invalidações de cache de outras abas ──
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
     const bc = new BroadcastChannel('cortexlab_cache');
@@ -104,7 +93,6 @@ export default function App() {
     return () => bc.close();
   }, []);
 
-  // Navegar via eventos customizados (ex: Pomodoro → Freestyle)
   useEffect(() => {
     const handler = (e) => {
       if (e.detail?.tela) {
@@ -118,11 +106,9 @@ export default function App() {
     return () => window.removeEventListener('app:navegar', handler);
   }, []);
 
-  // Atalhos de teclado
   const navegar = useCallback((tela) => setTab(tela), []);
   useAtalhos(navegar);
 
-  // Alt+? abre painel de atalhos
   useEffect(() => {
     const handler = (e) => {
       if (e.altKey && e.key === '?') {
@@ -148,7 +134,6 @@ export default function App() {
       case 'metas':        return <Metas />;
       case 'planejamento': return <Planejamento />;
       case 'conquistas':   return <Conquistas />;
-      // ── Componentes lazy: envolvidos em Suspense individualmente ──
       case 'chat':    return <Suspense fallback={<LoadingFallback />}><ChatDuvidas /></Suspense>;
       case 'resumo':  return <Suspense fallback={<LoadingFallback />}><ResumoMateria /></Suspense>;
       case 'previsao':return <Suspense fallback={<LoadingFallback />}><PrevisaoRevisoes /></Suspense>;
@@ -185,7 +170,6 @@ export default function App() {
         </div>
 
         <nav className="sidebar-nav">
-          {/* Principal */}
           {TABS.map(t => (
             <button
               key={t.id}
@@ -197,16 +181,9 @@ export default function App() {
             </button>
           ))}
 
-          {/* Revisão */}
           <NavGroup titulo="Revisão" items={TABS_REVISAO} />
-
-          {/* IA */}
           <NavGroup titulo="Inteligência Artificial" items={TABS_IA} />
 
-          {/* Sistema */}
-          <NavGroup titulo="Sistema" items={TABS_CONFIG} />
-
-          {/* Separador + botões de config */}
           <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <button
               className="nav-item"
@@ -216,13 +193,11 @@ export default function App() {
               <span className="nav-icon">⌨️</span>
               Atalhos
             </button>
-
           </div>
         </nav>
       </aside>
 
       <main className="main-content">
-        {/* Avatar de perfil fixo no canto superior direito */}
         <div style={{
           position: 'fixed',
           top: '14px',
@@ -248,18 +223,12 @@ export default function App() {
         </ErrorBoundary>
       </main>
 
-      {/* Widget Pomodoro flutuante */}
       <ErrorBoundary>
         <Pomodoro />
       </ErrorBoundary>
 
-      {/* Modal de Configurações (API Key Groq) */}
       {configAberta && <Configuracoes onFechar={() => setConfigAberta(false)} />}
-
-      {/* Painel de Atalhos */}
       <AjudaAtalhos visivel={ajudaAberta} onFechar={() => setAjudaAberta(false)} />
-
-      {/* Tutorial */}
       <Tutorial tabId={tab} aberto={tutAberto} onFechar={fecharTut} />
     </div>
   );
