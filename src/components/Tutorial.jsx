@@ -664,12 +664,12 @@ export const BotaoTutorial = ({ tabId, onClick }) => {
       title="Ver tutorial desta aba"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: '6px',
-        padding: '6px 13px',
+        padding: '8px 16px',
         background: 'none',
         border: '1.5px solid var(--gray-200)',
         borderRadius: '99px',
         color: 'var(--gray-400)',
-        fontSize: '12px', fontWeight: 600,
+        fontSize: '13px', fontWeight: 600,
         cursor: 'pointer',
         transition: 'all 0.15s',
       }}
