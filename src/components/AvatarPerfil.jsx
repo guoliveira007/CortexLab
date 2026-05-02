@@ -1,17 +1,18 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
 import { useIsOwner } from '../hooks/useIsOwner';
-import Avatar from 'avataaars';
+import { createAvatar } from '@dicebear/core';
+import { avataaars } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
-   OPÇÕES COMPLETAS DE CUSTOMIZAÇÃO (avataaars)
+   OPÇÕES COMPLETAS DE CUSTOMIZAÇÃO (DiceBear avataaars)
    ════════════════════════════════════════════════════ */
 const OPCOES = {
   skinColor: ['Tanned','Yellow','Pale','Light','Brown','DarkBrown','Black'],
-  topType: [
+  top: [
     'NoHair','Eyepatch','Hat','Hijab','Turban',
     'WinterHat1','WinterHat2','WinterHat3','WinterHat4',
     'LongHairBigHair','LongHairBob','LongHairBun','LongHairCurly','LongHairCurvy',
@@ -27,47 +28,74 @@ const OPCOES = {
     'Auburn','Black','Blonde','BlondeGolden','Brown','BrownDark',
     'PastelPink','Platinum','Red','SilverGray',
   ],
-  accessoriesType: ['Blank','Kurt','Prescription01','Prescription02','Round','Sunglasses','Wayfarers'],
-  facialHairType: ['Blank','BeardMedium','BeardLight','BeardMajestic','MoustacheFancy','MoustacheMagnum'],
+  accessories: ['','Kurt','Prescription01','Prescription02','Round','Sunglasses','Wayfarers'],
+  facialHair: ['','BeardMedium','BeardLight','BeardMajestic','MoustacheFancy','MoustacheMagnum'],
   facialHairColor: ['Auburn','Black','Blonde','BlondeGolden','Brown','BrownDark','Platinum','Red'],
-  clotheType: [
+  clothes: [
     'BlazerShirt','BlazerSweater','CollarSweater','GraphicShirt',
     'Hoodie','Overall','ShirtCrewNeck','ShirtScoopNeck','ShirtVNeck',
   ],
-  clotheColor: [
+  clothesColor: [
     'Black','Blue01','Blue02','Blue03','Gray01','Gray02','Heather',
     'PastelBlue','PastelGreen','PastelOrange','PastelRed','PastelYellow',
     'Pink','Red','White',
   ],
-  eyeType: [
+  eyes: [
     'Close','Cry','Default','Dizzy','EyeRoll','Happy','Hearts',
     'Side','Squint','Surprised','Wink','WinkWacky',
   ],
-  eyebrowType: [
+  eyebrows: [
     'Angry','AngryNatural','Default','DefaultNatural','FlatNatural',
     'RaisedExcited','RaisedExcitedNatural','SadConcerned','SadConcernedNatural',
     'UnibrowNatural','UpDown','UpDownNatural',
   ],
-  mouthType: [
+  mouth: [
     'Concerned','Default','Disbelief','Eating','Grimace','Sad',
     'ScreamOpen','Serious','Smile','Tongue','Twinkle','Vomit',
   ],
 };
 
-// Configuração padrão inicial (primeiro acesso)
 const CONFIG_PADRAO = {
-  avatarStyle: 'Circle',
-  topType: 'ShortHairShortFlat',
-  accessoriesType: 'Blank',
-  hairColor: 'Black',
-  facialHairType: 'Blank',
-  facialHairColor: 'Black',
-  clotheType: 'Hoodie',
-  clotheColor: 'Blue01',
-  eyeType: 'Default',
-  eyebrowType: 'Default',
-  mouthType: 'Smile',
   skinColor: 'Light',
+  top: 'ShortHairShortFlat',
+  hairColor: 'Black',
+  accessories: '',
+  facialHair: '',
+  facialHairColor: 'Black',
+  clothes: 'Hoodie',
+  clothesColor: 'Blue01',
+  eyes: 'Default',
+  eyebrows: 'Default',
+  mouth: 'Smile',
+};
+
+/* ─── Cache de imagens geradas ─── */
+const AVATAR_CACHE = new Map();
+const gerarDataUri = (config, size = 128) => {
+  const chave = JSON.stringify({ ...config, size });
+  if (AVATAR_CACHE.has(chave)) return AVATAR_CACHE.get(chave);
+
+  const opcoes = {
+    seed: 'cortexlab',
+    size,
+    backgroundColor: ['f0f0f0'],
+    skinColor: config.skinColor,
+    top: config.top,
+    hairColor: config.hairColor,
+    accessories: config.accessories || undefined,
+    facialHair: config.facialHair || undefined,
+    facialHairColor: config.facialHairColor,
+    clothes: config.clothes,
+    clothesColor: config.clothesColor,
+    eyes: config.eyes,
+    eyebrows: config.eyebrows,
+    mouth: config.mouth,
+  };
+
+  const avatar = createAvatar(avataaars, opcoes);
+  const uri = avatar.toDataUri();
+  AVATAR_CACHE.set(chave, uri);
+  return uri;
 };
 
 /* ─── Armazenamento do perfil ─── */
@@ -77,12 +105,13 @@ export const getPerfil = () => {
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
-/* ─── Componente de seletor reutilizável ─── */
+/* ─── Seletor de opção ─── */
 const SeletorOpcao = React.memo(({ rotulo, opcoes, valorAtual, onChange }) => (
   <div style={{ marginBottom: '14px' }}>
     <label className="field-label" style={{ marginBottom: '6px' }}>{rotulo}</label>
     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
       {opcoes.map((op) => {
+        const valor = op === '' ? 'Blank' : op; // para acessórios/facialHair
         const selecionado = op === valorAtual;
         return (
           <button
@@ -101,7 +130,7 @@ const SeletorOpcao = React.memo(({ rotulo, opcoes, valorAtual, onChange }) => (
               whiteSpace: 'nowrap',
             }}
           >
-            {op.replace(/([A-Z])/g, ' $1').replace(/([0-9]+)/g, ' $1').trim()}
+            {valor.replace(/([A-Z])/g, ' $1').replace(/([0-9]+)/g, ' $1').trim()}
           </button>
         );
       })}
@@ -114,18 +143,16 @@ SeletorOpcao.displayName = 'SeletorOpcao';
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
   const [curso, setCurso] = useState(perfil.curso || '');
-  // Estado com todas as opções do avatar
-  const [avatarConfig, setAvatarConfig] = useState(() => ({
-    ...CONFIG_PADRAO,
-    ...(perfil.avatarConfig || {}),
-  }));
+  const [config, setConfig] = useState(perfil.avatarConfig || CONFIG_PADRAO);
+
+  const dataUriPreview = useMemo(() => gerarDataUri(config, 120), [config]);
 
   const atualizar = useCallback((chave, valor) => {
-    setAvatarConfig(prev => ({ ...prev, [chave]: valor }));
+    setConfig(prev => ({ ...prev, [chave]: valor }));
   }, []);
 
   const salvar = () => {
-    onSalvar({ nome, curso, avatarConfig });
+    onSalvar({ nome, curso, avatarConfig: config });
     onFechar();
   };
 
@@ -139,14 +166,9 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
       <div onClick={e => e.stopPropagation()} style={{ position:'fixed',inset:0,zIndex:9101,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',pointerEvents:'none' }}>
         <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'700px',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
 
-          {/* Cabeçalho com preview */}
           <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
             <div style={{ width:'100px',height:'100px',borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)',background:'#f0f0f0' }}>
-              <Avatar
-                style={{ width:'100%',height:'100%' }}
-                avatarStyle="Circle"
-                {...avatarConfig}
-              />
+              <img src={dataUriPreview} alt="Preview" style={{ width:'100%',height:'100%' }} draggable={false} />
             </div>
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
@@ -157,7 +179,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.25)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.15)'}><X size={16} /></button>
           </div>
 
-          {/* Corpo com scroll e editor completo */}
           <div style={{ flex:1,overflowY:'auto',padding:'20px 24px' }}>
             <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'20px' }}>
               <div><label className="field-label">Seu nome</label><input type="text" value={nome} onChange={e=>setNome(e.target.value)} placeholder="Ex: Maria, João..." maxLength={40} className="input-modern" /></div>
@@ -168,22 +189,21 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               Personalizar avatar
             </p>
 
-            <SeletorOpcao rotulo="Tom de pele" opcoes={OPCOES.skinColor} valorAtual={avatarConfig.skinColor} onChange={v => atualizar('skinColor', v)} />
-            <SeletorOpcao rotulo="Cabelo" opcoes={OPCOES.topType} valorAtual={avatarConfig.topType} onChange={v => atualizar('topType', v)} />
-            <SeletorOpcao rotulo="Cor do cabelo" opcoes={OPCOES.hairColor} valorAtual={avatarConfig.hairColor} onChange={v => atualizar('hairColor', v)} />
-            <SeletorOpcao rotulo="Acessórios / Óculos" opcoes={OPCOES.accessoriesType} valorAtual={avatarConfig.accessoriesType} onChange={v => atualizar('accessoriesType', v)} />
-            <SeletorOpcao rotulo="Barba" opcoes={OPCOES.facialHairType} valorAtual={avatarConfig.facialHairType} onChange={v => atualizar('facialHairType', v)} />
-            {avatarConfig.facialHairType !== 'Blank' && (
-              <SeletorOpcao rotulo="Cor da barba" opcoes={OPCOES.facialHairColor} valorAtual={avatarConfig.facialHairColor} onChange={v => atualizar('facialHairColor', v)} />
+            <SeletorOpcao rotulo="Tom de pele" opcoes={OPCOES.skinColor} valorAtual={config.skinColor} onChange={v => atualizar('skinColor', v)} />
+            <SeletorOpcao rotulo="Cabelo" opcoes={OPCOES.top} valorAtual={config.top} onChange={v => atualizar('top', v)} />
+            <SeletorOpcao rotulo="Cor do cabelo" opcoes={OPCOES.hairColor} valorAtual={config.hairColor} onChange={v => atualizar('hairColor', v)} />
+            <SeletorOpcao rotulo="Acessórios / Óculos" opcoes={OPCOES.accessories} valorAtual={config.accessories} onChange={v => atualizar('accessories', v)} />
+            <SeletorOpcao rotulo="Barba" opcoes={OPCOES.facialHair} valorAtual={config.facialHair} onChange={v => atualizar('facialHair', v)} />
+            {config.facialHair !== '' && (
+              <SeletorOpcao rotulo="Cor da barba" opcoes={OPCOES.facialHairColor} valorAtual={config.facialHairColor} onChange={v => atualizar('facialHairColor', v)} />
             )}
-            <SeletorOpcao rotulo="Roupa" opcoes={OPCOES.clotheType} valorAtual={avatarConfig.clotheType} onChange={v => atualizar('clotheType', v)} />
-            <SeletorOpcao rotulo="Cor da roupa" opcoes={OPCOES.clotheColor} valorAtual={avatarConfig.clotheColor} onChange={v => atualizar('clotheColor', v)} />
-            <SeletorOpcao rotulo="Olhos (expressão)" opcoes={OPCOES.eyeType} valorAtual={avatarConfig.eyeType} onChange={v => atualizar('eyeType', v)} />
-            <SeletorOpcao rotulo="Sobrancelhas" opcoes={OPCOES.eyebrowType} valorAtual={avatarConfig.eyebrowType} onChange={v => atualizar('eyebrowType', v)} />
-            <SeletorOpcao rotulo="Boca" opcoes={OPCOES.mouthType} valorAtual={avatarConfig.mouthType} onChange={v => atualizar('mouthType', v)} />
+            <SeletorOpcao rotulo="Roupa" opcoes={OPCOES.clothes} valorAtual={config.clothes} onChange={v => atualizar('clothes', v)} />
+            <SeletorOpcao rotulo="Cor da roupa" opcoes={OPCOES.clothesColor} valorAtual={config.clothesColor} onChange={v => atualizar('clothesColor', v)} />
+            <SeletorOpcao rotulo="Olhos (expressão)" opcoes={OPCOES.eyes} valorAtual={config.eyes} onChange={v => atualizar('eyes', v)} />
+            <SeletorOpcao rotulo="Sobrancelhas" opcoes={OPCOES.eyebrows} valorAtual={config.eyebrows} onChange={v => atualizar('eyebrows', v)} />
+            <SeletorOpcao rotulo="Boca" opcoes={OPCOES.mouth} valorAtual={config.mouth} onChange={v => atualizar('mouth', v)} />
           </div>
 
-          {/* Rodapé */}
           <div style={{ padding:'14px 24px 20px',display:'flex',gap:'10px',justifyContent:'flex-end',borderTop:'1px solid var(--gray-100)',flexShrink:0 }}>
             <button onClick={onFechar} className="btn-secondary" style={{ display:'flex',alignItems:'center',gap:'6px' }}><X size={15} /> Cancelar</button>
             <button onClick={salvar} className="btn-primary" style={{ display:'flex',alignItems:'center',gap:'6px' }}><Check size={15} /> Salvar</button>
@@ -203,6 +223,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const isOwner = useIsOwner();
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
+  const dataUriAtual = useMemo(() => gerarDataUri(avatarConfig, 46), [avatarConfig]);
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
@@ -226,7 +247,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
           onMouseEnter={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.5)'; }}}
           onMouseLeave={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.25)'; }}}
         >
-          <Avatar style={{ width:'100%',height:'100%' }} avatarStyle="Circle" {...avatarConfig} />
+          <img src={dataUriAtual} alt="Avatar" style={{ width:'100%',height:'100%',display:'block' }} draggable={false} />
         </button>
 
         {dropdownAberto && (
@@ -235,7 +256,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
             <div className="dark-modal" style={{ position:'absolute',top:'calc(100% + 10px)',right:0,background:'var(--surface-card)',borderRadius:'16px',boxShadow:'0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)',minWidth:'240px',overflow:'hidden',zIndex:8000,animation:'dd-in 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
               <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px' }}>
                 <div style={{ width:'42px',height:'42px',borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(255,255,255,0.3)',background:'#f0f0f0' }}>
-                  <Avatar style={{ width:'100%',height:'100%' }} avatarStyle="Circle" {...avatarConfig} />
+                  <img src={dataUriAtual} alt="Avatar" style={{ width:'100%',height:'100%',display:'block' }} draggable={false} />
                 </div>
                 <div style={{ overflow:'hidden',flex:1 }}>
                   <p style={{ color:'white',fontWeight:700,fontSize:'14px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{nomeExibido}</p>
