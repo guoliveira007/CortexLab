@@ -1100,3 +1100,83 @@ body.dark .dark-modal textarea {
   color: var(--gray-800) !important;
   border-color: var(--gray-200) !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES — Correções de cores fixas
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Badges ── */
+body.dark .badge-green { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+body.dark .badge-red   { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+body.dark .badge-amber { background: rgba(245,158,11,0.15); color: #fcd34d; }
+
+/* ── Alternativas corretas / erradas ── */
+body.dark .alternativa.correta {
+  background: rgba(16,185,129,0.15);
+  border-color: var(--accent-green);
+  color: #6ee7b7;
+}
+body.dark .alternativa.errada {
+  background: rgba(239,68,68,0.15);
+  border-color: var(--accent-red);
+  color: #fca5a5;
+}
+
+/* ── KPI Cards (Caderno de Erros + Revisão Espaçada) ── */
+body.dark .kpi-card--errors {
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.25);
+}
+body.dark .kpi-card--revision {
+  background: rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.25);
+}
+body.dark .kpi-card__icon--errors   { background: rgba(239,68,68,0.15); }
+body.dark .kpi-card__icon--revision { background: rgba(99,102,241,0.15); }
+body.dark .kpi-card__number--errors   { color: #fca5a5; }
+body.dark .kpi-card__label--errors    { color: #f87171; }
+body.dark .kpi-card__number--revision { color: #a5b4fc; }
+body.dark .kpi-card__label--revision  { color: #818cf8; }
+body.dark .kpi-card__cta--errors {
+  color: #fca5a5;
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.3);
+}
+body.dark .kpi-card__cta--revision {
+  color: #a5b4fc;
+  background: rgba(99,102,241,0.12);
+  border-color: rgba(99,102,241,0.3);
+}
+
+/* ── Botão Danger ── */
+body.dark .btn-danger {
+  background: rgba(239,68,68,0.12);
+  color: #fca5a5;
+  border-color: rgba(239,68,68,0.3);
+}
+body.dark .btn-danger:hover { background: rgba(239,68,68,0.22); }
+
+/* ── Dashboard empty state (aviso amarelo) ── */
+body.dark .dashboard-empty {
+  background: rgba(245,158,11,0.08) !important;
+  border-color: rgba(245,158,11,0.25) !important;
+}
+body.dark .dashboard-empty__title { color: #fcd34d; }
+body.dark .dashboard-empty__text  { color: #fde68a; }
+
+/* ── Bordas gerais de cards ── */
+body.dark .card,
+body.dark .card-sm,
+body.dark .filtros-panel,
+body.dark .questao-card,
+body.dark .mode-card {
+  border-color: var(--gray-200);
+}
+
+/* ── Tab group ── */
+body.dark .tab-group { background: var(--gray-100); }
+body.dark .tab-btn.active {
+  background: var(--gray-50);
+  color: var(--gray-800);
+}

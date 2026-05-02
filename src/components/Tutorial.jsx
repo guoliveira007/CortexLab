@@ -386,13 +386,22 @@ const TUTORIAL_STEPS = {
 const Tutorial = ({ tabId, aberto, onFechar }) => {
   const [passo, setPasso] = useState(0);
 
+  // Detecta dark mode reativo
+  const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark'));
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.body.classList.contains('dark'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
   const dados = TUTORIAL_STEPS[tabId];
 
   useEffect(() => {
     if (aberto) setPasso(0);
   }, [aberto, tabId]);
 
-  // Fechar com Escape
   useEffect(() => {
     if (!aberto) return;
     const handler = (e) => { if (e.key === 'Escape') onFechar(); };
@@ -407,7 +416,15 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
   const ehUltimo = passo === total - 1;
 
   const avancar = () => { if (ehUltimo) onFechar(); else setPasso(p => p + 1); };
-  const voltar = () => setPasso(p => p - 1);
+  const voltar  = () => setPasso(p => p - 1);
+
+  // Cores adaptadas ao tema
+  const headerBg     = isDark ? 'var(--surface-elevated)' : dados.bg;
+  const headerBorder = isDark ? '1px solid var(--gray-200)' : '1px solid rgba(0,0,0,0.06)';
+  const closeBtnBg   = isDark ? 'var(--gray-200)'           : 'rgba(0,0,0,0.08)';
+  const closeBtnHover= isDark ? 'var(--gray-300)'           : 'rgba(0,0,0,0.15)';
+  const dotInactive  = isDark ? 'var(--gray-300)'           : 'rgba(0,0,0,0.15)';
+  const iconBg       = isDark ? 'var(--gray-100)'           : dados.bg;
 
   return (
     <>
@@ -448,11 +465,13 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
         }}
       >
         <div style={{
-          background: 'white',
+          background: 'var(--surface-card)',
           borderRadius: '24px',
           width: '100%',
           maxWidth: '520px',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.08)',
+          boxShadow: isDark
+            ? '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)'
+            : '0 32px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.08)',
           overflow: 'hidden',
           animation: 'tut-slide-up 0.35s cubic-bezier(0.34,1.56,0.64,1)',
           pointerEvents: 'all',
@@ -460,9 +479,9 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
 
           {/* Header */}
           <div style={{
-            background: dados.bg,
+            background: headerBg,
             padding: '24px 28px 20px',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            borderBottom: headerBorder,
             position: 'relative',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '4px' }}>
@@ -500,14 +519,14 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
               style={{
                 position: 'absolute', top: '16px', right: '16px',
                 width: '32px', height: '32px',
-                background: 'rgba(0,0,0,0.08)', border: 'none',
+                background: closeBtnBg, border: 'none',
                 borderRadius: '50%', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '16px', color: 'var(--gray-500)',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.15)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
+              onMouseEnter={e => e.currentTarget.style.background = closeBtnHover}
+              onMouseLeave={e => e.currentTarget.style.background = closeBtnBg}
             >×</button>
 
             {/* Indicadores de passo */}
@@ -520,7 +539,7 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
                     height: '4px',
                     width: i === passo ? '28px' : '14px',
                     borderRadius: '99px',
-                    background: i === passo ? dados.cor : 'rgba(0,0,0,0.15)',
+                    background: i === passo ? dados.cor : dotInactive,
                     border: 'none', cursor: 'pointer', padding: 0,
                     transition: 'all 0.25s ease',
                   }}
@@ -548,7 +567,7 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div style={{
                 width: '52px', height: '52px', borderRadius: '16px',
-                background: dados.bg,
+                background: iconBg,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '26px', flexShrink: 0,
                 border: `1.5px solid ${dados.cor}22`,
@@ -575,15 +594,15 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
 
             {/* Dica */}
             <div style={{
-              background: `${dados.cor}0d`,
-              border: `1.5px solid ${dados.cor}25`,
+              background: isDark ? `${dados.cor}18` : `${dados.cor}0d`,
+              border: `1.5px solid ${dados.cor}30`,
               borderRadius: '12px',
               padding: '12px 16px',
               display: 'flex', gap: '10px', alignItems: 'flex-start',
             }}>
-              <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
-              <p style={{ fontSize: '13px', color: 'var(--gray-600)', lineHeight: '1.6' }}>
-                <strong style={{ color: dados.cor }}>Dica:</strong>{' '}
+              <span style={{ fontSize: '18px', flexShrink: 0 }}>💡</span>
+              <p style={{ fontSize: '13px', color: 'var(--gray-600)', lineHeight: 1.6, margin: 0 }}>
+                <strong style={{ color: dados.cor }}>Dica: </strong>
                 {passoAtual.dica}
               </p>
             </div>
@@ -591,101 +610,40 @@ const Tutorial = ({ tabId, aberto, onFechar }) => {
 
           {/* Footer */}
           <div style={{
-            padding: '16px 28px 24px',
-            display: 'flex', gap: '10px', justifyContent: 'flex-end',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '18px 28px',
             borderTop: '1px solid var(--gray-100)',
+            background: 'var(--surface-card)',
           }}>
             <button
-              onClick={onFechar}
+              onClick={voltar}
+              disabled={passo === 0}
               style={{
-                padding: '9px 16px',
                 background: 'none', border: 'none',
-                color: 'var(--gray-400)', fontSize: '13px',
-                fontWeight: 600, cursor: 'pointer',
-                borderRadius: '8px',
-                transition: 'color 0.15s',
-                marginRight: 'auto',
+                color: passo === 0 ? 'var(--gray-300)' : 'var(--gray-500)',
+                cursor: passo === 0 ? 'not-allowed' : 'pointer',
+                fontSize: '14px', fontWeight: 600, padding: '8px 12px',
+                borderRadius: '8px', transition: 'all 0.15s',
+                fontFamily: 'var(--font-body)',
               }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--gray-600)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--gray-400)'}
-            >
-              Pular tutorial
-            </button>
-
-            {passo > 0 && (
-              <button
-                onClick={voltar}
-                style={{
-                  padding: '9px 20px',
-                  background: 'var(--gray-100)', border: 'none',
-                  borderRadius: '10px', color: 'var(--gray-600)',
-                  fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-200)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--gray-100)'}
-              >
-                ← Anterior
-              </button>
-            )}
+            >← Anterior</button>
 
             <button
               onClick={avancar}
               style={{
-                padding: '9px 24px',
-                background: ehUltimo ? dados.cor : 'var(--gradient-brand)',
-                border: 'none', borderRadius: '10px',
-                color: 'white', fontSize: '14px', fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: `0 4px 16px ${dados.cor}44`,
-                transition: 'all 0.15s',
+                background: dados.cor,
+                color: 'white', border: 'none',
+                borderRadius: '10px', padding: '10px 24px',
+                fontSize: '14px', fontWeight: 700,
+                cursor: 'pointer', transition: 'all 0.15s',
+                boxShadow: `0 4px 14px ${dados.cor}44`,
+                fontFamily: 'var(--font-body)',
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${dados.cor}55`; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 16px ${dados.cor}44`; }}
-            >
-              {ehUltimo ? '✓ Entendido!' : 'Próximo →'}
-            </button>
+            >{ehUltimo ? 'Concluir ✓' : 'Próximo →'}</button>
           </div>
         </div>
       </div>
     </>
-  );
-};
-
-/* ═══════════════════════════════════════════════════════════
-   BOTÃO FLUTUANTE — Reabre o tutorial da aba atual
-   ═══════════════════════════════════════════════════════════ */
-export const BotaoTutorial = ({ tabId, onClick }) => {
-  // Conquistas já tem seu próprio "como funciona" nativo
-  if (!TUTORIAL_STEPS[tabId] || tabId === 'conquistas') return null;
-  return (
-    <button
-      onClick={onClick}
-      title="Ver tutorial desta aba"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: '6px',
-        padding: '8px 16px',
-        background: 'none',
-        border: '1.5px solid var(--gray-200)',
-        borderRadius: '99px',
-        color: 'var(--gray-400)',
-        fontSize: '13px', fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = 'var(--brand-300)';
-        e.currentTarget.style.color = 'var(--brand-500)';
-        e.currentTarget.style.background = 'var(--brand-50)';
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'var(--gray-200)';
-        e.currentTarget.style.color = 'var(--gray-400)';
-        e.currentTarget.style.background = 'none';
-      }}
-    >
-      ❓ Tutorial
-    </button>
   );
 };
 

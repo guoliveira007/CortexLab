@@ -14,7 +14,8 @@ const GAP     = 2;
 const PASSO   = TAMANHO + GAP;
 
 const getCor = count => {
-  if (!count) return '#ebedf0';
+  const isDark = document.body.classList.contains('dark');
+  if (!count) return isDark ? '#1e293b' : '#ebedf0';
   if (count <= 3)  return '#c7d2fe';
   if (count <= 8)  return '#818cf8';
   if (count <= 15) return '#4f46e5';
