@@ -8,15 +8,29 @@ import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 
 /* ═══════════════════════════════════════════════════════════
-   100 AVATARES DISPONÍVEIS
-   Cada um é identificado por uma seed única (string).
-   A seed é usada para gerar o SVG via DiceBear.
-   O estilo é "avataaars" (personagens de corpo inteiro).
+   100 AVATARES ÚNICOS – DICEBEAR (estilo Avataaars)
+   Cada seed gera um personagem diferente e determinístico.
+   Usamos data URI para evitar flickering do SVG.
    ═══════════════════════════════════════════════════════════ */
 const TOTAL_AVATARES = 100;
+const AVATARES_CACHE = new Map(); // cache para não gerar a mesma URI várias vezes
+
+const gerarDataUri = (seed, size = 128) => {
+  const key = `${seed}-${size}`;
+  if (AVATARES_CACHE.has(key)) return AVATARES_CACHE.get(key);
+  const avatar = createAvatar(avataaars, {
+    seed,
+    size,
+    backgroundColor: ['f0f0f0', 'e8f4f8', 'f5f5dc', 'ffe4e1', 'e6e6fa'],
+  });
+  const uri = avatar.toDataUri();
+  AVATARES_CACHE.set(key, uri);
+  return uri;
+};
+
 const AVATARES = Array.from({ length: TOTAL_AVATARES }, (_, i) => ({
   id: `ava-${String(i + 1).padStart(3, '0')}`,
-  seed: `cortexlab-user-${i + 1}`, // seed determinística
+  seed: `cortexlab-user-${i + 1}`,
 }));
 
 const STORAGE_KEY = 'cortexlab_perfil';
@@ -29,37 +43,20 @@ export const getPerfil = () => {
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
-/* ─── Componente para renderizar um avatar (evita recriações) ─── */
-const AvatarImage = React.memo(({ seed, size = 128 }) => {
-  const svg = useMemo(() => {
-    const avatar = createAvatar(avataaars, {
-      seed,
-      size,
-      backgroundColor: ['f0f0f0', 'e8f4f8', 'f5f5dc', 'ffe4e1', 'e6e6fa'],
-    });
-    return avatar.toString(); // retorna SVG como string
-  }, [seed, size]);
-
-  return (
-    <div
-      style={{ width: size, height: size, overflow: 'hidden', borderRadius: '50%' }}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
-});
-AvatarImage.displayName = 'AvatarImage';
-
 /* ─── Modal de edição de perfil ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
   const [curso, setCurso] = useState(perfil.curso || '');
-  const [avatarId, setAvatarId] = useState(perfil.avatarId || AVATARES[0].id);
+  // IMPORTANTE: estado local para o avatar sendo editado – não afeta o principal até salvar
+  const [avatarIdEditando, setAvatarIdEditando] = useState(perfil.avatarId || AVATARES[0].id);
+
   const salvar = () => {
-    onSalvar({ nome, curso, avatarId });
+    onSalvar({ nome, curso, avatarId: avatarIdEditando });
     onFechar();
   };
 
-  const seedSelecionada = AVATARES.find(a => a.id === avatarId)?.seed || AVATARES[0].seed;
+  const seedEditando = AVATARES.find(a => a.id === avatarIdEditando)?.seed || AVATARES[0].seed;
+  const dataUriPreview = useMemo(() => gerarDataUri(seedEditando, 80), [seedEditando]);
 
   return (
     <>
@@ -106,8 +103,13 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
             display: 'flex', alignItems: 'center', gap: '14px',
             position: 'relative', flexShrink: 0,
           }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '3px solid rgba(255,255,255,0.4)' }}>
-              <AvatarImage seed={seedSelecionada} size={64} />
+            <div style={{
+              width: '80px', height: '80px', borderRadius: '50%',
+              overflow: 'hidden', flexShrink: 0,
+              border: '3px solid rgba(255,255,255,0.4)',
+              background: '#fff',
+            }}>
+              <img src={dataUriPreview} alt="Avatar preview" style={{ width: '100%', height: '100%' }} />
             </div>
             <div>
               <p style={{ color: 'white', fontWeight: 800, fontSize: '16px', fontFamily: 'var(--font-display)' }}>
@@ -156,12 +158,13 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               marginBottom: '20px',
             }}>
               {AVATARES.map((av) => {
-                const isSelected = av.id === avatarId;
+                const isSelected = av.id === avatarIdEditando;
+                const dataUri = useMemo(() => gerarDataUri(av.seed, 44), [av.seed]);
                 return (
                   <button
                     key={av.id}
-                    onClick={() => setAvatarId(av.id)}
-                    title={av.id}
+                    onClick={() => setAvatarIdEditando(av.id)}
+                    title={`Avatar ${av.id}`}
                     style={{
                       width: '48px',
                       height: '48px',
@@ -175,7 +178,12 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
                       boxShadow: isSelected ? '0 0 0 3px rgba(99,102,241,0.18)' : 'none',
                     }}
                   >
-                    <AvatarImage seed={av.seed} size={42} />
+                    <img
+                      src={dataUri}
+                      alt={av.id}
+                      style={{ width: '100%', height: '100%', display: 'block' }}
+                      draggable={false}
+                    />
                   </button>
                 );
               })}
@@ -183,13 +191,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
 
             {/* Nome */}
             <div style={{ marginBottom: '14px' }}>
-              <label style={{
-                fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: 'var(--gray-400)',
-                display: 'block', marginBottom: '5px',
-              }}>
-                Seu nome
-              </label>
+              <label className="field-label">Seu nome</label>
               <input
                 type="text"
                 value={nome}
@@ -202,13 +204,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
 
             {/* Curso */}
             <div>
-              <label style={{
-                fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: 'var(--gray-400)',
-                display: 'block', marginBottom: '5px',
-              }}>
-                Curso alvo
-              </label>
+              <label className="field-label">Curso alvo</label>
               <input
                 type="text"
                 value={curso}
@@ -227,18 +223,10 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
             borderTop: '1px solid var(--gray-100)',
             flexShrink: 0,
           }}>
-            <button
-              onClick={onFechar}
-              className="btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
+            <button onClick={onFechar} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <X size={15} /> Cancelar
             </button>
-            <button
-              onClick={salvar}
-              className="btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
+            <button onClick={salvar} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Check size={15} /> Salvar
             </button>
           </div>
@@ -250,15 +238,16 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
 
 /* ─── Componente principal ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
-  const [perfilData, setPerfilData] = useState(getPerfil);
+  const [perfilData, setPerfilData] = useState(() => getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const containerRef = useRef(null);
   const isOwner = useIsOwner();
 
-  // Seed atual (a salva ou a primeira da lista)
-  const avatarAtual = AVATARES.find(a => a.id === perfilData.avatarId) || AVATARES[0];
-  const seedAtual = avatarAtual.seed;
+  // Seed atual (a salva ou a primeira da lista) – NUNCA muda sem salvar
+  const avatarIdSalvo = perfilData.avatarId || AVATARES[0].id;
+  const seedAtual = AVATARES.find(a => a.id === avatarIdSalvo)?.seed || AVATARES[0].seed;
+  const dataUriAtual = useMemo(() => gerarDataUri(seedAtual, 46), [seedAtual]);
 
   // Fecha o dropdown ao clicar fora
   useEffect(() => {
@@ -342,7 +331,12 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
             }
           }}
         >
-          <AvatarImage seed={seedAtual} size={46} />
+          <img
+            src={dataUriAtual}
+            alt="Avatar"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+            draggable={false}
+          />
         </button>
 
         {/* Dropdown */}
@@ -388,9 +382,15 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
                     overflow: 'hidden',
                     flexShrink: 0,
                     border: '2px solid rgba(255,255,255,0.3)',
+                    background: '#fff',
                   }}
                 >
-                  <AvatarImage seed={seedAtual} size={42} />
+                  <img
+                    src={dataUriAtual}
+                    alt="Avatar"
+                    style={{ width: '100%', height: '100%', display: 'block' }}
+                    draggable={false}
+                  />
                 </div>
                 <div style={{ overflow: 'hidden', flex: 1 }}>
                   <p
