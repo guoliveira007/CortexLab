@@ -1,5 +1,5 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
@@ -71,30 +71,45 @@ const CONFIG_PADRAO = {
 
 /* ─── Cache de imagens geradas ─── */
 const AVATAR_CACHE = new Map();
-const gerarDataUri = (config, size = 128) => {
+
+// DiceBear v7+ → toDataUri() é ASYNC e as opções devem ser arrays
+const gerarDataUri = async (config, size = 128) => {
   const chave = JSON.stringify({ ...config, size });
   if (AVATAR_CACHE.has(chave)) return AVATAR_CACHE.get(chave);
 
   const opcoes = {
-    seed: 'cortexlab',
+    seed: 'fixed',          // seed fixa → resultado determinístico (não aleatório)
     size,
     backgroundColor: ['f0f0f0'],
-    skinColor: config.skinColor,
-    top: config.top,
-    hairColor: config.hairColor,
-    accessories: config.accessories || undefined,
-    facialHair: config.facialHair || undefined,
-    facialHairColor: config.facialHairColor,
-    clothes: config.clothes,
-    clothesColor: config.clothesColor,
-    eyes: config.eyes,
-    eyebrows: config.eyebrows,
-    mouth: config.mouth,
+    skinColor:       [config.skinColor],
+    top:             [config.top],
+    hairColor:       [config.hairColor],
+    accessories:     config.accessories ? [config.accessories] : [],
+    facialHair:      config.facialHair  ? [config.facialHair]  : [],
+    facialHairColor: [config.facialHairColor],
+    clothes:         [config.clothes],
+    clothesColor:    [config.clothesColor],
+    eyes:            [config.eyes],
+    eyebrows:        [config.eyebrows],
+    mouth:           [config.mouth],
   };
 
   const avatar = createAvatar(avataaars, opcoes);
-  const uri = avatar.toDataUri();
+  const uri = await avatar.toDataUri();   // ← era síncrono; v7+ é assíncrono
   AVATAR_CACHE.set(chave, uri);
+  return uri;
+};
+
+// Hook que resolve a Promise e devolve a string do data URI
+const useAvatarUri = (config, size = 128) => {
+  const [uri, setUri] = useState('');
+  const chave = JSON.stringify(config);
+  useEffect(() => {
+    let cancelado = false;
+    gerarDataUri(config, size).then(u => { if (!cancelado) setUri(u); });
+    return () => { cancelado = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave, size]);
   return uri;
 };
 
@@ -145,7 +160,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [curso, setCurso] = useState(perfil.curso || '');
   const [config, setConfig] = useState(perfil.avatarConfig || CONFIG_PADRAO);
 
-  const dataUriPreview = useMemo(() => gerarDataUri(config, 120), [config]);
+  const dataUriPreview = useAvatarUri(config, 120);
 
   const atualizar = useCallback((chave, valor) => {
     setConfig(prev => ({ ...prev, [chave]: valor }));
@@ -223,7 +238,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const isOwner = useIsOwner();
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
-  const dataUriAtual = useMemo(() => gerarDataUri(avatarConfig, 46), [avatarConfig]);
+  const dataUriAtual = useAvatarUri(avatarConfig, 46);
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
