@@ -4,11 +4,9 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
 import { useIsOwner } from '../hooks/useIsOwner';
-import { createAvatar } from '@dicebear/core';
-import { avataaars } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
-   OPÇÕES — DiceBear avataaars v7 (valores em camelCase exato)
+   OPÇÕES — DiceBear avataaars (valores camelCase para API v9)
    ════════════════════════════════════════════════════ */
 const OPCOES = {
   skinColor: ['tanned','yellow','pale','light','brown','darkBrown','black'],
@@ -69,34 +67,25 @@ const CONFIG_PADRAO = {
   mouth: 'smile',
 };
 
-/* ─── Cache de imagens geradas ─── */
-const AVATAR_CACHE = new Map();
-const gerarDataUri = (config, size = 128) => {
-  const chave = JSON.stringify({ ...config, size });
-  if (AVATAR_CACHE.has(chave)) return AVATAR_CACHE.get(chave);
-
-  // DiceBear v7: opções como arrays; toString() retorna SVG síncrono
-  const avatar = createAvatar(avataaars, {
-    seed: 'cortexlab-fixed',
-    size,
-    backgroundColor: ['f0f0f0'],
-    skinColor:       [config.skinColor],
-    top:             [config.top],
-    hairColor:       [config.hairColor],
-    accessories:     config.accessories ? [config.accessories] : [],
-    facialHair:      config.facialHair  ? [config.facialHair]  : [],
-    facialHairColor: [config.facialHairColor],
-    clothes:         [config.clothes],
-    clothesColor:    [config.clothesColor],
-    eyes:            [config.eyes],
-    eyebrows:        [config.eyebrows],
-    mouth:           [config.mouth],
+/* ─── Gerador de URL via API DiceBear (sem npm) ─── */
+const gerarUrl = (config, size = 128) => {
+  const p = new URLSearchParams({
+    seed:           'cortexlab-fixed',
+    size:           String(size),
+    backgroundColor: 'f0f0f0',
+    skinColor:      config.skinColor,
+    top:            config.top,
+    hairColor:      config.hairColor,
+    facialHairColor:config.facialHairColor,
+    clothes:        config.clothes,
+    clothesColor:   config.clothesColor,
+    eyes:           config.eyes,
+    eyebrows:       config.eyebrows,
+    mouth:          config.mouth,
   });
-
-  const svg = avatar.toString();
-  const uri = `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
-  AVATAR_CACHE.set(chave, uri);
-  return uri;
+  if (config.accessories) p.set('accessories', config.accessories);
+  if (config.facialHair)  p.set('facialHair',  config.facialHair);
+  return `https://api.dicebear.com/9.x/avataaars/svg?${p.toString()}`;
 };
 
 /* ─── Armazenamento do perfil ─── */
@@ -146,7 +135,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [curso, setCurso] = useState(perfil.curso || '');
   const [config, setConfig] = useState(perfil.avatarConfig || CONFIG_PADRAO);
 
-  const dataUriPreview = useMemo(() => gerarDataUri(config, 120), [config]);
+  const dataUriPreview = useMemo(() => gerarUrl(config, 120), [config]);
 
   const atualizar = useCallback((chave, valor) => {
     setConfig(prev => ({ ...prev, [chave]: valor }));
@@ -224,7 +213,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const isOwner = useIsOwner();
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
-  const dataUriAtual = useMemo(() => gerarDataUri(avatarConfig, 46), [avatarConfig]);
+  const dataUriAtual = useMemo(() => gerarUrl(avatarConfig, 46), [avatarConfig]);
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
