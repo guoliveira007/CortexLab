@@ -2,17 +2,16 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import { User, Settings, HardDrive, LogOut, Check, Target, X, RefreshCw } from 'lucide-react';
+import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
 import { useIsOwner } from '../hooks/useIsOwner';
 import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
-   OPÇÕES DE CUSTOMIZAÇÃO — DiceBear Avataaars (CORRIGIDO)
+   OPÇÕES DE CUSTOMIZAÇÃO — DiceBear Avataaars (CORRIGIDO FINAL)
    ════════════════════════════════════════════════════ */
 const OPCOES = {
   topo: [
-    // Penteados
     { valor: 'shortHair',    rotulo: 'Cabelo curto' },
     { valor: 'longHair',     rotulo: 'Cabelo longo' },
     { valor: 'curly',        rotulo: 'Cacheado' },
@@ -20,7 +19,6 @@ const OPCOES = {
     { valor: 'mohawk',       rotulo: 'Moicano' },
     { valor: 'bob',          rotulo: 'Bob' },
     { valor: 'shaggy',       rotulo: 'Despenteado' },
-    // Chapéus
     { valor: 'hat',          rotulo: 'Chapéu' },
     { valor: 'beanie',       rotulo: 'Touca' },
     { valor: 'cap',          rotulo: 'Boné' },
@@ -74,7 +72,7 @@ const OPCOES = {
     { valor: 'sleep',   rotulo: 'Sonolento' },
   ],
   oculos: [
-    { valor: 'none',   rotulo: 'Sem óculos' },
+    { valor: '',       rotulo: 'Sem óculos' },   // ← string vazia
     { valor: 'round',  rotulo: 'Redondo' },
     { valor: 'square', rotulo: 'Quadrado' },
   ],
@@ -94,45 +92,48 @@ const CONFIG_PADRAO = {
   roupa: 'shirt',
   corRoupa: 'blue',
   olhos: 'default',
-  oculos: 'none',
+  oculos: '',
   boca: 'smile',
 };
 
+/* ─── Geração do avatar (cache para performance) ─── */
 const AVATAR_CACHE = new Map();
 
 const gerarDataUri = (config, size = 128) => {
-  const chave = JSON.stringify({ ...config, size });
-  if (AVATAR_CACHE.has(chave)) return AVATAR_CACHE.get(chave);
+  const cacheKey = JSON.stringify({ ...config, size });
+  if (AVATAR_CACHE.has(cacheKey)) return AVATAR_CACHE.get(cacheKey);
 
   const opcoesDiceBear = {
     seed: 'cortexlab',
     size,
     backgroundColor: ['f0f0f0', 'e8f4f8', 'f5f5dc', 'ffe4e1', 'e6e6fa'],
-    // Mapeamento correto para Avataaars
+    // Mapeamento CORRIGIDO
     top: config.topo,
     hairColor: config.corCabelo,
-    skin: config.corPele,
-    facialHair: config.barba,
+    skinColor: config.corPele,          // ← era "skin"
+    facialHairType: config.barba,       // ← era "facialHair"
     facialHairColor: config.corBarba,
     clothes: config.roupa,
     clothesColor: config.corRoupa,
     eyes: config.olhos,
-    accessories: config.oculos,
+    accessories: config.oculos === 'none' ? '' : config.oculos,  // segurança extra
     mouth: config.boca,
   };
 
   const avatar = createAvatar(avataaars, opcoesDiceBear);
   const uri = avatar.toDataUri();
-  AVATAR_CACHE.set(chave, uri);
+  AVATAR_CACHE.set(cacheKey, uri);
   return uri;
 };
 
+/* ─── Armazenamento do perfil ─── */
 const STORAGE_KEY = 'cortexlab_perfil';
 export const getPerfil = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
+/* ─── Seletor de opção ─── */
 const SeletorOpcao = React.memo(({ opcoes, valorAtual, onChange, tipo = 'cor' }) => (
   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
     {opcoes.map((op) => {
@@ -169,15 +170,14 @@ const SeletorOpcao = React.memo(({ opcoes, valorAtual, onChange, tipo = 'cor' })
 ));
 SeletorOpcao.displayName = 'SeletorOpcao';
 
+/* ─── Modal de edição de perfil (sem botão Gerar Preview) ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
   const [curso, setCurso] = useState(perfil.curso || '');
   const [config, setConfig] = useState(perfil.avatarConfig || CONFIG_PADRAO);
-  const [previewUri, setPreviewUri] = useState(() => gerarDataUri(perfil.avatarConfig || CONFIG_PADRAO, 120));
 
-  useEffect(() => { setPreviewUri(gerarDataUri(config, 120)); }, [config]);
+  const dataUriPreview = useMemo(() => gerarDataUri(config, 120), [config]);
 
-  const gerarPreview = () => setPreviewUri(gerarDataUri(config, 120));
   const salvar = () => { onSalvar({ nome, curso, avatarConfig: config }); onFechar(); };
   const atualizar = useCallback((campo, valor) => setConfig(prev => ({ ...prev, [campo]: valor })), []);
 
@@ -192,7 +192,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
         <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'600px',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
           <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
             <div style={{ width:'100px',height:'100px',borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)',background:'#fff' }}>
-              <img src={previewUri} alt="Preview" style={{ width:'100%',height:'100%' }} draggable={false} />
+              <img src={dataUriPreview} alt="Preview" style={{ width:'100%',height:'100%' }} draggable={false} />
             </div>
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
@@ -207,10 +207,10 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               <div><label className="field-label">Seu nome</label><input type="text" value={nome} onChange={e=>setNome(e.target.value)} placeholder="Ex: Maria, João..." maxLength={40} className="input-modern" /></div>
               <div><label className="field-label">Curso alvo</label><input type="text" value={curso} onChange={e=>setCurso(e.target.value)} placeholder="Ex: Medicina, Direito..." maxLength={60} className="input-modern" /></div>
             </div>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px' }}>
-              <p style={{ fontSize:'12px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--gray-400)',margin:0 }}>Personalizar avatar</p>
-              <button onClick={gerarPreview} className="btn-secondary" style={{ display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',padding:'6px 12px' }}><RefreshCw size={14} /> Gerar Preview</button>
-            </div>
+            <p style={{ fontSize:'12px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--gray-400)',marginBottom:'16px' }}>
+              Personalizar avatar
+            </p>
+            {/* Opções */}
             <div style={{ marginBottom:'16px' }}><label className="field-label" style={{ marginBottom:'6px' }}>Topo da cabeça</label><SeletorOpcao opcoes={OPCOES.topo} valorAtual={config.topo} onChange={v=>atualizar('topo',v)} tipo="texto" /></div>
             <div style={{ marginBottom:'16px' }}><label className="field-label" style={{ marginBottom:'6px' }}>Cor do cabelo</label><SeletorOpcao opcoes={OPCOES.corCabelo} valorAtual={config.corCabelo} onChange={v=>atualizar('corCabelo',v)} tipo="cor" /></div>
             <div style={{ marginBottom:'16px' }}><label className="field-label" style={{ marginBottom:'6px' }}>Cor da pele</label><SeletorOpcao opcoes={OPCOES.corPele} valorAtual={config.corPele} onChange={v=>atualizar('corPele',v)} tipo="cor" /></div>
@@ -232,7 +232,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   );
 };
 
-/* ─── Componente principal (idêntico ao anterior, sem mudanças na lógica) ─── */
+/* ─── Componente principal (idêntico) ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [perfilData, setPerfilData] = useState(() => getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
