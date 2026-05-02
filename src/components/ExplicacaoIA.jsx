@@ -1,4 +1,6 @@
+// src/components/ExplicacaoIA.jsx
 import React, { useState, useCallback } from 'react';
+import { useDark } from '../hooks/useDark';
 
 /**
  * ExplicacaoIA — Botão "💡 Entender com IA" + Modal de explicação com streaming.
@@ -99,7 +101,7 @@ const chamarGroqStream = async (prompt, apiKey, onChunk) => {
 };
 
 /* ─── Renderização do texto formatado ─── */
-const TextoExplicacao = ({ texto, streamando }) => (
+const TextoExplicacao = ({ texto, streamando, isDark }) => (
   <div>
     {texto.split('\n').map((linha, i) => {
       if (!linha.trim()) return <div key={i} style={{ height: '8px' }} />;
@@ -108,14 +110,16 @@ const TextoExplicacao = ({ texto, streamando }) => (
       if (ehTitulo) {
         const num  = linha[0];
         const cores = { '1': '#ef4444', '2': '#10b981', '3': '#6366f1' };
-        const bgs   = { '1': '#fef2f2', '2': '#f0fdf4', '3': '#eef2ff' };
+        const bgsClaro = { '1': '#fef2f2', '2': '#f0fdf4', '3': '#eef2ff' };
+        const bgsEscuro = { '1': 'rgba(239,68,68,0.12)', '2': 'rgba(16,185,129,0.12)', '3': 'rgba(99,102,241,0.12)' };
         return (
           <div key={i} style={{
-            background: bgs[num], borderRadius: 'var(--r-md)',
+            background: isDark ? bgsEscuro[num] : bgsClaro[num],
+            borderRadius: 'var(--r-md)',
             padding: '10px 14px', marginBottom: '8px',
             borderLeft: `3px solid ${cores[num]}`,
           }}>
-            <p style={{ fontWeight: 700, color: cores[num], fontSize: '13px' }}>{linha}</p>
+            <p style={{ fontWeight: 700, color: isDark ? (num === '1' ? '#fca5a5' : num === '2' ? '#6ee7b7' : '#a5b4fc') : cores[num], fontSize: '13px' }}>{linha}</p>
           </div>
         );
       }
@@ -125,7 +129,7 @@ const TextoExplicacao = ({ texto, streamando }) => (
 
       return (
         <p key={i} style={{
-          fontSize: '14px', color: 'var(--gray-700)',
+          fontSize: '14px', color: isDark ? 'var(--gray-700)' : 'var(--gray-700)',
           lineHeight: '1.7', marginBottom: '4px',
         }}>
           {linha}
@@ -151,6 +155,7 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
   const [status, setStatus]         = useState('idle');
   const [explicacao, setExplicacao] = useState('');
   const [erro, setErro]             = useState('');
+  const isDark = useDark();
 
   const gabarito = questao.gabarito?.toUpperCase() || '?';
 
@@ -176,8 +181,6 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
       });
       setStatus('pronto');
     } catch (e) {
-      // TypeError: Failed to fetch cobre offline real, CORS e falhas de DNS
-      // mesmo quando navigator.onLine retorna true (ex.: rede instável).
       const msgRede = e instanceof TypeError && e.message.includes('fetch')
         ? 'Sem acesso à internet. Verifique sua conexão e tente novamente.'
         : e.message;
@@ -202,7 +205,9 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
     >
       <div
         style={{
-          background: 'white', borderRadius: 'var(--r-2xl)',
+          background: isDark ? 'var(--surface-card)' : 'white',
+          color: isDark ? 'var(--gray-800)' : 'inherit',
+          borderRadius: 'var(--r-2xl)',
           width: '100%', maxWidth: '640px', maxHeight: '85vh',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
           boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
@@ -212,9 +217,9 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
         {/* Header */}
         <div style={{
           padding: '18px 24px',
-          borderBottom: '1px solid var(--gray-100)',
+          borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'linear-gradient(135deg, #fefce8, white)',
+          background: isDark ? 'linear-gradient(135deg, rgba(245,158,11,0.08), var(--surface-card))' : 'linear-gradient(135deg, #fefce8, white)',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -225,7 +230,7 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
               fontSize: '18px', boxShadow: '0 4px 12px rgba(245,158,11,0.3)',
             }}>💡</div>
             <div>
-              <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', color: 'var(--gray-900)' }}>
+              <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>
                 Entender com IA
               </h4>
               <p style={{ fontSize: '11px', color: 'var(--gray-400)' }}>
@@ -242,29 +247,33 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
         {/* Resumo da resposta */}
         <div style={{
           padding: '12px 24px',
-          borderBottom: '1px solid var(--gray-100)',
+          borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
           display: 'flex', gap: '12px', flexShrink: 0,
-          background: 'var(--gray-50)',
+          background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
         }}>
           <div style={{
-            flex: 1, background: '#fef2f2', border: '1px solid #fecaca',
+            flex: 1,
+            background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+            border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca',
             borderRadius: 'var(--r-md)', padding: '8px 12px',
           }}>
-            <div style={{ fontSize: '10px', color: '#991b1b', fontWeight: 700, marginBottom: '2px', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '10px', color: isDark ? '#fca5a5' : '#991b1b', fontWeight: 700, marginBottom: '2px', textTransform: 'uppercase' }}>
               Sua resposta
             </div>
-            <div style={{ fontSize: '13px', color: '#b91c1c', fontWeight: 600 }}>
+            <div style={{ fontSize: '13px', color: isDark ? '#fca5a5' : '#b91c1c', fontWeight: 600 }}>
               {respostaUsuario}) {questao.alternativas?.[respostaUsuario] || ''}
             </div>
           </div>
           <div style={{
-            flex: 1, background: '#f0fdf4', border: '1px solid #bbf7d0',
+            flex: 1,
+            background: isDark ? 'rgba(16,185,129,0.12)' : '#f0fdf4',
+            border: isDark ? '1px solid rgba(16,185,129,0.3)' : '1px solid #bbf7d0',
             borderRadius: 'var(--r-md)', padding: '8px 12px',
           }}>
-            <div style={{ fontSize: '10px', color: '#166534', fontWeight: 700, marginBottom: '2px', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '10px', color: isDark ? '#6ee7b7' : '#166534', fontWeight: 700, marginBottom: '2px', textTransform: 'uppercase' }}>
               Gabarito
             </div>
-            <div style={{ fontSize: '13px', color: '#15803d', fontWeight: 600 }}>
+            <div style={{ fontSize: '13px', color: isDark ? '#6ee7b7' : '#15803d', fontWeight: 600 }}>
               {gabarito}) {questao.alternativas?.[gabarito] || ''}
             </div>
           </div>
@@ -285,11 +294,12 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
 
           {status === 'erro' && (
             <div style={{
-              background: '#fef2f2', border: '1.5px solid #fecaca',
+              background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+              border: isDark ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid #fecaca',
               borderRadius: 'var(--r-lg)', padding: '16px',
             }}>
-              <p style={{ color: '#991b1b', fontWeight: 600, marginBottom: '8px' }}>⚠️ Não foi possível gerar a explicação</p>
-              <p style={{ color: '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>{erro}</p>
+              <p style={{ color: isDark ? '#fca5a5' : '#991b1b', fontWeight: 600, marginBottom: '8px' }}>⚠️ Não foi possível gerar a explicação</p>
+              <p style={{ color: isDark ? '#fca5a5' : '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>{erro}</p>
               <button
                 onClick={buscarExplicacao}
                 style={{
@@ -302,16 +312,17 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
           )}
 
           {mostraTexto && (
-            <TextoExplicacao texto={explicacao} streamando={status === 'streamando'} />
+            <TextoExplicacao texto={explicacao} streamando={status === 'streamando'} isDark={isDark} />
           )}
         </div>
 
         {/* Footer */}
         {status === 'pronto' && (
           <div style={{
-            padding: '12px 24px', borderTop: '1px solid var(--gray-100)',
+            padding: '12px 24px',
+            borderTop: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
             display: 'flex', justifyContent: 'flex-end', flexShrink: 0,
-            background: 'var(--gray-50)',
+            background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
           }}>
             <button
               onClick={onFechar}

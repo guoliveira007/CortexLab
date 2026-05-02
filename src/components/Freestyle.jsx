@@ -1,3 +1,4 @@
+// src/components/Freestyle.jsx
 import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { ClipboardList, CheckCircle, BookOpen, TrendingUp, Rocket } from 'lucide-react';
@@ -7,19 +8,16 @@ import ExplicacaoIA from './ExplicacaoIA';
 import Alternativas from './Alternativas';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
 import { userStorage } from '../utils/storageUser';
+import { useDark } from '../hooks/useDark';
 
 const POR_PAGINA = 10;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IMPORTANTE: a chave de storage NÃO é uma constante de módulo —
-// ela precisa ser avaliada em tempo de execução para incluir o uid atual.
-// Por isso usamos uma função em vez de const STORAGE_KEY = '...'.
-// ─────────────────────────────────────────────────────────────────────────────
 const FREESTYLE_KEY = 'cortexlab_freestyle_sessao';
 
 export const QuestaoCard = memo(({ questao, numero, resposta, onResponder }) => {
   const respondida = !!resposta;
   const acertou    = resposta === questao.gabarito;
+  const isDark = useDark();
 
   return (
     <div className={`questao-card ${respondida ? (acertou ? 'acertou' : 'errou') : ''}`}>
@@ -48,10 +46,12 @@ export const QuestaoCard = memo(({ questao, numero, resposta, onResponder }) => 
       )}
 
       <div style={{
-        background: '#fffbeb', padding: '12px 16px',
+        background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb',
+        padding: '12px 16px',
         borderLeft: '3px solid var(--accent-amber)',
         borderRadius: '0 var(--r-md) var(--r-md) 0',
-        marginBottom: '20px', color: '#92400e',
+        marginBottom: '20px',
+        color: isDark ? '#fcd34d' : '#92400e',
         fontSize: '14px', fontWeight: 500, lineHeight: '1.6',
       }}>
         {questao.comando}
@@ -87,6 +87,7 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
   const [sessao, setSessao]  = useState(null);
   const [respostas, setResp] = useState({});
   const restauradoRef        = useRef(false);
+  const isDark = useDark();
 
   const {
     filtros,
@@ -101,7 +102,7 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
   } = useQuestaoFilters(todas, {
     pageSize: POR_PAGINA,
     includeCurriculo: true,
-    storageKey: 'freestyle_filtros', // já será prefixado pelo userStorage dentro do hook
+    storageKey: 'freestyle_filtros',
   });
 
   useEffect(() => { db.questoes.toArray().then(setTodas); }, []);
@@ -184,7 +185,7 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
       <div className="page-header">
         <h2 className="page-title">Freestyle</h2>
       </div>
-      <div className="card">
+      <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
         <p className="section-title">Filtrar questões</p>
         <PainelFiltros
           filtros={filtros}
@@ -213,12 +214,14 @@ const Freestyle = ({ materiaInicial = '', onMateriaAplicada }) => {
     <div>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'white', padding: '14px 20px', borderRadius: 'var(--r-xl)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        padding: '14px 20px', borderRadius: 'var(--r-xl)',
         marginBottom: '20px', boxShadow: 'var(--shadow-sm)',
-        border: '1px solid var(--gray-100)',
+        border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
       }}>
         <div style={{ display: 'flex', gap: '20px', fontSize: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <ClipboardList size={15} /> <strong>{total}</strong> questões
           </span>
           <span style={{ color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>

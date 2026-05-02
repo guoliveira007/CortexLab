@@ -1,6 +1,8 @@
+// src/components/Planejamento.jsx
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { db } from '../database';
+import { useDark } from '../hooks/useDark';
 
 // 0=Seg … 6=Dom
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -20,6 +22,7 @@ const BLOCO_VAZIO = { dia: 0, materia: '', conteudo: '', horario: '', cor: CORES
 /* ─── Modal de adição/edição ─── */
 const Modal = ({ bloco, onSalvar, onFechar, materias }) => {
   const [form, setForm] = useState(bloco);
+  const isDark = useDark();
 
   return (
     <div style={{
@@ -28,12 +31,14 @@ const Modal = ({ bloco, onSalvar, onFechar, materias }) => {
       zIndex: 2000, backdropFilter: 'blur(4px)',
     }}>
       <div style={{
-        background: 'white', borderRadius: 'var(--r-2xl)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        borderRadius: 'var(--r-2xl)',
         padding: '28px', width: '400px', maxWidth: '95vw',
         boxShadow: 'var(--shadow-lg)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--gray-900)' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>
             {form.id ? '✏️ Editar Bloco' : '➕ Novo Bloco'}
           </h3>
           <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: 'var(--gray-400)' }}>×</button>
@@ -51,8 +56,8 @@ const Modal = ({ bloco, onSalvar, onFechar, materias }) => {
                 style={{
                   padding: '5px 10px', borderRadius: 'var(--r-md)', border: 'none',
                   cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                  background: form.dia === i ? form.cor : 'var(--gray-100)',
-                  color: form.dia === i ? 'white' : 'var(--gray-600)',
+                  background: form.dia === i ? form.cor : (isDark ? 'var(--gray-200)' : 'var(--gray-100)'),
+                  color: form.dia === i ? 'white' : (isDark ? 'var(--gray-700)' : 'var(--gray-600)'),
                   transition: 'all 0.15s',
                 }}
               >{d}</button>
@@ -142,6 +147,7 @@ const Planejamento = () => {
   const [blocos, setBlocos]     = useState([]);
   const [materias, setMaterias] = useState([]);
   const [modal, setModal]       = useState(null); // null | { bloco }
+  const isDark = useDark();
 
   useEffect(() => { carregar(); }, []);
 
@@ -221,9 +227,9 @@ const Planejamento = () => {
 
       {/* Barra de progresso semanal */}
       {totalBlocos > 0 && (
-        <div className="card" style={{ marginBottom: '20px', padding: '16px 20px' }}>
+        <div className="card" style={{ marginBottom: '20px', padding: '16px 20px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
-            <span style={{ color: 'var(--gray-600)', fontWeight: 600 }}>Progresso da semana</span>
+            <span style={{ color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', fontWeight: 600 }}>Progresso da semana</span>
             <span style={{ color: 'var(--brand-600)', fontWeight: 700 }}>
               {Math.round((totalConcluidos / totalBlocos) * 100)}%
             </span>
@@ -258,9 +264,13 @@ const Planejamento = () => {
             <div
               key={diaIdx}
               style={{
-                background: isHoje ? 'rgba(99,102,241,0.04)' : 'white',
+                background: isHoje
+                  ? (isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.04)')
+                  : (isDark ? 'var(--surface-card)' : 'white'),
                 borderRadius: 'var(--r-xl)',
-                border: isHoje ? '2px solid var(--brand-300)' : '1.5px solid var(--gray-100)',
+                border: isHoje
+                  ? '2px solid var(--brand-300)'
+                  : (isDark ? '1.5px solid var(--gray-200)' : '1.5px solid var(--gray-100)'),
                 padding: '14px 12px',
                 minHeight: '180px',
                 display: 'flex', flexDirection: 'column', gap: '8px',
@@ -275,7 +285,7 @@ const Planejamento = () => {
                   <p style={{
                     fontSize: '12px', fontWeight: 700, textTransform: 'uppercase',
                     letterSpacing: '0.06em',
-                    color: isHoje ? 'var(--brand-600)' : 'var(--gray-500)',
+                    color: isHoje ? 'var(--brand-600)' : (isDark ? 'var(--gray-500)' : 'var(--gray-500)'),
                   }}>
                     {DIAS_SHORT[diaIdx]}
                   </p>
@@ -292,7 +302,7 @@ const Planejamento = () => {
                   title="Adicionar bloco"
                   style={{
                     width: '24px', height: '24px', borderRadius: '50%',
-                    border: '1.5px dashed var(--gray-300)',
+                    border: isDark ? '1.5px dashed var(--gray-400)' : '1.5px dashed var(--gray-300)',
                     background: 'transparent', cursor: 'pointer',
                     color: 'var(--gray-400)', fontSize: '16px', lineHeight: 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -306,9 +316,11 @@ const Planejamento = () => {
                 <div
                   key={bloco.id}
                   style={{
-                    background: bloco.concluido ? 'var(--gray-50)' : `${bloco.cor}12`,
-                    border: `1.5px solid ${bloco.concluido ? 'var(--gray-200)' : `${bloco.cor}44`}`,
-                    borderLeft: `3px solid ${bloco.concluido ? 'var(--gray-300)' : bloco.cor}`,
+                    background: bloco.concluido
+                      ? (isDark ? 'var(--gray-200)' : 'var(--gray-50)')
+                      : `${bloco.cor}12`,
+                    border: `1.5px solid ${bloco.concluido ? (isDark ? 'var(--gray-300)' : 'var(--gray-200)') : `${bloco.cor}44`}`,
+                    borderLeft: `3px solid ${bloco.concluido ? (isDark ? 'var(--gray-400)' : 'var(--gray-300)') : bloco.cor}`,
                     borderRadius: 'var(--r-md)',
                     padding: '8px 10px',
                     cursor: 'pointer',
@@ -321,7 +333,7 @@ const Planejamento = () => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{
                         fontSize: '12px', fontWeight: 700,
-                        color: bloco.concluido ? 'var(--gray-400)' : 'var(--gray-800)',
+                        color: bloco.concluido ? 'var(--gray-400)' : (isDark ? 'var(--gray-800)' : 'var(--gray-800)'),
                         textDecoration: bloco.concluido ? 'line-through' : 'none',
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
@@ -349,7 +361,7 @@ const Planejamento = () => {
                         title={bloco.concluido ? 'Desmarcar' : 'Marcar como feito'}
                         style={{
                           width: '20px', height: '20px', borderRadius: '4px', border: 'none',
-                          background: bloco.concluido ? '#10b981' : 'var(--gray-200)',
+                          background: bloco.concluido ? '#10b981' : (isDark ? 'var(--gray-400)' : 'var(--gray-200)'),
                           cursor: 'pointer', fontSize: '11px', color: 'white',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           padding: 0,
@@ -360,7 +372,8 @@ const Planejamento = () => {
                         title="Excluir"
                         style={{
                           width: '20px', height: '20px', borderRadius: '4px', border: 'none',
-                          background: '#fecaca', cursor: 'pointer', fontSize: '11px',
+                          background: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
+                          cursor: 'pointer', fontSize: '11px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           padding: 0,
                         }}
@@ -375,7 +388,8 @@ const Planejamento = () => {
                 <div
                   onClick={() => setModal({ bloco: { ...BLOCO_VAZIO, dia: diaIdx } })}
                   style={{
-                    flex: 1, border: '1.5px dashed var(--gray-200)',
+                    flex: 1,
+                    border: isDark ? '1.5px dashed var(--gray-400)' : '1.5px dashed var(--gray-200)',
                     borderRadius: 'var(--r-md)', display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', color: 'var(--gray-300)', fontSize: '12px',
@@ -392,7 +406,7 @@ const Planejamento = () => {
 
       {/* Empty state geral */}
       {blocos.length === 0 && (
-        <div className="card" style={{ marginTop: '20px' }}>
+        <div className="card" style={{ marginTop: '20px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div className="empty-state">
             <div className="empty-state-icon">📅</div>
             <p className="empty-state-title">Planejamento vazio</p>

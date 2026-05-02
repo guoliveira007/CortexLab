@@ -1,6 +1,8 @@
+// src/components/Metas.jsx
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { db } from '../database';
+import { useDark } from '../hooks/useDark';
 
 const TIPOS_META = [
   { tipo: 'questoes_dia', label: 'Questões por dia',        icone: '📝', unidade: 'questões', sugestoes: [10, 20, 30, 50] },
@@ -16,6 +18,7 @@ const Metas = () => {
   const [progresso, setProgresso] = useState([]);
   const [editando, setEditando]   = useState(null);
   const [valorNovo, setValor]     = useState('');
+  const isDark = useDark();
 
   useEffect(() => { carregar(); }, []);
 
@@ -56,12 +59,12 @@ const Metas = () => {
           const pct = p?.percentual || 0;
 
           return (
-            <div key={tipo.tipo} className="card" style={{ padding: '24px' }}>
+            <div key={tipo.tipo} className="card" style={{ padding: '24px', background: isDark ? 'var(--surface-card)' : 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <span style={{ fontSize: '28px' }}>{tipo.icone}</span>
                   <div>
-                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 700, color: 'var(--gray-900)' }}>
+                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>
                       {tipo.label}
                     </h3>
                     {p && <p style={{ color: 'var(--gray-400)', fontSize: '12px', marginTop: '2px' }}>Meta: {p.valor} {tipo.unidade}</p>}
@@ -73,7 +76,7 @@ const Metas = () => {
               {p ? (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-                    <span style={{ color: 'var(--gray-600)' }}>
+                    <span style={{ color: isDark ? 'var(--gray-600)' : 'var(--gray-600)' }}>
                       Hoje: <strong>{p.atual} {tipo.unidade}</strong>
                     </span>
                     <span style={{ fontWeight: 700, color: pct >= 100 ? '#10b981' : 'var(--brand-500)' }}>{pct}%</span>
@@ -83,7 +86,12 @@ const Metas = () => {
                   </div>
 
                   {pct >= 100 && (
-                    <div style={{ background: '#ecfdf5', border: '1px solid #bbf7d0', borderRadius: 'var(--r-md)', padding: '10px', textAlign: 'center', marginBottom: '14px', fontSize: '13px', color: '#065f46', fontWeight: 600 }}>
+                    <div style={{
+                      background: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5',
+                      border: isDark ? '1px solid rgba(16,185,129,0.3)' : '1px solid #bbf7d0',
+                      borderRadius: 'var(--r-md)', padding: '10px', textAlign: 'center', marginBottom: '14px',
+                      fontSize: '13px', color: isDark ? '#6ee7b7' : '#065f46', fontWeight: 600,
+                    }}>
                       🎉 Meta atingida hoje! Parabéns!
                     </div>
                   )}
@@ -91,11 +99,24 @@ const Metas = () => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={() => abrirEditar(tipo)}
-                      style={{ flex: 1, padding: '8px', border: '1.5px solid var(--brand-200)', borderRadius: 'var(--r-md)', background: 'var(--brand-50)', color: 'var(--brand-600)', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                      style={{
+                        flex: 1, padding: '8px',
+                        border: isDark ? '1.5px solid rgba(99,102,241,0.3)' : '1.5px solid var(--brand-200)',
+                        borderRadius: 'var(--r-md)',
+                        background: isDark ? 'rgba(99,102,241,0.12)' : 'var(--brand-50)',
+                        color: isDark ? '#a5b4fc' : 'var(--brand-600)',
+                        cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+                      }}
                     >✏️ Editar</button>
                     <button
                       onClick={() => deletar(tipo.tipo)}
-                      style={{ padding: '8px 12px', border: '1.5px solid #fecaca', borderRadius: 'var(--r-md)', background: '#fef2f2', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px' }}
+                      style={{
+                        padding: '8px 12px',
+                        border: isDark ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid #fecaca',
+                        borderRadius: 'var(--r-md)',
+                        background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+                        color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px',
+                      }}
                     >🗑️</button>
                   </div>
                 </>
@@ -115,7 +136,10 @@ const Metas = () => {
       </div>
 
       {/* Dicas */}
-      <div className="card" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.04), rgba(79,70,229,0.07))', border: '1px solid rgba(99,102,241,0.15)' }}>
+      <div className="card" style={{
+        background: isDark ? 'rgba(99,102,241,0.06)' : 'linear-gradient(135deg, rgba(99,102,241,0.04), rgba(79,70,229,0.07))',
+        border: isDark ? '1px solid rgba(99,102,241,0.15)' : '1px solid rgba(99,102,241,0.15)',
+      }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 700, color: 'var(--brand-600)', marginBottom: '14px' }}>
           💡 Dicas para alcançar suas metas
         </h3>
@@ -127,9 +151,15 @@ const Metas = () => {
             'Use o Freestyle para aquecimento e Simulados para avaliação',
             'Acompanhe seu desempenho para identificar pontos fracos',
           ].map((dica, i) => (
-            <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '10px 12px', background: 'white', borderRadius: 'var(--r-md)', border: '1px solid var(--gray-100)' }}>
+            <div key={i} style={{
+              display: 'flex', gap: '10px', alignItems: 'flex-start',
+              padding: '10px 12px',
+              background: isDark ? 'var(--surface-card)' : 'white',
+              borderRadius: 'var(--r-md)',
+              border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+            }}>
               <span style={{ color: 'var(--brand-400)', fontWeight: 700, flexShrink: 0 }}>→</span>
-              <span style={{ fontSize: '13px', color: 'var(--gray-600)', lineHeight: '1.5' }}>{dica}</span>
+              <span style={{ fontSize: '13px', color: isDark ? 'var(--gray-700)' : 'var(--gray-600)', lineHeight: '1.5' }}>{dica}</span>
             </div>
           ))}
         </div>
@@ -137,12 +167,23 @@ const Metas = () => {
 
       {/* Modal */}
       {editando && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: 'white', borderRadius: 'var(--r-2xl)', padding: '36px', width: '420px', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--gray-100)' }}>
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(15,23,42,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: isDark ? 'var(--surface-card)' : 'white',
+            color: isDark ? 'var(--gray-800)' : 'inherit',
+            borderRadius: 'var(--r-2xl)', padding: '36px', width: '420px',
+            boxShadow: 'var(--shadow-lg)',
+            border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+          }}>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
               <span style={{ fontSize: '32px' }}>{editando.icone}</span>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--gray-900)' }}>{editando.label}</h3>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>{editando.label}</h3>
                 <p style={{ color: 'var(--gray-400)', fontSize: '13px' }}>Defina um valor em {editando.unidade}</p>
               </div>
             </div>
@@ -163,10 +204,14 @@ const Metas = () => {
               {editando.sugestoes.map(s => (
                 <button key={s} onClick={() => setValor(String(s))} style={{
                   flex: 1, padding: '8px',
-                  border: `1.5px solid ${String(valorNovo) === String(s) ? 'var(--brand-500)' : 'var(--gray-200)'}`,
+                  border: `1.5px solid ${String(valorNovo) === String(s) ? 'var(--brand-500)' : (isDark ? 'var(--gray-300)' : 'var(--gray-200)')}`,
                   borderRadius: 'var(--r-md)',
-                  background: String(valorNovo) === String(s) ? 'var(--brand-50)' : 'white',
-                  color: String(valorNovo) === String(s) ? 'var(--brand-600)' : 'var(--gray-600)',
+                  background: String(valorNovo) === String(s)
+                    ? (isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)')
+                    : (isDark ? 'var(--gray-100)' : 'white'),
+                  color: String(valorNovo) === String(s)
+                    ? (isDark ? '#a5b4fc' : 'var(--brand-600)')
+                    : (isDark ? 'var(--gray-600)' : 'var(--gray-600)'),
                   cursor: 'pointer', fontWeight: 600, fontSize: '14px',
                   transition: 'all 0.15s',
                 }}>

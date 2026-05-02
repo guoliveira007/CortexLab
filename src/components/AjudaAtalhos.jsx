@@ -1,10 +1,10 @@
+// src/components/AjudaAtalhos.jsx
+import { useDark } from '../hooks/useDark';
 import { ATALHOS } from './useAtalhos';
 
-/**
- * AjudaAtalhos — Painel de referência rápida dos atalhos.
- * Mostra/esconde com Alt+? ou por botão.
- */
 const AjudaAtalhos = ({ visivel, onFechar }) => {
+  const isDark = useDark();
+
   if (!visivel) return null;
 
   return (
@@ -18,7 +18,9 @@ const AjudaAtalhos = ({ visivel, onFechar }) => {
     >
       <div
         style={{
-          background: 'white', borderRadius: 'var(--r-2xl)',
+          background: isDark ? 'var(--surface-card)' : 'white',
+          color: isDark ? 'var(--gray-800)' : 'inherit',
+          borderRadius: 'var(--r-2xl)',
           padding: '28px', maxWidth: '480px', width: '90%',
           boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
         }}
@@ -35,12 +37,15 @@ const AjudaAtalhos = ({ visivel, onFechar }) => {
           {ATALHOS.filter((a, i, arr) => arr.findIndex(b => b.tela === a.tela) === i).map(a => (
             <div key={a.tela} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '8px 12px', background: 'var(--gray-50)',
-              borderRadius: 'var(--r-md)', border: '1px solid var(--gray-100)',
+              padding: '8px 12px',
+              background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
+              borderRadius: 'var(--r-md)',
+              border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
             }}>
-              <span style={{ fontSize: '13px', color: 'var(--gray-700)' }}>{a.desc}</span>
+              <span style={{ fontSize: '13px', color: isDark ? 'var(--gray-800)' : 'var(--gray-700)' }}>{a.desc}</span>
               <kbd style={{
-                background: 'var(--gray-800)', color: 'white',
+                background: isDark ? 'var(--gray-700)' : 'var(--gray-800)',
+                color: 'white',
                 padding: '2px 7px', borderRadius: '5px',
                 fontSize: '11px', fontFamily: 'monospace', fontWeight: 700,
                 boxShadow: '0 2px 0 rgba(0,0,0,0.4)',

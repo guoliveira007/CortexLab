@@ -1,3 +1,4 @@
+// src/components/BancoQuestoes.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { Edit, Plus, Save, Check, Trash2, Download, FileText, Bot } from 'lucide-react';
@@ -8,6 +9,7 @@ import ImportarPDF from './ImportarPDF';
 import ImportarIA from './ImportarIA';
 import { MATERIAS, getConteudos, getTopicos } from '../curriculo';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
+import { useDark } from '../hooks/useDark';
 
 const VAZIO = {
   banca: '', ano: '', materia: '', conteudo: '', topico: '', assunto: '',
@@ -21,31 +23,13 @@ const toBase64 = f => new Promise((res, rej) => {
   const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f);
 });
 
-const selectStyle = {
-  width: '100%',
-  padding: '9px 12px',
-  border: '1.5px solid var(--gray-200)',
-  borderRadius: 'var(--r-md)',
-  fontFamily: 'var(--font-body)',
-  fontSize: '14px',
-  color: 'var(--gray-800)',
-  background: 'white',
-  cursor: 'pointer',
-  outline: 'none',
-  transition: 'border-color 0.15s',
-  appearance: 'none',
-  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 12px center',
-  paddingRight: '32px',
-};
-
 const ErroInline = ({ msg }) =>
   msg ? <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>⚠ {msg}</p> : null;
 
 const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro = () => {} }) => {
   const conteudosCurr = getConteudos(form.materia);
   const topicosCurr   = getTopicos(form.materia, form.conteudo);
+  const isDark = useDark();
 
   const handleMateria = (v) => {
     setForm(f => ({ ...f, materia: v, conteudo: '', topico: '' }));
@@ -53,6 +37,25 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
   };
   const handleConteudo = (v) => {
     setForm(f => ({ ...f, conteudo: v, topico: '' }));
+  };
+
+  const selectStyle = {
+    width: '100%',
+    padding: '9px 12px',
+    border: '1.5px solid var(--gray-200)',
+    borderRadius: 'var(--r-md)',
+    fontFamily: 'var(--font-body)',
+    fontSize: '14px',
+    color: isDark ? 'var(--gray-800)' : 'var(--gray-800)',
+    background: isDark ? 'var(--surface-card)' : 'white',
+    cursor: 'pointer',
+    outline: 'none',
+    transition: 'border-color 0.15s',
+    appearance: 'none',
+    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 12px center',
+    paddingRight: '32px',
   };
 
   return (
@@ -104,7 +107,7 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
             style={{
               ...selectStyle,
               borderColor: form.materia ? 'var(--gray-200)' : 'var(--gray-100)',
-              color: form.materia ? 'var(--gray-800)' : 'var(--gray-400)',
+              color: form.materia ? (isDark ? 'var(--gray-800)' : 'var(--gray-800)') : 'var(--gray-400)',
             }}
             value={form.conteudo || ''}
             onChange={e => handleConteudo(e.target.value)}
@@ -129,7 +132,7 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
           <select
             style={{
               ...selectStyle,
-              color: form.conteudo ? 'var(--gray-800)' : 'var(--gray-400)',
+              color: form.conteudo ? (isDark ? 'var(--gray-800)' : 'var(--gray-800)') : 'var(--gray-400)',
             }}
             value={form.topico || ''}
             onChange={e => setForm(f => ({ ...f, topico: e.target.value }))}
@@ -164,6 +167,7 @@ const CamposMetadados = ({ form, setForm, bancasExtras, erros = {}, limparErro =
 const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalvar }) => {
   const [form, setForm]   = useState(formInicial);
   const [erros, setErros] = useState({});
+  const isDark = useDark();
 
   const limparErro = (campo) => setErros(e => ({ ...e, [campo]: '' }));
 
@@ -185,9 +189,9 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
   };
 
   return (
-    <div className="card">
+    <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white', color: isDark ? 'var(--gray-800)' : 'inherit' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           {editandoId
             ? <><Edit size={18} /> Editar Questão</>
             : <><Plus size={18} /> Nova Questão</>
@@ -270,11 +274,15 @@ const Formulario = ({ formInicial, editandoId, bancasExtras, onCancelar, onSalva
 
 const CardQuestao = React.memo(({ questao, onEditar, onExcluir }) => {
   const q = questao;
+  const isDark = useDark();
   return (
     <div style={{
-      background: 'white', borderRadius: 'var(--r-lg)',
+      background: isDark ? 'var(--surface-card)' : 'white',
+      color: isDark ? 'var(--gray-800)' : 'inherit',
+      borderRadius: 'var(--r-lg)',
       padding: '16px 20px',
-      boxShadow: 'var(--shadow-xs)', border: '1px solid var(--gray-100)',
+      boxShadow: 'var(--shadow-xs)',
+      border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
       display: 'flex', gap: '16px', alignItems: 'flex-start',
       boxSizing: 'border-box',
     }}>
@@ -284,25 +292,29 @@ const CardQuestao = React.memo(({ questao, onEditar, onExcluir }) => {
             <span key={i} className="badge badge-gray">{t}</span>
           ))}
         </div>
-        <p style={{ color: 'var(--gray-700)', fontSize: '14px', lineHeight: '1.55' }}>
+        <p style={{ color: isDark ? 'var(--gray-700)' : 'var(--gray-700)', fontSize: '14px', lineHeight: '1.55' }}>
           {(q.comando || q.enunciado || '').slice(0, 140)}
           {(q.comando || q.enunciado || '').length > 140 ? '…' : ''}
         </p>
       </div>
       <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
         <button onClick={() => onEditar(q)} style={{
-          padding: '7px 14px', border: '1.5px solid var(--brand-200)',
+          padding: '7px 14px',
+          border: isDark ? '1.5px solid rgba(99,102,241,0.3)' : '1.5px solid var(--brand-200)',
           borderRadius: 'var(--r-md)', cursor: 'pointer',
-          background: 'var(--brand-50)', color: 'var(--brand-600)',
+          background: isDark ? 'rgba(99,102,241,0.12)' : 'var(--brand-50)',
+          color: isDark ? '#a5b4fc' : 'var(--brand-600)',
           fontSize: '13px', fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: '5px',
         }}>
           <Edit size={13} /> Editar
         </button>
         <button onClick={() => onExcluir(q.id)} style={{
-          padding: '7px 12px', border: '1.5px solid #fecaca',
+          padding: '7px 12px',
+          border: isDark ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid #fecaca',
           borderRadius: 'var(--r-md)', cursor: 'pointer',
-          background: '#fef2f2', color: 'var(--accent-red)', fontSize: '13px',
+          background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+          color: 'var(--accent-red)', fontSize: '13px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <Trash2 size={14} />
@@ -323,6 +335,7 @@ const BancoQuestoes = () => {
   const [modalCSV, setModalCSV] = useState(false);
   const [modalPDF, setModalPDF] = useState(false);
   const [modalIA, setModalIA]   = useState(false);
+  const isDark = useDark();
 
   const {
     filtros,
@@ -391,11 +404,11 @@ const BancoQuestoes = () => {
               <Download size={14} /> Importar CSV
             </button>
             <button className="btn-secondary" onClick={() => setModalPDF(true)}
-              style={{ borderColor: '#fca5a5', color: '#dc2626', background: '#fef2f2', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              style={{ borderColor: '#fca5a5', color: '#dc2626', background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FileText size={14} /> Importar PDF
             </button>
             <button className="btn-secondary" onClick={() => setModalIA(true)}
-              style={{ borderColor: '#a78bfa', color: '#7c3aed', background: '#f5f3ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              style={{ borderColor: '#a78bfa', color: '#7c3aed', background: isDark ? 'rgba(139,92,246,0.12)' : '#f5f3ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Bot size={14} /> Importar com IA
             </button>
             <button className="btn-primary" onClick={abrirNova}>+ Nova Questão</button>
@@ -420,7 +433,7 @@ const BancoQuestoes = () => {
 
       {aba === 'listar' && (
         <>
-          <div className="card" style={{ marginBottom: '20px', flexShrink: 0 }}>
+          <div className="card" style={{ marginBottom: '20px', flexShrink: 0, background: isDark ? 'var(--surface-card)' : 'white' }}>
             <p className="section-title">Filtros</p>
             <PainelFiltros
               filtros={filtros}
@@ -432,7 +445,7 @@ const BancoQuestoes = () => {
           </div>
 
           {filtradas.length === 0 ? (
-            <div className="card">
+            <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
               <div className="empty-state">
                 <div className="empty-state-icon">🗃️</div>
                 <p className="empty-state-title">Nenhuma questão encontrada</p>

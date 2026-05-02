@@ -1,8 +1,10 @@
+// src/components/Lista.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { db } from '../database';
 import ExplicacaoIA from './ExplicacaoIA';
 import Alternativas from './Alternativas';
+import { useDark } from '../hooks/useDark';
 
 const Lista = ({ lista, onVoltar }) => {
   const [questoes, setQuestoes]             = useState([]);
@@ -14,6 +16,7 @@ const Lista = ({ lista, onVoltar }) => {
   const [finalizado, setFinal]              = useState(false);
   const [todasRespostas, setTodasRespostas] = useState({});
   const timerRef = useRef(null);
+  const isDark = useDark();
 
   const iniciarTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -110,9 +113,9 @@ const Lista = ({ lista, onVoltar }) => {
     };
 
     return (
-      <div className="card" style={{ textAlign: 'center', padding: '48px', maxWidth: '500px', margin: '0 auto' }}>
+      <div className="card" style={{ textAlign: 'center', padding: '48px', maxWidth: '500px', margin: '0 auto', background: isDark ? 'var(--surface-card)' : 'white' }}>
         <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏁</div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, marginBottom: '6px' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, marginBottom: '6px', color: isDark ? 'var(--gray-900)' : 'inherit' }}>
           Lista Concluída!
         </h2>
         <p style={{ color: 'var(--gray-400)', marginBottom: '32px', fontSize: '14px' }}>
@@ -121,9 +124,9 @@ const Lista = ({ lista, onVoltar }) => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '28px' }}>
           {[
-            { label: 'Acertos', valor: stats.acertos, cor: '#10b981', bg: '#ecfdf5' },
-            { label: 'Erros',   valor: stats.erros,   cor: '#ef4444', bg: '#fef2f2' },
-            { label: 'Taxa',    valor: `${taxa}%`,    cor: corT,      bg: corT + '15' },
+            { label: 'Acertos', valor: stats.acertos, cor: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5' },
+            { label: 'Erros',   valor: stats.erros,   cor: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2' },
+            { label: 'Taxa',    valor: `${taxa}%`,    cor: corT,      bg: isDark ? `${corT}20` : corT + '15' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, borderRadius: 'var(--r-lg)', padding: '16px' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 800, color: s.cor }}>
@@ -150,7 +153,7 @@ const Lista = ({ lista, onVoltar }) => {
         {questoesErradas.length > 0 && (
           <div style={{
             marginTop: '28px', textAlign: 'left',
-            borderTop: '1px solid var(--gray-200)', paddingTop: '24px',
+            borderTop: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-200)', paddingTop: '24px',
           }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#dc2626', marginBottom: '14px' }}>
               📓 Questões que você errou ({questoesErradas.length})
@@ -158,13 +161,14 @@ const Lista = ({ lista, onVoltar }) => {
             {questoesErradas.map(q => (
               <div key={q.id} style={{
                 marginBottom: '14px', padding: '14px',
-                background: '#fef2f2', borderRadius: 'var(--r-lg)',
-                border: '1px solid #fecaca',
+                background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                borderRadius: 'var(--r-lg)',
+                border: isDark ? '1px solid rgba(239,68,68,0.25)' : '1px solid #fecaca',
               }}>
-                <p style={{ fontWeight: 600, fontSize: '13px', color: '#991b1b', marginBottom: '6px' }}>
+                <p style={{ fontWeight: 600, fontSize: '13px', color: isDark ? '#fca5a5' : '#991b1b', marginBottom: '6px' }}>
                   {q.comando?.substring(0, 120)}{q.comando?.length > 120 ? '…' : ''}
                 </p>
-                <p style={{ fontSize: '12px', color: '#b91c1c', marginBottom: '10px' }}>
+                <p style={{ fontSize: '12px', color: isDark ? '#fca5a5' : '#b91c1c', marginBottom: '10px' }}>
                   Sua resposta: <strong>{todasRespostas[q.id]}</strong>
                   {' · '}
                   Correto: <strong>{q.gabarito}</strong>
@@ -190,11 +194,14 @@ const Lista = ({ lista, onVoltar }) => {
 
       <div style={{
         display: 'flex', gap: '20px', alignItems: 'center',
-        background: 'white', padding: '13px 20px', borderRadius: 'var(--r-xl)',
-        marginBottom: '20px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        padding: '13px 20px', borderRadius: 'var(--r-xl)',
+        marginBottom: '20px', boxShadow: 'var(--shadow-sm)',
+        border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
         flexWrap: 'wrap',
       }}>
-        <span style={{ fontSize: '14px', color: 'var(--gray-600)' }}>
+        <span style={{ fontSize: '14px', color: isDark ? 'var(--gray-600)' : 'var(--gray-600)' }}>
           📋 <strong>{indice + 1}</strong>/{questoes.length}
         </span>
         <span style={{ fontSize: '14px', color: 'var(--accent-green)', fontWeight: 700 }}>✅ {stats.acertos}</span>
@@ -228,10 +235,13 @@ const Lista = ({ lista, onVoltar }) => {
           )}
 
           <div style={{
-            background: '#fffbeb', padding: '12px 16px',
+            background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb',
+            padding: '12px 16px',
             borderLeft: '3px solid var(--accent-amber)',
             borderRadius: '0 var(--r-md) var(--r-md) 0',
-            marginBottom: '18px', color: '#92400e', fontSize: '14px', fontWeight: 500,
+            marginBottom: '18px',
+            color: isDark ? '#fcd34d' : '#92400e',
+            fontSize: '14px', fontWeight: 500,
           }}>
             {questaoAtual.comando}
           </div>

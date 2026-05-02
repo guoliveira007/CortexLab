@@ -1,5 +1,7 @@
+// src/components/PrevisaoRevisoes.jsx
 import React, { useState, useEffect } from 'react';
 import { db } from '../database';
+import { useDark } from '../hooks/useDark';
 
 /**
  * PrevisaoRevisoes — Calendário de previsão das revisões espaçadas (SM-2)
@@ -14,16 +16,16 @@ const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const DIAS_PT  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
-const corCarga = (n) => {
-  if (!n) return { bg: 'var(--gray-50)', color: 'var(--gray-300)', border: 'var(--gray-100)' };
-  if (n <= 5)  return { bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe' };
-  if (n <= 15) return { bg: '#fef3c7', color: '#92400e', border: '#fde68a' };
-  return { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' };
+const corCarga = (n, isDark) => {
+  if (!n) return { bg: isDark ? 'var(--gray-200)' : 'var(--gray-50)', color: isDark ? 'var(--gray-500)' : 'var(--gray-300)', border: isDark ? 'var(--gray-300)' : 'var(--gray-100)' };
+  if (n <= 5)  return { bg: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff', color: isDark ? '#a5b4fc' : '#4f46e5', border: isDark ? 'rgba(99,102,241,0.3)' : '#c7d2fe' };
+  if (n <= 15) return { bg: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7', color: isDark ? '#fcd34d' : '#92400e', border: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a' };
+  return { bg: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: isDark ? '#fca5a5' : '#b91c1c', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca' };
 };
 
 /* ─── Minicard de dia ─── */
-const DiaCard = ({ dia, questoes, hoje, passado, onClick, selecionado }) => {
-  const cores = corCarga(questoes);
+const DiaCard = ({ dia, questoes, hoje, passado, onClick, selecionado, isDark }) => {
+  const cores = corCarga(questoes, isDark);
   const ehHoje = dia.toDateString() === hoje.toDateString();
 
   return (
@@ -32,7 +34,7 @@ const DiaCard = ({ dia, questoes, hoje, passado, onClick, selecionado }) => {
       disabled={!questoes}
       style={{
         width: '100%', aspectRatio: '1',
-        background: selecionado ? 'var(--brand-600)' : ehHoje ? 'var(--brand-50)' : passado ? 'var(--gray-50)' : cores.bg,
+        background: selecionado ? 'var(--brand-600)' : ehHoje ? (isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)') : passado ? (isDark ? 'var(--gray-200)' : 'var(--gray-50)') : cores.bg,
         border: `1.5px solid ${selecionado ? 'var(--brand-600)' : ehHoje ? 'var(--brand-300)' : cores.border}`,
         borderRadius: 'var(--r-md)',
         cursor: questoes ? 'pointer' : 'default',
@@ -46,7 +48,7 @@ const DiaCard = ({ dia, questoes, hoje, passado, onClick, selecionado }) => {
     >
       <span style={{
         fontSize: '13px', fontWeight: ehHoje ? 800 : 600,
-        color: selecionado ? 'white' : ehHoje ? 'var(--brand-700)' : 'var(--gray-600)',
+        color: selecionado ? 'white' : ehHoje ? 'var(--brand-700)' : (isDark ? 'var(--gray-600)' : 'var(--gray-600)'),
       }}>
         {dia.getDate()}
       </span>
@@ -71,6 +73,7 @@ const PrevisaoRevisoes = () => {
   const [mesOffset, setMesOffset]     = useState(0);
   const [carregando, setCarregando]   = useState(true);
   const [tentativas, setTentativas]   = useState(0);
+  const isDark = useDark();
 
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
 
@@ -96,7 +99,6 @@ const PrevisaoRevisoes = () => {
       setTentativas(0);
     } catch (e) {
       if (tentativa < 3) {
-        // Tenta novamente automaticamente (500ms, 1s, 2s)
         setTimeout(() => carregarDados(tentativa + 1), 500 * Math.pow(2, tentativa));
       } else {
         setTentativas(tentativa);
@@ -160,7 +162,7 @@ const PrevisaoRevisoes = () => {
   if (tentativas >= 3) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', textAlign: 'center' }}>
       <span style={{ fontSize: '40px' }}>😕</span>
-      <p style={{ fontWeight: 600, color: 'var(--gray-700)', fontSize: '16px' }}>Não conseguimos carregar seus dados</p>
+      <p style={{ fontWeight: 600, color: isDark ? 'var(--gray-600)' : 'var(--gray-700)', fontSize: '16px' }}>Não conseguimos carregar seus dados</p>
       <p style={{ color: 'var(--gray-400)', fontSize: '14px' }}>Verifique sua conexão e tente novamente.</p>
       <button onClick={() => carregarDados(0)} style={{ padding: '10px 24px', background: 'var(--gradient-brand)', border: 'none', borderRadius: 'var(--r-md)', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>
         Tentar novamente
@@ -187,8 +189,12 @@ const PrevisaoRevisoes = () => {
           { emoji: '📅', label: 'Hoje', valor: deHoje + atrasadas, cor: '#f59e0b' },
         ].map(s => (
           <div key={s.label} style={{
-            background: 'white', borderRadius: 'var(--r-xl)', padding: '20px',
-            textAlign: 'center', border: '1px solid var(--gray-100)', boxShadow: 'var(--shadow-sm)',
+            background: isDark ? 'var(--surface-card)' : 'white',
+            color: isDark ? 'var(--gray-800)' : 'inherit',
+            borderRadius: 'var(--r-xl)', padding: '20px',
+            textAlign: 'center',
+            border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+            boxShadow: 'var(--shadow-sm)',
           }}>
             <div style={{ fontSize: '26px', marginBottom: '8px' }}>{s.emoji}</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: 800, color: s.cor, lineHeight: 1 }}>
@@ -202,7 +208,7 @@ const PrevisaoRevisoes = () => {
       </div>
 
       {totalFila === 0 ? (
-        <div className="card">
+        <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div className="empty-state">
             <div className="empty-state-icon">📅</div>
             <p className="empty-state-title">Nenhuma questão na fila</p>
@@ -214,20 +220,20 @@ const PrevisaoRevisoes = () => {
       ) : (
         <>
           {/* Gráfico de barras — próximos 30 dias */}
-          <div className="card" style={{ marginBottom: '20px' }}>
+          <div className="card" style={{ marginBottom: '20px', background: isDark ? 'var(--surface-card)' : 'white' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <p className="section-title" style={{ margin: 0 }}>Próximos 30 dias</p>
               <div style={{ display: 'flex', gap: '14px', fontSize: '11px' }}>
-                <span style={{ color: '#4f46e5' }}>■ Pouco (≤5)</span>
-                <span style={{ color: '#92400e' }}>■ Médio (≤15)</span>
-                <span style={{ color: '#b91c1c' }}>■ Muito (&gt;15)</span>
+                <span style={{ color: isDark ? '#a5b4fc' : '#4f46e5' }}>■ Pouco (≤5)</span>
+                <span style={{ color: isDark ? '#fcd34d' : '#92400e' }}>■ Médio (≤15)</span>
+                <span style={{ color: isDark ? '#fca5a5' : '#b91c1c' }}>■ Muito (&gt;15)</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '100px' }}>
               {proximos30.map(({ data, key, qtd }, i) => {
                 const ehHoje = data.toDateString() === hoje.toDateString();
                 const selecionadoBar = diaSel?.toDateString() === data.toDateString();
-                const cores = corCarga(qtd);
+                const cores = corCarga(qtd, isDark);
                 return (
                   <div
                     key={key}
@@ -259,7 +265,7 @@ const PrevisaoRevisoes = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             {/* Calendário mensal */}
-            <div className="card">
+            <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <button onClick={() => setMesOffset(m => m - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--gray-500)' }}>◀</button>
                 <p className="section-title" style={{ margin: 0 }}>
@@ -297,6 +303,7 @@ const PrevisaoRevisoes = () => {
                       passado={passado}
                       onClick={selecionarDia}
                       selecionado={selecionado}
+                      isDark={isDark}
                     />
                   );
                 })}
@@ -305,9 +312,9 @@ const PrevisaoRevisoes = () => {
               {/* Legenda */}
               <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
                 {[
-                  { bg: '#eef2ff', border: '#c7d2fe', label: '1-5' },
-                  { bg: '#fef3c7', border: '#fde68a', label: '6-15' },
-                  { bg: '#fef2f2', border: '#fecaca', label: '>15' },
+                  { bg: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff', border: isDark ? 'rgba(99,102,241,0.3)' : '#c7d2fe', label: '1-5' },
+                  { bg: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7', border: isDark ? 'rgba(245,158,11,0.3)' : '#fde68a', label: '6-15' },
+                  { bg: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca', label: '>15' },
                 ].map(l => (
                   <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <div style={{ width: '12px', height: '12px', background: l.bg, border: `1.5px solid ${l.border}`, borderRadius: '3px' }} />
@@ -318,7 +325,7 @@ const PrevisaoRevisoes = () => {
             </div>
 
             {/* Painel lateral — questões do dia selecionado */}
-            <div className="card">
+            <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
               {!diaSel ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '200px', color: 'var(--gray-400)' }}>
                   <span style={{ fontSize: '36px', marginBottom: '12px' }}>👆</span>
@@ -333,7 +340,8 @@ const PrevisaoRevisoes = () => {
                       {diaSel.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                     <span style={{
-                      background: 'var(--brand-50)', color: 'var(--brand-600)',
+                      background: isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)',
+                      color: isDark ? '#a5b4fc' : 'var(--brand-600)',
                       padding: '3px 10px', borderRadius: 'var(--r-full)',
                       fontSize: '12px', fontWeight: 700,
                     }}>
@@ -349,18 +357,20 @@ const PrevisaoRevisoes = () => {
                     <div style={{ maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {questoesDia.map((q, i) => (
                         <div key={i} style={{
-                          padding: '10px 14px', background: 'var(--gray-50)',
-                          borderRadius: 'var(--r-md)', border: '1px solid var(--gray-100)',
+                          padding: '10px 14px',
+                          background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
+                          borderRadius: 'var(--r-md)',
+                          border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-600)' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: isDark ? '#a5b4fc' : 'var(--brand-600)' }}>
                               {q.materia || 'Sem matéria'}
                             </span>
                             <span style={{ fontSize: '11px', color: 'var(--gray-400)' }}>
                               Rep. {q.sm2?.repeticoes || 0} · EF {q.sm2?.fatorFacilidade?.toFixed(1) || '2.5'}
                             </span>
                           </div>
-                          <p style={{ fontSize: '13px', color: 'var(--gray-600)', lineHeight: '1.5' }}>
+                          <p style={{ fontSize: '13px', color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', lineHeight: '1.5' }}>
                             {((q?.comando || q?.enunciado) || 'Questão sem texto').substring(0, 100)}
                             {((q?.comando || q?.enunciado) || '').length > 100 ? '…' : ''}
                           </p>

@@ -1,5 +1,7 @@
+// src/components/Desempenho.jsx
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { db } from '../database';
+import { useDark } from '../hooks/useDark';
 
 const periodos = [
   { id: 'hoje',   label: 'Hoje' },
@@ -41,7 +43,7 @@ const filtrarPorPeriodo = (resultados, periodo) => {
 };
 
 const corTaxa = t => t >= 70 ? '#10b981' : t >= 50 ? '#f59e0b' : '#ef4444';
-const corTaxaBg = t => t >= 70 ? 'rgba(16,185,129,0.12)' : t >= 50 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
+const corTaxaBg = (t, isDark) => t >= 70 ? (isDark ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.12)') : t >= 50 ? (isDark ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.12)') : (isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.12)');
 
 /* ─── Animated Number ─── */
 const AnimatedNumber = memo(({ value, suffix = '', duration = 800 }) => {
@@ -66,15 +68,16 @@ const AnimatedNumber = memo(({ value, suffix = '', duration = 800 }) => {
 AnimatedNumber.displayName = 'AnimatedNumber';
 
 /* ─── Stat Card ─── */
-const StatCard = memo(({ emoji, label, valor, sub, cor, bg }) => (
+const StatCard = memo(({ emoji, label, valor, sub, cor, bg, isDark }) => (
   <div style={{
-    background: bg || 'white',
+    background: bg || (isDark ? 'var(--surface-card)' : 'white'),
     borderRadius: '16px',
     padding: '20px 22px',
     border: `1px solid ${cor}30`,
     position: 'relative',
     overflow: 'hidden',
     transition: 'transform 0.2s, box-shadow 0.2s',
+    color: isDark ? 'var(--gray-800)' : 'inherit',
   }}
     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 28px ${cor}22`; }}
     onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
@@ -96,14 +99,14 @@ const StatCard = memo(({ emoji, label, valor, sub, cor, bg }) => (
 StatCard.displayName = 'StatCard';
 
 /* ─── Beautiful Bar Chart ─── */
-const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444' }) => {
+const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444', isDark }) => {
   const [hovered, setHovered] = useState(null);
   const max = Math.max(...dados.map(d => d.total), 1);
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{titulo}</p>
+        <p style={{ fontSize: '13px', fontWeight: 700, color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{titulo}</p>
         <div style={{ display: 'flex', gap: '12px', fontSize: '11px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: cor1, fontWeight: 600 }}>
             <span style={{ width: 8, height: 8, borderRadius: 2, background: cor1, display: 'inline-block' }} /> Acertos
@@ -119,7 +122,7 @@ const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444' }) =>
           <div key={f} style={{
             position: 'absolute', left: 0, right: 0,
             bottom: `${f * 100}%`,
-            borderTop: '1px dashed var(--gray-100)',
+            borderTop: isDark ? '1px dashed var(--gray-300)' : '1px dashed var(--gray-100)',
             pointerEvents: 'none',
           }} />
         ))}
@@ -190,7 +193,7 @@ const BarChart = memo(({ dados, titulo, cor1 = '#6366f1', cor2 = '#ef4444' }) =>
 BarChart.displayName = 'BarChart';
 
 /* ─── Donut Chart ─── */
-const DonutChart = memo(({ acertos, total, cor }) => {
+const DonutChart = memo(({ acertos, total, cor, isDark }) => {
   const taxa = total ? (acertos / total) * 100 : 0;
   const r = 38, circ = 2 * Math.PI * r;
   const offset = circ - (taxa / 100) * circ;
@@ -198,7 +201,7 @@ const DonutChart = memo(({ acertos, total, cor }) => {
   return (
     <div style={{ position: 'relative', width: 100, height: 100, flexShrink: 0 }}>
       <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--gray-100)" strokeWidth="10" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={isDark ? 'var(--gray-200)' : 'var(--gray-100)'} strokeWidth="10" />
         <circle cx="50" cy="50" r={r} fill="none"
           stroke={cor} strokeWidth="10"
           strokeLinecap="round"
@@ -222,18 +225,18 @@ const DonutChart = memo(({ acertos, total, cor }) => {
 DonutChart.displayName = 'DonutChart';
 
 /* ─── Progress Row ─── */
-const ProgressRow = memo(({ label, acertos, total, emoji, rank }) => {
+const ProgressRow = memo(({ label, acertos, total, emoji, rank, isDark }) => {
   const taxa = total ? ((acertos / total) * 100).toFixed(1) : 0;
   const cor  = corTaxa(Number(taxa));
-  const bg   = corTaxaBg(Number(taxa));
+  const bg   = corTaxaBg(Number(taxa), isDark);
 
   return (
     <div style={{
-      background: 'var(--gray-50)',
+      background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
       borderRadius: '12px',
       padding: '14px 16px',
       marginBottom: '10px',
-      border: '1px solid var(--gray-100)',
+      border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
       transition: 'transform 0.15s, box-shadow 0.15s',
     }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06)'; }}
@@ -244,13 +247,13 @@ const ProgressRow = memo(({ label, acertos, total, emoji, rank }) => {
           {rank && (
             <span style={{
               width: '22px', height: '22px', borderRadius: '6px',
-              background: rank === 1 ? '#fef3c7' : rank === 2 ? '#f1f5f9' : '#fef2f2',
+              background: rank === 1 ? (isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7') : rank === 2 ? (isDark ? 'var(--gray-200)' : '#f1f5f9') : (isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2'),
               color: rank === 1 ? '#d97706' : rank === 2 ? '#64748b' : '#ef4444',
               fontSize: '10px', fontWeight: 800,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>#{rank}</span>
           )}
-          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--gray-800)' }}>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: isDark ? 'var(--gray-800)' : 'var(--gray-800)' }}>
             {emoji} {label}
           </span>
         </div>
@@ -265,7 +268,7 @@ const ProgressRow = memo(({ label, acertos, total, emoji, rank }) => {
           </span>
         </div>
       </div>
-      <div style={{ background: 'var(--gray-200)', borderRadius: '99px', height: '6px', overflow: 'hidden' }}>
+      <div style={{ background: isDark ? 'var(--gray-300)' : 'var(--gray-200)', borderRadius: '99px', height: '6px', overflow: 'hidden' }}>
         <div style={{
           height: '100%', width: `${taxa}%`,
           background: `linear-gradient(90deg, ${cor}aa, ${cor})`,
@@ -279,17 +282,18 @@ const ProgressRow = memo(({ label, acertos, total, emoji, rank }) => {
 ProgressRow.displayName = 'ProgressRow';
 
 /* ─── Comparativo de Modos ─── */
-const ModoCard = memo(({ label, emoji, acertos, total, cor, bg }) => {
-  // ✅ removida a declaração de taxa não utilizada nesta versão
+const ModoCard = memo(({ label, emoji, acertos, total, cor, bg, isDark }) => {
   return (
     <div style={{
-      background: bg, borderRadius: '16px', padding: '18px',
+      background: bg || (isDark ? 'var(--surface-card)' : 'white'),
+      borderRadius: '16px', padding: '18px',
       border: `1px solid ${cor}20`, textAlign: 'center',
       flex: 1,
+      color: isDark ? 'var(--gray-800)' : 'inherit',
     }}>
       <div style={{ fontSize: '24px', marginBottom: '6px' }}>{emoji}</div>
       <div style={{ fontSize: '11px', fontWeight: 700, color: cor, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px' }}>{label}</div>
-      <DonutChart acertos={acertos} total={total} cor={cor} />
+      <DonutChart acertos={acertos} total={total} cor={cor} isDark={isDark} />
       <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--gray-500)' }}>
         {total} questões
       </div>
@@ -355,6 +359,7 @@ const Desempenho = () => {
   const [resultados, setResultados] = useState([]);
   const [questoesMap, setQuestoesMap] = useState({});
   const [mounted, setMounted] = useState(false);
+  const isDark = useDark();
 
   useEffect(() => {
     carregarDados();
@@ -426,7 +431,6 @@ const Desempenho = () => {
     resultadosFiltrados.forEach(r => {
       const qid = r.questaoId || r.id_questao;
       const questao = questoesMap[qid];
-      // Ignora resultados de questões excluídas do banco
       if (!questao) return;
       const materia = questao.materia || r.materia || 'Sem matéria';
       if (!map[materia]) map[materia] = { total: 0, acertos: 0 };
@@ -439,18 +443,18 @@ const Desempenho = () => {
   }, [resultadosFiltrados, questoesMap]);
 
   const statCards = useMemo(() => [
-    { emoji: '📝', label: 'Questões', valor: total, sub: 'respondidas', cor: '#6366f1', bg: '#eef2ff' },
-    { emoji: '✅', label: 'Acertos', valor: acertos, sub: 'corretas', cor: '#10b981', bg: '#ecfdf5' },
-    { emoji: '❌', label: 'Erros', valor: erros, sub: 'incorretas', cor: '#ef4444', bg: '#fef2f2' },
-    { emoji: '🎯', label: 'Taxa', valor: `${taxa}%`, sub: 'aproveitamento', cor: corTaxa(Number(taxa)), bg: corTaxaBg(Number(taxa)) },
-    { emoji: '🔥', label: 'Streak', valor: `${streak}d`, sub: 'dias seguidos', cor: '#f59e0b', bg: '#fffbeb' },
-  ], [total, acertos, erros, taxa, streak]);
+    { emoji: '📝', label: 'Questões', valor: total, sub: 'respondidas', cor: '#6366f1', bg: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff' },
+    { emoji: '✅', label: 'Acertos', valor: acertos, sub: 'corretas', cor: '#10b981', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5' },
+    { emoji: '❌', label: 'Erros', valor: erros, sub: 'incorretas', cor: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2' },
+    { emoji: '🎯', label: 'Taxa', valor: `${taxa}%`, sub: 'aproveitamento', cor: corTaxa(Number(taxa)), bg: corTaxaBg(Number(taxa), isDark) },
+    { emoji: '🔥', label: 'Streak', valor: `${streak}d`, sub: 'dias seguidos', cor: '#f59e0b', bg: isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb' },
+  ], [total, acertos, erros, taxa, streak, isDark]);
 
   const modoCards = [
-    { label: 'Freestyle', emoji: '🎯', modo: 'freestyle', cor: '#6366f1', bg: '#eef2ff' },
-    { label: 'Listas', emoji: '📋', modo: 'lista', cor: '#10b981', bg: '#ecfdf5' },
-    { label: 'Simulados', emoji: '📝', modo: 'simulado', cor: '#f59e0b', bg: '#fffbeb' },
-    { label: 'Revisão', emoji: '🧠', modo: 'revisao', cor: '#8b5cf6', bg: '#f5f3ff' },
+    { label: 'Freestyle', emoji: '🎯', modo: 'freestyle', cor: '#6366f1', bg: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff' },
+    { label: 'Listas', emoji: '📋', modo: 'lista', cor: '#10b981', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5' },
+    { label: 'Simulados', emoji: '📝', modo: 'simulado', cor: '#f59e0b', bg: isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb' },
+    { label: 'Revisão', emoji: '🧠', modo: 'revisao', cor: '#8b5cf6', bg: isDark ? 'rgba(139,92,246,0.12)' : '#f5f3ff' },
   ];
 
   return (
@@ -474,7 +478,12 @@ const Desempenho = () => {
 
       {/* Filtros */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <div style={{ background: 'white', borderRadius: '12px', padding: '4px', border: '1px solid var(--gray-100)', display: 'flex', gap: '2px' }}>
+        <div style={{
+          background: isDark ? 'var(--surface-card)' : 'white',
+          borderRadius: '12px', padding: '4px',
+          border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+          display: 'flex', gap: '2px',
+        }}>
           {periodos.map(p => (
             <button key={p.id}
               onClick={() => setPeriodo(p.id)}
@@ -482,7 +491,7 @@ const Desempenho = () => {
                 padding: '7px 14px', border: 'none', borderRadius: '9px',
                 cursor: 'pointer', fontSize: '13px', fontWeight: periodo === p.id ? 700 : 500,
                 background: periodo === p.id ? 'var(--gradient-brand)' : 'transparent',
-                color: periodo === p.id ? 'white' : 'var(--gray-500)',
+                color: periodo === p.id ? 'white' : (isDark ? 'var(--gray-600)' : 'var(--gray-500)'),
                 transition: 'all 0.2s',
                 boxShadow: periodo === p.id ? 'var(--shadow-brand)' : 'none',
               }}>
@@ -490,15 +499,20 @@ const Desempenho = () => {
             </button>
           ))}
         </div>
-        <div style={{ background: 'white', borderRadius: '12px', padding: '4px', border: '1px solid var(--gray-100)', display: 'flex', gap: '2px' }}>
+        <div style={{
+          background: isDark ? 'var(--surface-card)' : 'white',
+          borderRadius: '12px', padding: '4px',
+          border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+          display: 'flex', gap: '2px',
+        }}>
           {modos.map(m => (
             <button key={m.id}
               onClick={() => setModo(m.id)}
               style={{
                 padding: '7px 14px', border: 'none', borderRadius: '9px',
                 cursor: 'pointer', fontSize: '13px', fontWeight: modo === m.id ? 700 : 500,
-                background: modo === m.id ? 'var(--gray-800)' : 'transparent',
-                color: modo === m.id ? 'white' : 'var(--gray-500)',
+                background: modo === m.id ? (isDark ? 'var(--gray-700)' : 'var(--gray-800)') : 'transparent',
+                color: modo === m.id ? 'white' : (isDark ? 'var(--gray-600)' : 'var(--gray-500)'),
                 transition: 'all 0.2s',
               }}>
               {m.label}
@@ -511,7 +525,7 @@ const Desempenho = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
         {statCards.map((s, i) => (
           <div key={i} className="stat-enter" style={{ animationDelay: `${i * 60}ms` }}>
-            <StatCard {...s} />
+            <StatCard {...s} isDark={isDark} />
           </div>
         ))}
       </div>
@@ -519,8 +533,10 @@ const Desempenho = () => {
       {/* Seção Tabs */}
       <div style={{
         display: 'flex', gap: '4px', marginBottom: '20px',
-        background: 'white', borderRadius: '14px', padding: '5px',
-        border: '1px solid var(--gray-100)', width: 'fit-content',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        borderRadius: '14px', padding: '5px',
+        border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+        width: 'fit-content',
         boxShadow: 'var(--shadow-xs)',
       }}>
         {[
@@ -533,8 +549,8 @@ const Desempenho = () => {
             style={{
               padding: '8px 18px', border: 'none', borderRadius: '10px',
               cursor: 'pointer', fontSize: '13px', fontWeight: secao === s.id ? 700 : 500,
-              background: secao === s.id ? 'linear-gradient(135deg, #0f172a, #1e293b)' : 'transparent',
-              color: secao === s.id ? 'white' : 'var(--gray-500)',
+              background: secao === s.id ? (isDark ? 'linear-gradient(135deg, var(--gray-700), var(--gray-800))' : 'linear-gradient(135deg, #0f172a, #1e293b)') : 'transparent',
+              color: secao === s.id ? 'white' : (isDark ? 'var(--gray-600)' : 'var(--gray-500)'),
               transition: 'all 0.2s',
             }}>
             {s.label}
@@ -546,49 +562,46 @@ const Desempenho = () => {
       {secao === 'geral' && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <div className="card" style={{ padding: '22px' }}>
-              <BarChart dados={ultimos7} titulo="Últimos 7 dias" />
+            <div className="card" style={{ padding: '22px', background: isDark ? 'var(--surface-card)' : 'white' }}>
+              <BarChart dados={ultimos7} titulo="Últimos 7 dias" isDark={isDark} />
             </div>
-            <div className="card" style={{ padding: '22px' }}>
-              <BarChart dados={ultimos12} titulo="Últimos 12 meses" cor1="#10b981" cor2="#f97316" />
+            <div className="card" style={{ padding: '22px', background: isDark ? 'var(--surface-card)' : 'white' }}>
+              <BarChart dados={ultimos12} titulo="Últimos 12 meses" cor1="#10b981" cor2="#f97316" isDark={isDark} />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            {/* Taxa Geral */}
-            <div className="card" style={{ padding: '22px' }}>
+            <div className="card" style={{ padding: '22px', background: isDark ? 'var(--surface-card)' : 'white' }}>
               <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '18px' }}>
                 Taxa de Acerto Geral
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <DonutChart acertos={acertos} total={total} cor={corTaxa(Number(taxa))} />
+                <DonutChart acertos={acertos} total={total} cor={corTaxa(Number(taxa))} isDark={isDark} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
                     <span style={{ color: 'var(--gray-500)' }}>Acertos</span>
                     <span style={{ fontWeight: 700, color: '#10b981' }}>{acertos}</span>
                   </div>
-                  <div style={{ background: 'var(--gray-100)', height: '6px', borderRadius: '99px', marginBottom: '12px', overflow: 'hidden' }}>
+                  <div style={{ background: isDark ? 'var(--gray-200)' : 'var(--gray-100)', height: '6px', borderRadius: '99px', marginBottom: '12px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${taxa}%`, background: 'linear-gradient(90deg, #10b981, #059669)', borderRadius: '99px', transition: 'width 0.8s ease' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                     <span style={{ color: 'var(--gray-500)' }}>Erros</span>
                     <span style={{ fontWeight: 700, color: '#ef4444' }}>{erros}</span>
                   </div>
-                  <div style={{ background: 'var(--gray-100)', height: '6px', borderRadius: '99px', marginTop: '8px', overflow: 'hidden' }}>
+                  <div style={{ background: isDark ? 'var(--gray-200)' : 'var(--gray-100)', height: '6px', borderRadius: '99px', marginTop: '8px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${100 - Number(taxa)}%`, background: 'linear-gradient(90deg, #ef4444, #dc2626)', borderRadius: '99px', transition: 'width 0.8s ease' }} />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Activity Timeline */}
-            <div className="card" style={{ padding: '22px' }}>
+            <div className="card" style={{ padding: '22px', background: isDark ? 'var(--surface-card)' : 'white' }}>
               <ActivityTimeline resultados={resultados} />
             </div>
           </div>
 
-          {/* Comparativo por modo */}
-          <div className="card" style={{ padding: '22px' }}>
+          <div className="card" style={{ padding: '22px', background: isDark ? 'var(--surface-card)' : 'white' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>
               Comparativo por Modo de Estudo
             </p>
@@ -598,7 +611,7 @@ const Desempenho = () => {
                 return (
                   <ModoCard key={m.modo} label={m.label} emoji={m.emoji}
                     acertos={rs.filter(r => r.acertou).length}
-                    total={rs.length} cor={m.cor} bg={m.bg}
+                    total={rs.length} cor={m.cor} bg={m.bg} isDark={isDark}
                   />
                 );
               })}
@@ -609,7 +622,7 @@ const Desempenho = () => {
 
       {/* ── MATÉRIAS ── */}
       {secao === 'materias' && (
-        <div className="card" style={{ padding: '22px' }}>
+        <div className="card" style={{ padding: '22px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Desempenho por Matéria
@@ -627,7 +640,7 @@ const Desempenho = () => {
             </div>
           ) : (
             porMateria.map(({ materia, acertos: a, total: t }, i) => (
-              <ProgressRow key={materia} label={materia} acertos={a} total={t} emoji="📖" rank={i + 1} />
+              <ProgressRow key={materia} label={materia} acertos={a} total={t} emoji="📖" rank={i + 1} isDark={isDark} />
             ))
           )}
         </div>
@@ -652,22 +665,22 @@ const Desempenho = () => {
         return (
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
-              <StatCard emoji="📝" label="Questões" valor={totalS} sub="em simulados" cor="#6366f1" bg="#eef2ff" />
-              <StatCard emoji="✅" label="Acertos" valor={acertosS} sub="corretas" cor="#10b981" bg="#ecfdf5" />
-              <StatCard emoji="🎯" label="Taxa" valor={`${taxaS}%`} sub="aproveitamento" cor={corTaxa(Number(taxaS))} bg={corTaxaBg(Number(taxaS))} />
+              <StatCard emoji="📝" label="Questões" valor={totalS} sub="em simulados" cor="#6366f1" bg={isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff'} isDark={isDark} />
+              <StatCard emoji="✅" label="Acertos" valor={acertosS} sub="corretas" cor="#10b981" bg={isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5'} isDark={isDark} />
+              <StatCard emoji="🎯" label="Taxa" valor={`${taxaS}%`} sub="aproveitamento" cor={corTaxa(Number(taxaS))} bg={corTaxaBg(Number(taxaS), isDark)} isDark={isDark} />
             </div>
 
             {simList.length > 0 ? (
-              <div className="card" style={{ padding: '22px', marginBottom: '16px' }}>
+              <div className="card" style={{ padding: '22px', marginBottom: '16px', background: isDark ? 'var(--surface-card)' : 'white' }}>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>
                   Por Simulado
                 </p>
                 {simList.map((s, i) => (
-                  <ProgressRow key={s.nome} label={s.nome} acertos={s.acertos} total={s.total} emoji="📝" rank={i + 1} />
+                  <ProgressRow key={s.nome} label={s.nome} acertos={s.acertos} total={s.total} emoji="📝" rank={i + 1} isDark={isDark} />
                 ))}
               </div>
             ) : (
-              <div className="card">
+              <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
                 <div className="empty-state">
                   <div className="empty-state-icon">📝</div>
                   <p className="empty-state-title">Nenhum simulado realizado</p>
@@ -676,14 +689,13 @@ const Desempenho = () => {
               </div>
             )}
 
-            {/* Simulados vs outros modos */}
-            <div className="card" style={{ padding: '22px' }}>
+            <div className="card" style={{ padding: '22px', background: isDark ? 'var(--surface-card)' : 'white' }}>
               <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gray-600)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>
                 Comparativo de Modos
               </p>
               {modoCards.map(m => {
                 const rs = filtrarPorPeriodo(resultados, periodo).filter(r => r.modo === m.modo);
-                return <ProgressRow key={m.modo} label={m.label} acertos={rs.filter(r => r.acertou).length} total={rs.length} emoji={m.emoji} />;
+                return <ProgressRow key={m.modo} label={m.label} acertos={rs.filter(r => r.acertou).length} total={rs.length} emoji={m.emoji} isDark={isDark} />;
               })}
             </div>
           </div>

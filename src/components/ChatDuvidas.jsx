@@ -1,4 +1,6 @@
+// src/components/ChatDuvidas.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useDark } from '../hooks/useDark';
 
 /**
  * ChatDuvidas — fix #7
@@ -63,7 +65,7 @@ const chamarGroqStream = async (mensagens, apiKey, onChunk) => {
   }
 };
 
-const Bolha = ({ msg }) => {
+const Bolha = ({ msg, isDark }) => {
   const ehUsuario = msg.role === 'user';
   return (
     <div style={{
@@ -85,8 +87,8 @@ const Bolha = ({ msg }) => {
         maxWidth: '80%',
         background: ehUsuario
           ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
-          : 'white',
-        color: ehUsuario ? 'white' : 'var(--gray-800)',
+          : isDark ? 'var(--surface-card)' : 'white',
+        color: ehUsuario ? 'white' : (isDark ? 'var(--gray-800)' : 'var(--gray-800)'),
         padding: '12px 16px',
         borderRadius: ehUsuario
           ? 'var(--r-xl) var(--r-xl) 4px var(--r-xl)'
@@ -94,7 +96,7 @@ const Bolha = ({ msg }) => {
         fontSize: '14px',
         lineHeight: '1.7',
         boxShadow: ehUsuario ? 'var(--shadow-brand)' : 'var(--shadow-sm)',
-        border: ehUsuario ? 'none' : '1px solid var(--gray-100)',
+        border: ehUsuario ? 'none' : (isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)'),
         whiteSpace: 'pre-wrap',
       }}>
         {msg.content}
@@ -110,7 +112,7 @@ const Bolha = ({ msg }) => {
       {ehUsuario && (
         <div style={{
           width: '32px', height: '32px', borderRadius: '50%',
-          background: 'var(--gray-200)',
+          background: isDark ? 'var(--gray-300)' : 'var(--gray-200)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '16px', flexShrink: 0,
         }}>👤</div>
@@ -134,6 +136,7 @@ const ChatDuvidas = () => {
   const [erro, setErro]             = useState('');
   const fimRef   = useRef(null);
   const inputRef = useRef(null);
+  const isDark = useDark();
 
   // ✅ FIX #7: ref para capturar o índice correto da bolha de assistente
   // mesmo se o React ainda não confirmou o setState da mensagem anterior.
@@ -237,15 +240,18 @@ const ChatDuvidas = () => {
 
       <div style={{
         flex: 1, overflowY: 'auto',
-        background: 'white', borderRadius: 'var(--r-xl)',
-        border: '1px solid var(--gray-100)', boxShadow: 'var(--shadow-sm)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        borderRadius: 'var(--r-xl)',
+        border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+        boxShadow: 'var(--shadow-sm)',
         padding: '20px', marginBottom: '12px',
         display: 'flex', flexDirection: 'column',
       }}>
         {mensagens.length === 0 ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>💬</div>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--gray-700)', marginBottom: '8px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: isDark ? 'var(--gray-600)' : 'var(--gray-700)', marginBottom: '8px' }}>
               Como posso te ajudar?
             </h3>
             <p style={{ color: 'var(--gray-400)', fontSize: '14px', marginBottom: '24px', textAlign: 'center' }}>
@@ -257,13 +263,16 @@ const ChatDuvidas = () => {
                   key={i}
                   onClick={() => enviar(s)}
                   style={{
-                    padding: '8px 14px', background: 'var(--brand-50)',
-                    border: '1.5px solid var(--brand-200)', borderRadius: 'var(--r-full)',
-                    color: 'var(--brand-600)', fontSize: '13px', fontWeight: 600,
+                    padding: '8px 14px',
+                    background: isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)',
+                    border: isDark ? '1.5px solid rgba(99,102,241,0.3)' : '1.5px solid var(--brand-200)',
+                    borderRadius: 'var(--r-full)',
+                    color: isDark ? '#a5b4fc' : 'var(--brand-600)',
+                    fontSize: '13px', fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-100)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-50)'}
+                  onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.25)' : 'var(--brand-100)'}
+                  onMouseLeave={e => e.currentTarget.style.background = isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)'}
                 >
                   {s}
                 </button>
@@ -272,7 +281,7 @@ const ChatDuvidas = () => {
           </div>
         ) : (
           <>
-            {mensagens.map((m, i) => <Bolha key={i} msg={m} />)}
+            {mensagens.map((m, i) => <Bolha key={i} msg={m} isDark={isDark} />)}
             <div ref={fimRef} />
           </>
         )}
@@ -280,9 +289,11 @@ const ChatDuvidas = () => {
 
       {erro && (
         <div style={{
-          background: '#fef2f2', border: '1px solid #fecaca',
+          background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+          border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca',
           borderRadius: 'var(--r-md)', padding: '10px 14px',
-          color: '#b91c1c', fontSize: '13px', marginBottom: '10px',
+          color: isDark ? '#fca5a5' : '#b91c1c',
+          fontSize: '13px', marginBottom: '10px',
         }}>
           ⚠️ {erro}
         </div>
@@ -290,8 +301,10 @@ const ChatDuvidas = () => {
 
       <div style={{
         display: 'flex', gap: '10px',
-        background: 'white', padding: '12px 16px',
-        borderRadius: 'var(--r-xl)', border: '1.5px solid var(--gray-200)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        padding: '12px 16px',
+        borderRadius: 'var(--r-xl)',
+        border: isDark ? '1.5px solid var(--gray-300)' : '1.5px solid var(--gray-200)',
         boxShadow: 'var(--shadow-sm)',
         alignItems: 'flex-end',
       }}>
@@ -310,7 +323,8 @@ const ChatDuvidas = () => {
           style={{
             flex: 1, resize: 'none', border: 'none', outline: 'none',
             fontFamily: 'var(--font-body)', fontSize: '14px',
-            color: 'var(--gray-800)', background: 'transparent',
+            color: isDark ? 'var(--gray-800)' : 'var(--gray-800)',
+            background: 'transparent',
             maxHeight: '120px', lineHeight: '1.6',
           }}
           onInput={e => {
@@ -325,7 +339,7 @@ const ChatDuvidas = () => {
           style={{
             width: '40px', height: '40px', flexShrink: 0,
             background: input.trim() && !carregando
-              ? 'var(--gradient-brand)' : 'var(--gray-100)',
+              ? 'var(--gradient-brand)' : (isDark ? 'var(--gray-200)' : 'var(--gray-100)'),
             border: 'none', borderRadius: 'var(--r-md)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: input.trim() && !carregando ? 'pointer' : 'not-allowed',

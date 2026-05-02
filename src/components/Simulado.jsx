@@ -1,3 +1,4 @@
+// src/components/Simulado.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { FileText, Timer, Flag, RotateCcw, Shuffle, Hand, ClipboardList, Play, Trash2, BookOpen } from 'lucide-react';
@@ -5,6 +6,7 @@ import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
+import { useDark } from '../hooks/useDark';
 
 const fmtTempo = (s) => {
   const m  = Math.floor(s / 60).toString().padStart(2, '0');
@@ -34,6 +36,7 @@ const Simulado = () => {
   const salvandoRef = useRef(false);
   const restauradoRef = useRef(false);
   const STORAGE_KEY_SIM = 'cortexlab_simulado_sessao';
+  const isDark = useDark();
 
   const { filtros, setFiltro, opcoes, filtradas, resetar } = useQuestaoFilters(todasQuestoes, {
     includeCurriculo: false,
@@ -182,18 +185,18 @@ const Simulado = () => {
     return (
       <div>
         <div className="page-header"><h2 className="page-title">Resultado</h2></div>
-        <div className="card" style={{ maxWidth: '560px', margin: '0 auto', textAlign: 'center', padding: '40px' }}>
+        <div className="card" style={{ maxWidth: '560px', margin: '0 auto', textAlign: 'center', padding: '40px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏁</div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, marginBottom: '6px' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, marginBottom: '6px', color: isDark ? 'var(--gray-900)' : 'inherit' }}>
             {simAtual?.nome}
           </h2>
           <p style={{ color: 'var(--gray-400)', marginBottom: '32px', fontSize: '14px' }}>Simulado concluído</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '32px' }}>
             {[
-              { label: 'Acertos', valor: acertos,               cor: '#10b981', bg: '#ecfdf5' },
-              { label: 'Erros',   valor: sessaoQ.length - acertos, cor: '#ef4444', bg: '#fef2f2' },
-              { label: 'Taxa',    valor: `${taxa}%`,             cor: corT,      bg: corT + '15' },
+              { label: 'Acertos', valor: acertos,               cor: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5' },
+              { label: 'Erros',   valor: sessaoQ.length - acertos, cor: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2' },
+              { label: 'Taxa',    valor: `${taxa}%`,             cor: corT,      bg: isDark ? `${corT}20` : corT + '15' },
             ].map(s => (
               <div key={s.label} style={{ background: s.bg, borderRadius: 'var(--r-lg)', padding: '18px' }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 800, color: s.cor }}>{s.valor}</div>
@@ -212,20 +215,21 @@ const Simulado = () => {
           </div>
 
           {questoesNaoResp.length > 0 && (
-            <div style={{ marginTop: '32px', textAlign: 'left', borderTop: '1px solid var(--gray-200)', paddingTop: '24px' }}>
+            <div style={{ marginTop: '32px', textAlign: 'left', borderTop: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-200)', paddingTop: '24px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#92400e' }}>
                 ⬜ Não respondidas ({questoesNaoResp.length})
               </h3>
               {questoesNaoResp.map((q, i) => (
                 <div key={q.id} style={{
                   marginBottom: '12px', padding: '14px 16px',
-                  background: '#fffbeb', borderRadius: 'var(--r-lg)',
-                  border: '1px solid #fde68a',
+                  background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb',
+                  borderRadius: 'var(--r-lg)',
+                  border: isDark ? '1px solid rgba(245,158,11,0.25)' : '1px solid #fde68a',
                 }}>
-                  <p style={{ fontWeight: 700, marginBottom: '6px', fontSize: '13px', color: '#78350f' }}>
+                  <p style={{ fontWeight: 700, marginBottom: '6px', fontSize: '13px', color: isDark ? '#fcd34d' : '#78350f' }}>
                     Questão {i + 1 + questoesErradas.length}: {q.comando?.substring(0, 100)}{q.comando?.length > 100 ? '…' : ''}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#92400e' }}>
+                  <p style={{ fontSize: '12px', color: isDark ? '#fcd34d' : '#92400e' }}>
                     Gabarito: <strong>{q.gabarito}</strong>
                   </p>
                 </div>
@@ -234,7 +238,7 @@ const Simulado = () => {
           )}
 
           {questoesErradas.length > 0 && (
-            <div style={{ marginTop: '32px', textAlign: 'left', borderTop: questoesNaoResp.length > 0 ? 'none' : '1px solid var(--gray-200)', paddingTop: '24px' }}>
+            <div style={{ marginTop: '32px', textAlign: 'left', borderTop: questoesNaoResp.length > 0 ? 'none' : isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-200)', paddingTop: '24px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <BookOpen size={18} /> Questões que você errou ({questoesErradas.length})
               </h3>
@@ -243,13 +247,14 @@ const Simulado = () => {
                 return (
                   <div key={q.id} style={{
                     marginBottom: '20px', padding: '16px',
-                    background: '#fef2f2', borderRadius: 'var(--r-lg)',
-                    border: '1px solid #fecaca',
+                    background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                    borderRadius: 'var(--r-lg)',
+                    border: isDark ? '1px solid rgba(239,68,68,0.25)' : '1px solid #fecaca',
                   }}>
-                    <p style={{ fontWeight: 700, marginBottom: '8px', fontSize: '13px', color: '#991b1b' }}>
+                    <p style={{ fontWeight: 700, marginBottom: '8px', fontSize: '13px', color: isDark ? '#fca5a5' : '#991b1b' }}>
                       Questão {i + 1}: {q.comando?.substring(0, 100)}{q.comando?.length > 100 ? '…' : ''}
                     </p>
-                    <p style={{ fontSize: '12px', color: '#b91c1c', marginBottom: '10px' }}>
+                    <p style={{ fontSize: '12px', color: isDark ? '#fca5a5' : '#b91c1c', marginBottom: '10px' }}>
                       Sua resposta: <strong>{respostaErrada}</strong>
                       {' · '}
                       Correto: <strong>{q.gabarito}</strong>
@@ -296,12 +301,15 @@ const Simulado = () => {
         {/* Barra de status */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'white', padding: '12px 20px', borderRadius: 'var(--r-xl)',
+          background: isDark ? 'var(--surface-card)' : 'white',
+          color: isDark ? 'var(--gray-800)' : 'inherit',
+          padding: '12px 20px', borderRadius: 'var(--r-xl)',
           marginBottom: '16px', boxShadow: 'var(--shadow-sm)',
-          border: '1px solid var(--gray-100)', flexWrap: 'wrap', gap: '10px',
+          border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+          flexWrap: 'wrap', gap: '10px',
         }}>
           <div style={{ display: 'flex', gap: '18px', fontSize: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, color: 'var(--gray-700)' }}>{simAtual?.nome}</span>
+            <span style={{ fontWeight: 700, color: isDark ? 'var(--gray-700)' : 'var(--gray-700)' }}>{simAtual?.nome}</span>
             <span style={{ color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <FileText size={14} /> <strong>{respondidas}</strong>/{sessaoQ.length} respondidas
             </span>
@@ -318,8 +326,10 @@ const Simulado = () => {
             <button
               onClick={() => { if (window.confirm('Encerrar o simulado agora?')) encerrarSimulado(); }}
               style={{
-                padding: '8px 16px', background: '#fef2f2',
-                border: '1.5px solid #fecaca', borderRadius: 'var(--r-md)',
+                padding: '8px 16px',
+                background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+                border: isDark ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid #fecaca',
+                borderRadius: 'var(--r-md)',
                 color: '#dc2626', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '6px',
               }}
@@ -338,8 +348,11 @@ const Simulado = () => {
           {/* Painel lateral */}
           <div style={{
             position: 'sticky', top: '16px', width: '176px', flexShrink: 0,
-            background: 'white', borderRadius: 'var(--r-xl)', padding: '16px',
-            boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)',
+            background: isDark ? 'var(--surface-card)' : 'white',
+            color: isDark ? 'var(--gray-800)' : 'inherit',
+            borderRadius: 'var(--r-xl)', padding: '16px',
+            boxShadow: 'var(--shadow-sm)',
+            border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
             maxHeight: 'calc(100vh - 160px)', overflowY: 'auto',
           }}>
             <p style={{
@@ -359,9 +372,9 @@ const Simulado = () => {
                     title={respondida ? 'Respondida' : 'Pendente'}
                     style={{
                       width: '34px', height: '34px', borderRadius: 'var(--r-md)',
-                      border: `2px solid ${atual ? 'var(--brand-500)' : respondida ? 'var(--accent-green)' : 'var(--gray-200)'}`,
-                      background: atual ? 'var(--brand-50)' : respondida ? '#ecfdf5' : 'white',
-                      color: atual ? 'var(--brand-600)' : respondida ? '#065f46' : 'var(--gray-500)',
+                      border: `2px solid ${atual ? 'var(--brand-500)' : respondida ? 'var(--accent-green)' : (isDark ? 'var(--gray-300)' : 'var(--gray-200)')}`,
+                      background: atual ? (isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)') : respondida ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : (isDark ? 'var(--gray-100)' : 'white'),
+                      color: atual ? 'var(--brand-600)' : respondida ? '#065f46' : (isDark ? 'var(--gray-500)' : 'var(--gray-500)'),
                       fontWeight: atual || respondida ? 700 : 400,
                       fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s',
                     }}
@@ -371,13 +384,13 @@ const Simulado = () => {
                 );
               })}
             </div>
-            <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <div style={{ borderTop: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <span style={{ fontSize: '11px', color: '#065f46', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ecfdf5', border: '2px solid var(--accent-green)', display: 'inline-block' }} />
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5', border: '2px solid var(--accent-green)', display: 'inline-block' }} />
                 Respondida ({respondidas})
               </span>
               <span style={{ fontSize: '11px', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'white', border: '2px solid var(--gray-200)', display: 'inline-block' }} />
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: isDark ? 'var(--gray-100)' : 'white', border: isDark ? '2px solid var(--gray-300)' : '2px solid var(--gray-200)', display: 'inline-block' }} />
                 Pendente ({sessaoQ.length - respondidas})
               </span>
             </div>
@@ -411,10 +424,13 @@ const Simulado = () => {
                 )}
 
                 <div style={{
-                  background: '#fffbeb', padding: '12px 16px',
+                  background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb',
+                  padding: '12px 16px',
                   borderLeft: '3px solid var(--accent-amber)',
                   borderRadius: '0 var(--r-md) var(--r-md) 0',
-                  marginBottom: '18px', color: '#92400e', fontSize: '14px', fontWeight: 500,
+                  marginBottom: '18px',
+                  color: isDark ? '#fcd34d' : '#92400e',
+                  fontSize: '14px', fontWeight: 500,
                 }}>
                   {q.comando}
                 </div>
@@ -489,7 +505,7 @@ const Simulado = () => {
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: '16px' }}>
+        <div className="card" style={{ marginBottom: '16px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <p className="section-title">Informações</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
             <div>
@@ -515,7 +531,7 @@ const Simulado = () => {
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: '16px' }}>
+        <div className="card" style={{ marginBottom: '16px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <p className="section-title">Modo de seleção</p>
           <div className="tab-group" style={{ marginBottom: '20px' }}>
             <button
@@ -570,9 +586,10 @@ const Simulado = () => {
                 {selecionadas.size > 0 && (
                   <span style={{
                     fontSize: '13px', fontWeight: 700,
-                    color: 'var(--brand-600)', background: 'var(--brand-50)',
+                    color: 'var(--brand-600)',
+                    background: isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)',
                     padding: '4px 12px', borderRadius: 'var(--r-full)',
-                    border: '1px solid var(--brand-200)',
+                    border: isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--brand-200)',
                   }}>
                     {selecionadas.size} selecionada(s)
                   </span>
@@ -580,7 +597,7 @@ const Simulado = () => {
               </div>
 
               {filtradas.length > 0 && (
-                <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 'var(--r-lg)' }}>
+                <div style={{ maxHeight: '320px', overflowY: 'auto', border: isDark ? '1px solid var(--gray-300)' : '1px solid var(--gray-200)', borderRadius: 'var(--r-lg)' }}>
                   {filtradas.map((q, i) => {
                     const sel = selecionadas.has(q.id);
                     return (
@@ -596,15 +613,15 @@ const Simulado = () => {
                         style={{
                           display: 'flex', gap: '12px', alignItems: 'flex-start',
                           padding: '12px 16px',
-                          background: sel ? 'var(--brand-50)' : i % 2 === 0 ? 'white' : 'var(--gray-50)',
-                          borderBottom: '1px solid var(--gray-100)',
+                          background: sel ? (isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)') : (i % 2 === 0 ? (isDark ? 'var(--surface-card)' : 'white') : (isDark ? 'var(--gray-100)' : 'var(--gray-50)')),
+                          borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
                           cursor: 'pointer', transition: 'background 0.1s',
                         }}
                       >
                         <span style={{
                           width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0, marginTop: '2px',
-                          border: `2px solid ${sel ? 'var(--brand-500)' : 'var(--gray-300)'}`,
-                          background: sel ? 'var(--brand-500)' : 'white',
+                          border: `2px solid ${sel ? 'var(--brand-500)' : (isDark ? 'var(--gray-400)' : 'var(--gray-300)')}`,
+                          background: sel ? 'var(--brand-500)' : (isDark ? 'var(--gray-100)' : 'white'),
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                           {sel && (
@@ -614,7 +631,7 @@ const Simulado = () => {
                           )}
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '13px', color: 'var(--gray-700)', marginBottom: '3px', fontWeight: sel ? 600 : 400 }}>
+                          <p style={{ fontSize: '13px', color: isDark ? 'var(--gray-700)' : 'var(--gray-700)', marginBottom: '3px', fontWeight: sel ? 600 : 400 }}>
                             {q.comando?.substring(0, 100)}{q.comando?.length > 100 ? '…' : ''}
                           </p>
                           <span style={{ fontSize: '11px', color: 'var(--gray-400)' }}>
@@ -657,7 +674,7 @@ const Simulado = () => {
       </div>
 
       {simulados.length === 0 ? (
-        <div className="card">
+        <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div className="empty-state">
             <div className="empty-state-icon">📝</div>
             <p className="empty-state-title">Nenhum simulado criado</p>
@@ -671,12 +688,12 @@ const Simulado = () => {
             <div
               key={sim.id}
               className="card"
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: isDark ? 'var(--surface-card)' : 'white' }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h3 style={{
                   fontFamily: 'var(--font-display)', fontSize: '16px',
-                  fontWeight: 700, color: 'var(--gray-900)', marginBottom: '4px',
+                  fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'var(--gray-900)', marginBottom: '4px',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
                   {sim.nome}
@@ -704,8 +721,10 @@ const Simulado = () => {
                     if (window.confirm(`Remover "${sim.nome}"?`)) deletarSimulado(sim.id);
                   }}
                   style={{
-                    padding: '8px 12px', background: '#fef2f2',
-                    border: '1.5px solid #fecaca', borderRadius: 'var(--r-md)',
+                    padding: '8px 12px',
+                    background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+                    border: isDark ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid #fecaca',
+                    borderRadius: 'var(--r-md)',
                     color: '#dc2626', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}

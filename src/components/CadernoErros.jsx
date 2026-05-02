@@ -1,3 +1,4 @@
+// src/components/CadernoErros.jsx
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
@@ -5,6 +6,7 @@ import { Eye, Brain, Trash2, BookOpen, X, Loader2 } from 'lucide-react';
 import { db } from '../database';
 import { estadoInicial } from './sm2';
 import ProgressBar from './ProgressBar';
+import { useDark } from '../hooks/useDark';
 
 const formatarData = (dataStr) => {
   if (!dataStr) return '—';
@@ -13,8 +15,6 @@ const formatarData = (dataStr) => {
   } catch { return '—'; }
 };
 
-const ITEM_HEIGHT = 170;
-
 /* ─── Card de questão ─── */
 const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdicionarRevisao, onRemover, onPreview }) => {
   const q         = questao;
@@ -22,44 +22,51 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
   const taxaErro  = q.meta.totalErros;
   const adicionando = adicionandoSM2.has(idStr);
   const removendoQ  = removendo.has(idStr);
+  const isDark = useDark();
 
   return (
     <div
       style={{
-        background: 'white', border: '1.5px solid var(--gray-100)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        border: isDark ? '1px solid var(--gray-200)' : '1.5px solid var(--gray-100)',
         borderRadius: 'var(--r-lg)', padding: '16px',
         transition: 'box-shadow 0.15s',
         boxSizing: 'border-box',
       }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = isDark ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.08)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
     >
       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
         <div style={{
           flexShrink: 0, width: '44px', height: '44px',
-          background: '#fef2f2', border: '2px solid #fecaca',
+          background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+          border: isDark ? '2px solid rgba(239,68,68,0.4)' : '2px solid #fecaca',
           borderRadius: 'var(--r-md)',
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
         }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '16px', color: '#dc2626', lineHeight: 1 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '16px', color: isDark ? '#fca5a5' : '#dc2626', lineHeight: 1 }}>
             {taxaErro}
           </span>
-          <span style={{ fontSize: '9px', color: '#ef4444', fontWeight: 600 }}>erro{taxaErro !== 1 ? 's' : ''}</span>
+          <span style={{ fontSize: '9px', color: isDark ? '#f87171' : '#ef4444', fontWeight: 600 }}>erro{taxaErro !== 1 ? 's' : ''}</span>
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '6px' }}>
             {[q.banca, q.ano, q.materia, q.topico].filter(Boolean).map((v, i) => (
               <span key={i} style={{
-                background: 'var(--brand-50)', color: 'var(--brand-600)',
+                background: isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)',
+                color: isDark ? '#a5b4fc' : 'var(--brand-600)',
                 borderRadius: '99px', padding: '1px 8px',
-                fontSize: '10px', fontWeight: 600, border: '1px solid var(--brand-200)',
+                fontSize: '10px', fontWeight: 600,
+                border: isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--brand-200)',
               }}>{v}</span>
             ))}
             {q.meta.modos?.map(m => (
               <span key={m} style={{
-                background: 'var(--gray-100)', color: 'var(--gray-500)',
+                background: isDark ? 'var(--gray-200)' : 'var(--gray-100)',
+                color: isDark ? 'var(--gray-600)' : 'var(--gray-500)',
                 borderRadius: '99px', padding: '1px 8px',
                 fontSize: '10px', fontWeight: 600,
               }}>{m}</span>
@@ -70,7 +77,7 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
           </div>
 
           <p style={{
-            fontSize: '13px', color: 'var(--gray-700)',
+            fontSize: '13px', color: isDark ? 'var(--gray-700)' : 'var(--gray-700)',
             lineHeight: '1.5', marginBottom: '10px',
             overflow: 'hidden', display: '-webkit-box',
             WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -86,9 +93,12 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
             <button
               onClick={() => onPreview(q)}
               style={{
-                padding: '5px 12px', background: 'var(--gray-50)',
-                border: '1px solid var(--gray-200)', borderRadius: 'var(--r-md)',
-                fontSize: '12px', color: 'var(--gray-600)', cursor: 'pointer', fontWeight: 500,
+                padding: '5px 12px',
+                background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
+                border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-200)',
+                borderRadius: 'var(--r-md)',
+                fontSize: '12px', color: isDark ? 'var(--gray-600)' : 'var(--gray-600)',
+                cursor: 'pointer', fontWeight: 500,
                 display: 'flex', alignItems: 'center', gap: '5px',
               }}
             >
@@ -101,9 +111,10 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
                 disabled={adicionando}
                 style={{
                   padding: '5px 12px',
-                  background: 'linear-gradient(135deg, var(--brand-50), #eef2ff)',
-                  border: '1px solid var(--brand-200)', borderRadius: 'var(--r-md)',
-                  fontSize: '12px', color: 'var(--brand-600)',
+                  background: isDark ? 'rgba(99,102,241,0.12)' : 'linear-gradient(135deg, var(--brand-50), #eef2ff)',
+                  border: isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--brand-200)',
+                  borderRadius: 'var(--r-md)',
+                  fontSize: '12px', color: isDark ? '#a5b4fc' : 'var(--brand-600)',
                   cursor: adicionando ? 'wait' : 'pointer', fontWeight: 600,
                   display: 'flex', alignItems: 'center', gap: '5px',
                 }}
@@ -115,9 +126,12 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
               </button>
             ) : (
               <span style={{
-                padding: '5px 12px', background: '#f0fdf4',
-                border: '1px solid #bbf7d0', borderRadius: 'var(--r-md)',
-                fontSize: '12px', color: '#059669', fontWeight: 600,
+                padding: '5px 12px',
+                background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4',
+                border: isDark ? '1px solid rgba(16,185,129,0.3)' : '1px solid #bbf7d0',
+                borderRadius: 'var(--r-md)',
+                fontSize: '12px', color: isDark ? '#6ee7b7' : '#059669',
+                fontWeight: 600,
               }}>✓ Na Revisão Espaçada</span>
             )}
 
@@ -126,9 +140,11 @@ const CardQuestao = React.memo(({ questao, adicionandoSM2, removendo, onAdiciona
               disabled={removendoQ}
               title="Remove esta questão do caderno de erros"
               style={{
-                padding: '5px 12px', background: '#fef2f2',
-                border: '1px solid #fecaca', borderRadius: 'var(--r-md)',
-                fontSize: '12px', color: '#dc2626',
+                padding: '5px 12px',
+                background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+                border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca',
+                borderRadius: 'var(--r-md)',
+                fontSize: '12px', color: isDark ? '#fca5a5' : '#dc2626',
                 cursor: removendoQ ? 'wait' : 'pointer', fontWeight: 600,
                 marginLeft: 'auto',
                 display: 'flex', alignItems: 'center', gap: '5px',
@@ -157,6 +173,7 @@ const CadernoErros = ({ onFechar }) => {
   const [preview, setPreview]                 = useState(null);
   const [adicionandoSM2, setAdicionandoSM2]   = useState(new Set());
   const [removendo, setRemovendo]             = useState(new Set());
+  const isDark = useDark();
 
   useEffect(() => { carregarErros(); }, []);
 
@@ -306,20 +323,22 @@ const CadernoErros = ({ onFechar }) => {
       zIndex: 9999, padding: '16px',
     }}>
       <div style={{
-        background: 'white', borderRadius: 'var(--r-2xl)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        borderRadius: 'var(--r-2xl)',
         width: '100%', maxWidth: '900px', height: '85vh', minHeight: '500px',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
-        border: '1px solid var(--gray-100)',
+        border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
       }}>
 
         {/* Header */}
         <div style={{
           padding: '22px 28px 18px',
-          borderBottom: '1px solid var(--gray-100)',
+          borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           flexShrink: 0,
-          background: 'linear-gradient(135deg, #fef2f2 0%, white 50%)',
+          background: isDark ? 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, var(--surface-card) 50%)' : 'linear-gradient(135deg, #fef2f2 0%, white 50%)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
@@ -331,7 +350,7 @@ const CadernoErros = ({ onFechar }) => {
               <BookOpen size={22} color="white" />
             </div>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--gray-900)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>
                 Caderno de Erros
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginTop: '1px' }}>
@@ -347,8 +366,10 @@ const CadernoErros = ({ onFechar }) => {
 
         {/* Filtros */}
         <div style={{
-          padding: '12px 28px', borderBottom: '1px solid var(--gray-100)',
-          display: 'flex', gap: '10px', flexShrink: 0, background: 'var(--gray-50)',
+          padding: '12px 28px',
+          borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+          display: 'flex', gap: '10px', flexShrink: 0,
+          background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
           flexWrap: 'wrap',
         }}>
           <select
@@ -356,8 +377,10 @@ const CadernoErros = ({ onFechar }) => {
             onChange={e => setFiltroMateria(e.target.value)}
             style={{
               padding: '6px 12px', borderRadius: 'var(--r-md)',
-              border: '1px solid var(--gray-200)', background: 'white',
-              fontSize: '13px', color: 'var(--gray-700)', cursor: 'pointer',
+              border: isDark ? '1px solid var(--gray-300)' : '1px solid var(--gray-200)',
+              background: isDark ? 'var(--surface-card)' : 'white',
+              color: isDark ? 'var(--gray-700)' : 'var(--gray-700)',
+              fontSize: '13px', cursor: 'pointer',
             }}
           >
             <option value="">Todas as matérias</option>
@@ -369,8 +392,10 @@ const CadernoErros = ({ onFechar }) => {
             onChange={e => setFiltroModo(e.target.value)}
             style={{
               padding: '6px 12px', borderRadius: 'var(--r-md)',
-              border: '1px solid var(--gray-200)', background: 'white',
-              fontSize: '13px', color: 'var(--gray-700)', cursor: 'pointer',
+              border: isDark ? '1px solid var(--gray-300)' : '1px solid var(--gray-200)',
+              background: isDark ? 'var(--surface-card)' : 'white',
+              color: isDark ? 'var(--gray-700)' : 'var(--gray-700)',
+              fontSize: '13px', cursor: 'pointer',
             }}
           >
             <option value="">Todos os modos</option>
@@ -385,8 +410,10 @@ const CadernoErros = ({ onFechar }) => {
             onChange={e => setOrdenacao(e.target.value)}
             style={{
               padding: '6px 12px', borderRadius: 'var(--r-md)',
-              border: '1px solid var(--gray-200)', background: 'white',
-              fontSize: '13px', color: 'var(--gray-700)', cursor: 'pointer',
+              border: isDark ? '1px solid var(--gray-300)' : '1px solid var(--gray-200)',
+              background: isDark ? 'var(--surface-card)' : 'white',
+              color: isDark ? 'var(--gray-700)' : 'var(--gray-700)',
+              fontSize: '13px', cursor: 'pointer',
             }}
           >
             <option value="recente">Mais recente</option>
@@ -399,8 +426,10 @@ const CadernoErros = ({ onFechar }) => {
             onChange={e => setFiltroPeriodo(e.target.value)}
             style={{
               padding: '6px 12px', borderRadius: 'var(--r-md)',
-              border: '1px solid var(--gray-200)', background: 'white',
-              fontSize: '13px', color: 'var(--gray-700)', cursor: 'pointer',
+              border: isDark ? '1px solid var(--gray-300)' : '1px solid var(--gray-200)',
+              background: isDark ? 'var(--surface-card)' : 'white',
+              color: isDark ? 'var(--gray-700)' : 'var(--gray-700)',
+              fontSize: '13px', cursor: 'pointer',
             }}
           >
             <option value="">Todos os períodos</option>
@@ -412,8 +441,10 @@ const CadernoErros = ({ onFechar }) => {
             <button
               onClick={() => { setFiltroMateria(''); setFiltroModo(''); setFiltroPeriodo(''); setOrdenacao('recente'); }}
               style={{
-                padding: '6px 12px', background: 'white',
-                border: '1px solid var(--gray-200)', borderRadius: 'var(--r-md)',
+                padding: '6px 12px',
+                background: isDark ? 'var(--surface-card)' : 'white',
+                border: isDark ? '1px solid var(--gray-300)' : '1px solid var(--gray-200)',
+                borderRadius: 'var(--r-md)',
                 fontSize: '12px', color: 'var(--gray-500)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '4px',
               }}
@@ -436,7 +467,7 @@ const CadernoErros = ({ onFechar }) => {
           {!carregando && questoesFiltradas.length === 0 && (
             <div style={{ textAlign: 'center', padding: '64px 32px' }}>
               <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '18px', color: 'var(--gray-700)', marginBottom: '8px' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '18px', color: isDark ? 'var(--gray-600)' : 'var(--gray-700)', marginBottom: '8px' }}>
                 {questoesErradas.length === 0 ? 'Nenhum erro registrado ainda!' : 'Nenhuma questão com esse filtro'}
               </h3>
               <p style={{ color: 'var(--gray-400)', fontSize: '14px' }}>
@@ -478,7 +509,9 @@ const CadernoErros = ({ onFechar }) => {
         >
           <div
             style={{
-              background: 'white', borderRadius: 'var(--r-2xl)',
+              background: isDark ? 'var(--surface-card)' : 'white',
+              color: isDark ? 'var(--gray-800)' : 'inherit',
+              borderRadius: 'var(--r-2xl)',
               width: '100%', maxWidth: '640px', maxHeight: '85vh',
               overflow: 'hidden', display: 'flex', flexDirection: 'column',
               boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
@@ -486,7 +519,8 @@ const CadernoErros = ({ onFechar }) => {
             onClick={e => e.stopPropagation()}
           >
             <div style={{
-              padding: '16px 20px', borderBottom: '1px solid var(--gray-100)',
+              padding: '16px 20px',
+              borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               flexShrink: 0,
             }}>
@@ -498,15 +532,18 @@ const CadernoErros = ({ onFechar }) => {
 
             <div style={{ overflowY: 'auto', padding: '20px', flex: 1 }}>
               {preview.enunciado && (
-                <p style={{ fontSize: '14px', color: 'var(--gray-700)', lineHeight: '1.7', marginBottom: '12px' }}>
+                <p style={{ fontSize: '14px', color: isDark ? 'var(--gray-700)' : 'var(--gray-700)', lineHeight: '1.7', marginBottom: '12px' }}>
                   {preview.enunciado}
                 </p>
               )}
               {preview.comando && (
                 <div style={{
-                  background: '#fffbeb', borderLeft: '3px solid #f59e0b',
+                  background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb',
+                  borderLeft: '3px solid #f59e0b',
                   padding: '10px 14px', borderRadius: '0 var(--r-md) var(--r-md) 0',
-                  marginBottom: '16px', fontSize: '13px', color: '#92400e', fontWeight: 500,
+                  marginBottom: '16px', fontSize: '13px',
+                  color: isDark ? '#fcd34d' : '#92400e',
+                  fontWeight: 500,
                 }}>
                   {preview.comando}
                 </div>
@@ -520,12 +557,12 @@ const CadernoErros = ({ onFechar }) => {
                   <div key={lt} style={{
                     display: 'flex', gap: '10px', padding: '9px 12px',
                     borderRadius: 'var(--r-md)', marginBottom: '6px',
-                    background: correta ? 'rgba(16,185,129,0.08)' : 'var(--gray-50)',
-                    border: `1.5px solid ${correta ? '#6ee7b7' : 'var(--gray-100)'}`,
+                    background: correta ? (isDark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.08)') : (isDark ? 'var(--gray-100)' : 'var(--gray-50)'),
+                    border: `1.5px solid ${correta ? '#6ee7b7' : (isDark ? 'var(--gray-200)' : 'var(--gray-100)')}`,
                     fontSize: '13px',
                   }}>
                     <strong style={{ color: correta ? '#065f46' : 'var(--gray-600)', flexShrink: 0 }}>{lt})</strong>
-                    <span style={{ color: 'var(--gray-700)', flex: 1, lineHeight: '1.6' }}>{txt}</span>
+                    <span style={{ color: isDark ? 'var(--gray-700)' : 'var(--gray-700)', flex: 1, lineHeight: '1.6' }}>{txt}</span>
                     {correta && <span style={{ color: '#10b981', fontWeight: 700, fontSize: '12px' }}>✓</span>}
                   </div>
                 );
@@ -533,10 +570,11 @@ const CadernoErros = ({ onFechar }) => {
 
               {preview.explicacao && (
                 <div style={{
-                  marginTop: '12px', background: 'var(--gray-50)',
+                  marginTop: '12px',
+                  background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
                   borderRadius: 'var(--r-md)', padding: '12px 14px',
                   borderLeft: '3px solid var(--brand-300)',
-                  fontSize: '13px', color: 'var(--gray-600)', lineHeight: '1.6',
+                  fontSize: '13px', color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', lineHeight: '1.6',
                 }}>
                   <strong style={{ color: 'var(--brand-600)', display: 'block', marginBottom: '4px' }}>💡 Explicação</strong>
                   {preview.explicacao}

@@ -1,3 +1,4 @@
+// src/components/MinhasListas.jsx
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { toast } from 'react-hot-toast';
 import { ClipboardList, CheckCircle, XCircle, BarChart2, Shuffle, Hand, Save, Play, Trash2 } from 'lucide-react';
@@ -5,12 +6,14 @@ import { db } from '../database';
 import PainelFiltros from './PainelFiltros';
 import ExplicacaoIA from './ExplicacaoIA';
 import { useQuestaoFilters } from '../hooks/useQuestaoFilters';
+import { useDark } from '../hooks/useDark';
 
 const POR_PAGINA = 10;
 
 /* ─── Card de questão puro ─── */
 const QuestaoCardLista = memo(({ questao, numero, resposta, onResponder }) => {
   const acertou = resposta === questao.gabarito;
+  const isDark = useDark();
 
   return (
     <div className={`questao-card ${resposta ? (acertou ? 'acertou' : 'errou') : ''}`}>
@@ -24,7 +27,15 @@ const QuestaoCardLista = memo(({ questao, numero, resposta, onResponder }) => {
       </div>
       {questao.enunciado && <p style={{ marginBottom: '12px', lineHeight: '1.75', color: 'var(--gray-700)' }}>{questao.enunciado}</p>}
       {questao.imagemEnunciado && <img src={questao.imagemEnunciado} alt="" style={{ maxWidth: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px' }} />}
-      <div style={{ background: '#fffbeb', padding: '12px 16px', borderLeft: '3px solid var(--accent-amber)', borderRadius: '0 var(--r-md) var(--r-md) 0', marginBottom: '18px', color: '#92400e', fontSize: '14px', fontWeight: 500 }}>
+      <div style={{
+        background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb',
+        padding: '12px 16px',
+        borderLeft: '3px solid var(--accent-amber)',
+        borderRadius: '0 var(--r-md) var(--r-md) 0',
+        marginBottom: '18px',
+        color: isDark ? '#fcd34d' : '#92400e',
+        fontSize: '14px', fontWeight: 500,
+      }}>
         {questao.comando}
       </div>
       {['A', 'B', 'C', 'D', 'E'].map(lt => {
@@ -78,6 +89,7 @@ const MinhasListas = () => {
   const [sessaoQuestoes, setSessaoQ]    = useState([]);
   const [respostas, setRespostas]       = useState({});
   const [paginaEstudo, setPagEst]       = useState(1);
+  const isDark = useDark();
 
   const { filtros, setFiltro, opcoes, filtradas, resetar } = useQuestaoFilters(todasQuestoes, {
     includeCurriculo: false,
@@ -166,11 +178,14 @@ const MinhasListas = () => {
 
         <div style={{
           display: 'flex', gap: '20px', alignItems: 'center',
-          background: 'white', padding: '14px 20px', borderRadius: 'var(--r-xl)',
-          marginBottom: '20px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)',
+          background: isDark ? 'var(--surface-card)' : 'white',
+          color: isDark ? 'var(--gray-800)' : 'inherit',
+          padding: '14px 20px', borderRadius: 'var(--r-xl)',
+          marginBottom: '20px', boxShadow: 'var(--shadow-sm)',
+          border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
           flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: '14px', color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ fontSize: '14px', color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <ClipboardList size={15} /> <strong>{sessaoQuestoes.length}</strong> questões
           </span>
           <span style={{ fontSize: '14px', color: 'var(--accent-green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -221,7 +236,7 @@ const MinhasListas = () => {
           <button className="btn-secondary" onClick={() => setAba('listas')}>← Voltar</button>
         </div>
 
-        <div className="card" style={{ marginBottom: '18px' }}>
+        <div className="card" style={{ marginBottom: '18px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <label className="field-label">Nome da Lista *</label>
           <input
             className="input-modern"
@@ -233,7 +248,7 @@ const MinhasListas = () => {
           {erros.nome && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>⚠ {erros.nome}</p>}
         </div>
 
-        <div className="card" style={{ marginBottom: '18px' }}>
+        <div className="card" style={{ marginBottom: '18px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <p className="section-title">Filtros de Questões</p>
           <PainelFiltros
             filtros={filtros}
@@ -244,7 +259,7 @@ const MinhasListas = () => {
           />
         </div>
 
-        <div className="card" style={{ marginBottom: '20px' }}>
+        <div className="card" style={{ marginBottom: '20px', background: isDark ? 'var(--surface-card)' : 'white' }}>
           <p className="section-title">Modo de Seleção</p>
           <div className="tab-group" style={{ marginBottom: '18px', width: 'fit-content' }}>
             {[
@@ -274,7 +289,7 @@ const MinhasListas = () => {
           ) : (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ color: 'var(--gray-600)', fontSize: '14px' }}>
+                <span style={{ color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', fontSize: '14px' }}>
                   <strong>{selecionadas.size}</strong> de {filtradas.length} selecionadas
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -283,16 +298,21 @@ const MinhasListas = () => {
                 </div>
               </div>
               {filtradas.length > 0 && (
-                <div style={{ maxHeight: '380px', overflowY: 'auto', border: '1.5px solid var(--gray-200)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
+                <div style={{ maxHeight: '380px', overflowY: 'auto', border: isDark ? '1.5px solid var(--gray-300)' : '1.5px solid var(--gray-200)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
                   {filtradas.map(q => (
                     <div key={q.id} onClick={() => setSel(prev => { const n = new Set(prev); n.has(q.id) ? n.delete(q.id) : n.add(q.id); return n; })}
-                      style={{ padding: '12px 16px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer', display: 'flex', gap: '12px', alignItems: 'center', background: selecionadas.has(q.id) ? 'var(--brand-50)' : 'white', transition: 'background 0.12s' }}>
+                      style={{
+                        padding: '12px 16px', borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+                        cursor: 'pointer', display: 'flex', gap: '12px', alignItems: 'center',
+                        background: selecionadas.has(q.id) ? (isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)') : (isDark ? 'var(--surface-card)' : 'white'),
+                        transition: 'background 0.12s',
+                      }}>
                       <input type="checkbox" checked={selecionadas.has(q.id)} onChange={() => {}} style={{ cursor: 'pointer', accentColor: 'var(--brand-500)' }} />
                       <div>
-                        <p style={{ fontWeight: 600, color: 'var(--brand-600)', fontSize: '13px', marginBottom: '2px' }}>
+                        <p style={{ fontWeight: 600, color: isDark ? '#a5b4fc' : 'var(--brand-600)', fontSize: '13px', marginBottom: '2px' }}>
                           {[q.banca, q.ano, q.materia, q.conteudo].filter(Boolean).join(' · ')}
                         </p>
-                        <p style={{ fontSize: '13px', color: 'var(--gray-600)' }}>
+                        <p style={{ fontSize: '13px', color: isDark ? 'var(--gray-600)' : 'var(--gray-600)' }}>
                           {q.comando?.slice(0, 100)}{q.comando?.length > 100 ? '…' : ''}
                         </p>
                       </div>
@@ -327,7 +347,7 @@ const MinhasListas = () => {
       </div>
 
       {listas.length === 0 ? (
-        <div className="card">
+        <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div className="empty-state">
             <div className="empty-state-icon">📋</div>
             <p className="empty-state-title">Nenhuma lista ainda</p>
@@ -337,13 +357,16 @@ const MinhasListas = () => {
         </div>
       ) : listas.map(lista => (
         <div key={lista.id} style={{
-          background: 'white', borderRadius: 'var(--r-xl)',
+          background: isDark ? 'var(--surface-card)' : 'white',
+          color: isDark ? 'var(--gray-800)' : 'inherit',
+          borderRadius: 'var(--r-xl)',
           padding: '20px 24px', marginBottom: '12px',
-          boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)',
+          boxShadow: 'var(--shadow-sm)',
+          border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--gray-900)', marginBottom: '6px' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'var(--gray-900)', marginBottom: '6px' }}>
                 {lista.nome}
               </h3>
               <p style={{ color: 'var(--gray-500)', fontSize: '13px' }}>

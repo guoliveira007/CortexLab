@@ -1106,6 +1106,12 @@ body.dark .dark-modal textarea {
    DARK MODE OVERRIDES — Correções de cores fixas
    ═══════════════════════════════════════════════════════════ */
 
+/* ── Sidebar no dark mode: tom mais escuro que a página ── */
+body.dark .sidebar {
+  background: #0b1320;
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+
 /* ── Badges ── */
 body.dark .badge-green { background: rgba(16,185,129,0.15); color: #6ee7b7; }
 body.dark .badge-red   { background: rgba(239,68,68,0.15);  color: #fca5a5; }
@@ -1179,4 +1185,9 @@ body.dark .tab-group { background: var(--gray-100); }
 body.dark .tab-btn.active {
   background: var(--gray-50);
   color: var(--gray-800);
+}
+
+/* ── Heatmap empty cells ── */
+body.dark .heatmap-cell:not(.heatmap-cell--active) {
+  fill: #2a3a4a !important;
 }

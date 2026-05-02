@@ -1,5 +1,7 @@
+// src/components/ResumoMateria.jsx
 import React, { useState, useEffect } from 'react';
 import { db } from '../database';
+import { useDark } from '../hooks/useDark';
 
 /**
  * ResumoMateria — Gera um resumo inteligente de uma matéria
@@ -83,7 +85,7 @@ Seja específico, didático e focado em concursos públicos. Máximo 600 palavra
 };
 
 /* ─── Card de matéria para selecionar ─── */
-const CardMateria = ({ materia, total, erros, onClick }) => {
+const CardMateria = ({ materia, total, erros, onClick, isDark }) => {
   const taxa = total ? Math.round((erros / total) * 100) : 0;
   const cor  = taxa >= 50 ? '#ef4444' : taxa >= 30 ? '#f59e0b' : '#10b981';
 
@@ -91,7 +93,9 @@ const CardMateria = ({ materia, total, erros, onClick }) => {
     <button
       onClick={onClick}
       style={{
-        background: 'white', border: '1.5px solid var(--gray-200)',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        border: isDark ? '1.5px solid var(--gray-300)' : '1.5px solid var(--gray-200)',
         borderRadius: 'var(--r-xl)', padding: '20px',
         cursor: 'pointer', textAlign: 'left', width: '100%',
         transition: 'all 0.15s', boxShadow: 'var(--shadow-sm)',
@@ -102,13 +106,13 @@ const CardMateria = ({ materia, total, erros, onClick }) => {
         e.currentTarget.style.boxShadow = 'var(--shadow-md)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'var(--gray-200)';
+        e.currentTarget.style.borderColor = isDark ? 'var(--gray-300)' : 'var(--gray-200)';
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', color: 'var(--gray-800)' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', color: isDark ? 'var(--gray-800)' : 'var(--gray-800)' }}>
           📚 {materia}
         </span>
         <span style={{
@@ -119,7 +123,7 @@ const CardMateria = ({ materia, total, erros, onClick }) => {
           {taxa}% erros
         </span>
       </div>
-      <div style={{ background: 'var(--gray-100)', borderRadius: 'var(--r-full)', height: '6px', overflow: 'hidden', marginBottom: '10px' }}>
+      <div style={{ background: isDark ? 'var(--gray-200)' : 'var(--gray-100)', borderRadius: 'var(--r-full)', height: '6px', overflow: 'hidden', marginBottom: '10px' }}>
         <div style={{ height: '100%', width: `${taxa}%`, background: cor, borderRadius: 'var(--r-full)', transition: 'width 0.5s' }} />
       </div>
       <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: 'var(--gray-500)' }}>
@@ -131,8 +135,8 @@ const CardMateria = ({ materia, total, erros, onClick }) => {
 };
 
 /* ─── Renderização do resumo ─── */
-const TextoResumo = ({ texto, streamando }) => (
-  <div style={{ fontSize: '14px', color: 'var(--gray-700)', lineHeight: '1.8' }}>
+const TextoResumo = ({ texto, streamando, isDark }) => (
+  <div style={{ fontSize: '14px', color: isDark ? 'var(--gray-700)' : 'var(--gray-700)', lineHeight: '1.8' }}>
     {texto.split('\n').map((linha, i) => {
       if (!linha.trim()) return <div key={i} style={{ height: '6px' }} />;
 
@@ -141,12 +145,12 @@ const TextoResumo = ({ texto, streamando }) => (
         const semMd = linha.replace(/\*\*/g, '');
         return (
           <div key={i} style={{
-            background: 'linear-gradient(135deg, var(--brand-50), white)',
-            border: '1px solid var(--brand-200)',
+            background: isDark ? 'rgba(99,102,241,0.12)' : 'linear-gradient(135deg, var(--brand-50), white)',
+            border: isDark ? '1px solid rgba(99,102,241,0.25)' : '1px solid var(--brand-200)',
             borderRadius: 'var(--r-md)', padding: '10px 16px',
             marginBottom: '10px', marginTop: '6px',
           }}>
-            <strong style={{ color: 'var(--brand-600)', fontSize: '14px' }}>{semMd}</strong>
+            <strong style={{ color: isDark ? '#a5b4fc' : 'var(--brand-600)', fontSize: '14px' }}>{semMd}</strong>
           </div>
         );
       }
@@ -159,7 +163,7 @@ const TextoResumo = ({ texto, streamando }) => (
         <p key={i} style={{ marginBottom: '6px' }}>
           {partes.map((p, j) =>
             j % 2 === 1
-              ? <strong key={j} style={{ color: 'var(--gray-900)' }}>{p}</strong>
+              ? <strong key={j} style={{ color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>{p}</strong>
               : p
           )}
           {streamando && ultima && (
@@ -183,6 +187,7 @@ const ResumoMateria = () => {
   const [status, setStatus]           = useState('idle'); // idle | carregando | streamando | pronto | erro
   const [resumo, setResumo]           = useState('');
   const [erro, setErro]               = useState('');
+  const isDark = useDark();
 
   const apiKey = localStorage.getItem('groq_api_key');
 
@@ -286,8 +291,12 @@ const ResumoMateria = () => {
             { label: 'Taxa de erro', valor: `${Math.round((selecionada.erros / selecionada.total) * 100)}%`, emoji: '📊', cor: '#f59e0b' },
           ].map(s => (
             <div key={s.label} style={{
-              background: 'white', borderRadius: 'var(--r-xl)', padding: '18px',
-              textAlign: 'center', border: '1px solid var(--gray-100)', boxShadow: 'var(--shadow-sm)',
+              background: isDark ? 'var(--surface-card)' : 'white',
+              color: isDark ? 'var(--gray-800)' : 'inherit',
+              borderRadius: 'var(--r-xl)', padding: '18px',
+              textAlign: 'center',
+              border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+              boxShadow: 'var(--shadow-sm)',
             }}>
               <div style={{ fontSize: '24px', marginBottom: '6px' }}>{s.emoji}</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 800, color: s.cor }}>{s.valor}</div>
@@ -296,7 +305,7 @@ const ResumoMateria = () => {
           ))}
         </div>
 
-        <div className="card">
+        <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
           {status === 'carregando' && (
             <div style={{ textAlign: 'center', padding: '48px 0' }}>
               <div style={{ fontSize: '48px', marginBottom: '14px' }}>🧠</div>
@@ -309,10 +318,11 @@ const ResumoMateria = () => {
 
           {status === 'erro' && (
             <div style={{
-              background: '#fef2f2', border: '1.5px solid #fecaca',
+              background: isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+              border: isDark ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid #fecaca',
               borderRadius: 'var(--r-lg)', padding: '16px',
             }}>
-              <p style={{ color: '#991b1b', fontWeight: 600, marginBottom: '8px' }}>⚠️ {erro}</p>
+              <p style={{ color: isDark ? '#fca5a5' : '#991b1b', fontWeight: 600, marginBottom: '8px' }}>⚠️ {erro}</p>
               {apiKey && (
                 <button onClick={() => gerarResumo(selecionada)} style={{
                   background: '#ef4444', color: 'white', border: 'none',
@@ -333,7 +343,7 @@ const ResumoMateria = () => {
                   fontSize: '18px',
                 }}>🧠</div>
                 <div>
-                  <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px' }}>
+                  <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', color: isDark ? 'var(--gray-900)' : 'inherit' }}>
                     Resumo personalizado
                   </p>
                   <p style={{ fontSize: '12px', color: 'var(--gray-400)' }}>
@@ -343,7 +353,8 @@ const ResumoMateria = () => {
                 {status === 'streamando' && (
                   <span style={{
                     marginLeft: 'auto',
-                    background: 'var(--brand-50)', color: 'var(--brand-600)',
+                    background: isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)',
+                    color: isDark ? '#a5b4fc' : 'var(--brand-600)',
                     padding: '4px 10px', borderRadius: 'var(--r-full)',
                     fontSize: '12px', fontWeight: 600,
                   }}>
@@ -351,7 +362,7 @@ const ResumoMateria = () => {
                   </span>
                 )}
               </div>
-              <TextoResumo texto={resumo} streamando={status === 'streamando'} />
+              <TextoResumo texto={resumo} streamando={status === 'streamando'} isDark={isDark} />
             </>
           )}
         </div>
@@ -372,7 +383,7 @@ const ResumoMateria = () => {
       </div>
 
       {materias.length === 0 ? (
-        <div className="card">
+        <div className="card" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
           <div className="empty-state">
             <div className="empty-state-icon">📚</div>
             <p className="empty-state-title">Nenhuma matéria com dados suficientes</p>
@@ -384,13 +395,14 @@ const ResumoMateria = () => {
       ) : (
         <>
           <div style={{
-            background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
-            border: '1px solid #f59e0b', borderRadius: 'var(--r-xl)',
+            background: isDark ? 'rgba(245,158,11,0.08)' : 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+            border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid #f59e0b',
+            borderRadius: 'var(--r-xl)',
             padding: '14px 20px', marginBottom: '20px',
             display: 'flex', gap: '10px', alignItems: 'center',
           }}>
             <span style={{ fontSize: '20px' }}>💡</span>
-            <p style={{ fontSize: '13px', color: '#78350f' }}>
+            <p style={{ fontSize: '13px', color: isDark ? '#fcd34d' : '#78350f' }}>
               As matérias aparecem ordenadas por maior taxa de erro. Clique em uma para gerar o resumo personalizado.
             </p>
           </div>
@@ -403,6 +415,7 @@ const ResumoMateria = () => {
                 total={m.total}
                 erros={m.erros}
                 onClick={() => gerarResumo(m)}
+                isDark={isDark}
               />
             ))}
           </div>
