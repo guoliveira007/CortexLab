@@ -381,6 +381,51 @@ const TUTORIAL_STEPS = {
 };
 
 /* ═══════════════════════════════════════════════════════════
+   COMPONENTE — Botão que abre o tutorial (canto superior direito)
+   ═══════════════════════════════════════════════════════════ */
+export const BotaoTutorial = ({ tabId, onClick }) => {
+  // Só aparece se a aba atual tem tutorial definido
+  if (!TUTORIAL_STEPS[tabId]) return null;
+
+  return (
+    <button
+      onClick={onClick}
+      title="Ver tutorial desta aba"
+      style={{
+        width: '34px',
+        height: '34px',
+        borderRadius: '50%',
+        border: '1.5px solid var(--gray-200)',
+        background: 'var(--surface-card)',
+        color: 'var(--gray-500)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '15px',
+        fontWeight: 700,
+        fontFamily: 'var(--font-display)',
+        boxShadow: 'var(--shadow-sm)',
+        transition: 'all 0.15s ease',
+        flexShrink: 0,
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = 'var(--brand-50)';
+        e.currentTarget.style.borderColor = 'var(--brand-400)';
+        e.currentTarget.style.color = 'var(--brand-600)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'var(--surface-card)';
+        e.currentTarget.style.borderColor = 'var(--gray-200)';
+        e.currentTarget.style.color = 'var(--gray-500)';
+      }}
+    >
+      ?
+    </button>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
    COMPONENTE — Tutorial Modal
    ═══════════════════════════════════════════════════════════ */
 const Tutorial = ({ tabId, aberto, onFechar }) => {
