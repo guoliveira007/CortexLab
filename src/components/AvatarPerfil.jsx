@@ -4,52 +4,53 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
 import { useIsOwner } from '../hooks/useIsOwner';
+import Avatar from 'react-nice-avatar';
 
+/* ─── Avatares disponíveis ───
+   Cada objeto agora tem uma `config` (props do React Nice Avatar)
+   em vez de `emoji`. O label ajuda a identificar o estilo.
+   Adaptei os mesmos grupos: estudantes, devs, cientistas, etc.
+────────────────────────────────────────────────────────── */
 export const AVATARES = [
-  { id: 'av_01', emoji: '👩🏻‍🎓', label: 'Estudante' },
-  { id: 'av_02', emoji: '👩🏼‍🎓', label: 'Estudante' },
-  { id: 'av_03', emoji: '👩🏽‍🎓', label: 'Estudante' },
-  { id: 'av_04', emoji: '👩🏾‍🎓', label: 'Estudante' },
-  { id: 'av_05', emoji: '👩🏿‍🎓', label: 'Estudante' },
-  { id: 'av_06', emoji: '👨🏻‍🎓', label: 'Estudante' },
-  { id: 'av_07', emoji: '👨🏼‍🎓', label: 'Estudante' },
-  { id: 'av_08', emoji: '👨🏽‍🎓', label: 'Estudante' },
-  { id: 'av_09', emoji: '👨🏾‍🎓', label: 'Estudante' },
-  { id: 'av_10', emoji: '👨🏿‍🎓', label: 'Estudante' },
-  { id: 'av_11', emoji: '👩🏻‍💻', label: 'Dev' },
-  { id: 'av_12', emoji: '👩🏽‍💻', label: 'Dev' },
-  { id: 'av_13', emoji: '👩🏿‍💻', label: 'Dev' },
-  { id: 'av_14', emoji: '👨🏼‍💻', label: 'Dev' },
-  { id: 'av_15', emoji: '👨🏾‍💻', label: 'Dev' },
-  { id: 'av_16', emoji: '👩🏻‍🔬', label: 'Cientista' },
-  { id: 'av_17', emoji: '👩🏽‍🔬', label: 'Cientista' },
-  { id: 'av_18', emoji: '👨🏼‍🔬', label: 'Cientista' },
-  { id: 'av_19', emoji: '👨🏾‍🔬', label: 'Cientista' },
-  { id: 'av_20', emoji: '👨🏿‍🔬', label: 'Cientista' },
-  { id: 'av_21', emoji: '👩🏻‍🏫', label: 'Professora' },
-  { id: 'av_22', emoji: '👩🏼‍🏫', label: 'Professora' },
-  { id: 'av_23', emoji: '👨🏽‍🏫', label: 'Professor' },
-  { id: 'av_24', emoji: '👨🏾‍🏫', label: 'Professor' },
-  { id: 'av_25', emoji: '👱🏻‍♀️', label: 'Loira' },
-  { id: 'av_26', emoji: '👱🏻‍♂️', label: 'Loiro' },
-  { id: 'av_27', emoji: '👩🏻‍⚕️', label: 'Médica' },
-  { id: 'av_28', emoji: '👩🏼‍⚕️', label: 'Médica' },
-  { id: 'av_29', emoji: '👩🏽‍⚕️', label: 'Médica' },
-  { id: 'av_30', emoji: '👩🏾‍⚕️', label: 'Médica' },
-  { id: 'av_31', emoji: '👩🏿‍⚕️', label: 'Médica' },
-  { id: 'av_32', emoji: '👨🏻‍⚕️', label: 'Médico' },
-  { id: 'av_33', emoji: '👨🏼‍⚕️', label: 'Médico' },
-  { id: 'av_34', emoji: '👨🏽‍⚕️', label: 'Médico' },
-  { id: 'av_35', emoji: '👨🏾‍⚕️', label: 'Médico' },
-  { id: 'av_36', emoji: '👨🏿‍⚕️', label: 'Médico' },
-  { id: 'av_37', emoji: '🧑🏻‍🎨', label: 'Artista' },
-  { id: 'av_38', emoji: '🧑🏾‍🎨', label: 'Artista' },
+  // ── Estudantes ──
+  { id: 'av_01', label: 'Estudante ♀', config: { sex: 'woman',  hairStyle: 'normal',  hairColor: 'black',  skinColor: 'light' } },
+  { id: 'av_02', label: 'Estudante ♂', config: { sex: 'man',    hairStyle: 'normal',  hairColor: 'brown',  skinColor: 'light' } },
+  { id: 'av_03', label: 'Estudante ♀', config: { sex: 'woman',  hairStyle: 'thick',    hairColor: 'blonde', skinColor: 'light' } },
+  { id: 'av_04', label: 'Estudante ♂', config: { sex: 'man',    hairStyle: 'thick',    hairColor: 'black',  skinColor: 'light' } },
+  { id: 'av_05', label: 'Estudante ♀', config: { sex: 'woman',  hairStyle: 'mohawk',   hairColor: 'red',    skinColor: 'brown' } },
+  { id: 'av_06', label: 'Estudante ♂', config: { sex: 'man',    hairStyle: 'mohawk',   hairColor: 'blonde', skinColor: 'brown' } },
+  { id: 'av_07', label: 'Estudante ♀', config: { sex: 'woman',  hairStyle: 'normal',  hairColor: 'black',  skinColor: 'dark' } },
+  { id: 'av_08', label: 'Estudante ♂', config: { sex: 'man',    hairStyle: 'normal',  hairColor: 'brown',  skinColor: 'dark' } },
+
+  // ── Tech / Dev ──
+  { id: 'av_11', label: 'Dev ♀', config: { sex: 'woman',  hairStyle: 'normal',  hairColor: 'blue',   skinColor: 'light', glassesStyle: 'round' } },
+  { id: 'av_12', label: 'Dev ♂', config: { sex: 'man',    hairStyle: 'normal',  hairColor: 'black',  skinColor: 'light', glassesStyle: 'square' } },
+  { id: 'av_13', label: 'Dev ♀', config: { sex: 'woman',  hairStyle: 'thick',   hairColor: 'pink',   skinColor: 'brown', glassesStyle: 'none' } },
+  { id: 'av_14', label: 'Dev ♂', config: { sex: 'man',    hairStyle: 'thick',   hairColor: 'brown',  skinColor: 'brown', glassesStyle: 'none' } },
+
+  // ── Ciência / Lab ──
+  { id: 'av_16', label: 'Cientista ♀', config: { sex: 'woman', hairStyle: 'normal', hairColor: 'black', skinColor: 'light', hatStyle: 'beanie' } },
+  { id: 'av_17', label: 'Cientista ♂', config: { sex: 'man',   hairStyle: 'normal', hairColor: 'brown', skinColor: 'light', hatStyle: 'none' } },
+  { id: 'av_18', label: 'Cientista ♀', config: { sex: 'woman', hairStyle: 'thick',  hairColor: 'blonde',skinColor: 'brown', hatStyle: 'none' } },
+
+  // ── Professores ──
+  { id: 'av_21', label: 'Professora', config: { sex: 'woman', hairStyle: 'normal', hairColor: 'black', skinColor: 'light', shirtStyle: 'polo' } },
+  { id: 'av_22', label: 'Professor',  config: { sex: 'man',   hairStyle: 'normal', hairColor: 'brown', skinColor: 'light', shirtStyle: 'polo' } },
+
+  // ── Médicos ──
+  { id: 'av_27', label: 'Médica ♀', config: { sex: 'woman', hairStyle: 'normal', hairColor: 'black', skinColor: 'light', hatStyle: 'none' } },
+  { id: 'av_28', label: 'Médico ♂', config: { sex: 'man',   hairStyle: 'normal', hairColor: 'brown', skinColor: 'light', hatStyle: 'none' } },
+
+  // ── Artistas ──
+  { id: 'av_37', label: 'Artista ♀', config: { sex: 'woman', hairStyle: 'thick', hairColor: 'pink',  skinColor: 'light', hatStyle: 'beret' } },
+  { id: 'av_38', label: 'Artista ♂', config: { sex: 'man',   hairStyle: 'mohawk',hairColor: 'blue',  skinColor: 'light', hatStyle: 'none' } },
 ];
 
 const STORAGE_KEY = 'cortexlab_perfil';
 export const getPerfil = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
+/* ─── Modal de edição de perfil ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
   const [curso, setCurso] = useState(perfil.curso || '');
@@ -68,7 +69,9 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
         <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'460px',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',overflow:'hidden',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
 
           <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative' }}>
-            <div style={{ width:'56px',height:'56px',borderRadius:'50%',background:'rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'32px',flexShrink:0,border:'2px solid rgba(255,255,255,0.35)' }}>{avatarAtual.emoji}</div>
+            <div style={{ width:'56px',height:'56px',borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(255,255,255,0.35)' }}>
+              <Avatar style={{ width:'100%',height:'100%' }} {...avatarAtual.config} />
+            </div>
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
               {curso
@@ -85,7 +88,22 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
             <p style={{ fontSize:'11px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--gray-400)',marginBottom:'10px' }}>Escolha seu avatar</p>
             <div style={{ display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'18px',maxHeight:'200px',overflowY:'auto',padding:'4px' }}>
               {AVATARES.map(av => (
-                <button key={av.id} onClick={()=>setAvatarId(av.id)} title={av.label} style={{ width:'48px',height:'48px',borderRadius:'12px',border:av.id===avatarId?'2.5px solid #6366f1':'2px solid var(--gray-200)',background:av.id===avatarId?'var(--brand-50)':'var(--gray-50)',cursor:'pointer',fontSize:'24px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s',boxShadow:av.id===avatarId?'0 0 0 3px rgba(99,102,241,0.18)':'none' }} onMouseEnter={e=>{ if(av.id!==avatarId) e.currentTarget.style.borderColor='#a5b4fc'; }} onMouseLeave={e=>{ if(av.id!==avatarId) e.currentTarget.style.borderColor='var(--gray-200)'; }}>{av.emoji}</button>
+                <button
+                  key={av.id}
+                  onClick={() => setAvatarId(av.id)}
+                  title={av.label}
+                  style={{
+                    width:'48px',height:'48px',borderRadius:'12px',
+                    border: av.id===avatarId ? '2.5px solid #6366f1' : '2px solid var(--gray-200)',
+                    background: av.id===avatarId ? 'var(--brand-50)' : 'var(--gray-50)',
+                    cursor:'pointer', overflow:'hidden',
+                    transition:'all 0.15s',
+                    boxShadow: av.id===avatarId ? '0 0 0 3px rgba(99,102,241,0.18)' : 'none',
+                    padding: 0,
+                  }}
+                >
+                  <Avatar style={{ width:'100%',height:'100%' }} {...av.config} />
+                </button>
               ))}
             </div>
 
@@ -114,13 +132,14 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   );
 };
 
+/* ─── Componente principal ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [perfilData, setPerfilData] = useState(getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const containerRef = useRef(null);
-  const avatar = AVATARES.find(a => a.id === perfilData.avatarId) || AVATARES[0];
-  const isOwner = useIsOwner(); // ← Hook que verifica se é o dono
+  const avatarConfig = AVATARES.find(a => a.id === perfilData.avatarId)?.config || AVATARES[0].config;
+  const isOwner = useIsOwner();
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
@@ -140,8 +159,34 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   return (
     <>
       <div ref={containerRef} style={{ position:'relative' }}>
-        <button onClick={()=>setDropdownAberto(d=>!d)} title="Perfil" style={{ width:'52px',height:'52px',borderRadius:'50%',background:dropdownAberto?'linear-gradient(135deg,#6366f1,#8b5cf6)':'linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))',border:dropdownAberto?'2.5px solid #6366f1':'2px solid rgba(99,102,241,0.25)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'26px',transition:'all 0.2s',flexShrink:0,boxShadow:dropdownAberto?'0 0 0 4px rgba(99,102,241,0.15)':'none' }} onMouseEnter={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.5)'; }}} onMouseLeave={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.25)'; }}}>
-          {avatar.emoji}
+        <button
+          onClick={() => setDropdownAberto(d => !d)}
+          title="Perfil"
+          style={{
+            width:'52px',height:'52px',borderRadius:'50%',
+            background: dropdownAberto
+              ? 'linear-gradient(135deg,#6366f1,#8b5cf6)'
+              : 'linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))',
+            border: dropdownAberto ? '2.5px solid #6366f1' : '2px solid rgba(99,102,241,0.25)',
+            cursor:'pointer',overflow:'hidden',
+            transition:'all 0.2s',flexShrink:0,
+            boxShadow: dropdownAberto ? '0 0 0 4px rgba(99,102,241,0.15)' : 'none',
+            padding: '4px', // pequeno padding para destacar o avatar do círculo
+          }}
+          onMouseEnter={e => {
+            if (!dropdownAberto) {
+              e.currentTarget.style.background = 'linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2))';
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (!dropdownAberto) {
+              e.currentTarget.style.background = 'linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))';
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)';
+            }
+          }}
+        >
+          <Avatar style={{ width:'100%',height:'100%' }} {...avatarConfig} />
         </button>
 
         {dropdownAberto && (
@@ -149,7 +194,9 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
             <style>{`@keyframes dd-in { from { opacity:0; transform:translateY(-8px) scale(0.96); } to { opacity:1; transform:none; } }`}</style>
             <div className="dark-modal" style={{ position:'absolute',top:'calc(100% + 10px)',right:0,background:'var(--surface-card)',borderRadius:'16px',boxShadow:'0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)',minWidth:'220px',overflow:'hidden',zIndex:8000,animation:'dd-in 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
               <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px' }}>
-                <div style={{ width:'42px',height:'42px',borderRadius:'50%',background:'rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px',flexShrink:0,border:'2px solid rgba(255,255,255,0.3)' }}>{avatar.emoji}</div>
+                <div style={{ width:'42px',height:'42px',borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(255,255,255,0.3)' }}>
+                  <Avatar style={{ width:'100%',height:'100%' }} {...avatarConfig} />
+                </div>
                 <div style={{ overflow:'hidden', flex: 1 }}>
                   <p style={{ color:'white',fontWeight:700,fontSize:'14px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{nomeExibido}</p>
                   {perfilData.curso
@@ -157,7 +204,6 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
                     : userEmail && <p style={{ color:'rgba(255,255,255,0.55)',fontSize:'11px',marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{userEmail}</p>
                   }
                 </div>
-                {/* ─── TAG DE ADMINISTRADOR ─── */}
                 {isOwner && (
                   <span style={{
                     background: 'linear-gradient(135deg, #f59e0b, #d97706)',
