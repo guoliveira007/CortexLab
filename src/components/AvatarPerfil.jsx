@@ -8,11 +8,11 @@ import { createAvatar } from '@dicebear/core';
 import { openPeeps } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
-   100 AVATARES DIVERSOS — estilo "Open Peeps"
+   525 AVATARES DIVERSOS — estilo "Open Peeps"
    Cada seed gera um personagem único, com variação
    automática de tom de pele, cabelo e acessórios.
    ════════════════════════════════════════════════════ */
-const TOTAL_AVATARES = 100;
+const TOTAL_AVATARES = 525;
 const AVATARES = Array.from({ length: TOTAL_AVATARES }, (_, i) => ({
   id: `peep-${String(i + 1).padStart(3, '0')}`,
   seed: `cortexlab-peep-${i + 1}`,
@@ -131,7 +131,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   );
 };
 
-/* ─── Componente principal (sem mudanças) ─── */
+/* ─── Componente principal ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [perfilData, setPerfilData] = useState(() => getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
