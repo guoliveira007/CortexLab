@@ -27,7 +27,7 @@ const AjudaAtalhos = ({ visivel, onFechar }) => {
         onClick={e => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: isDark ? 'var(--gray-900)' : 'inherit' }}>
             ⌨️ Atalhos de Teclado
           </h3>
           <button onClick={onFechar} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--gray-400)' }}>×</button>
@@ -42,7 +42,7 @@ const AjudaAtalhos = ({ visivel, onFechar }) => {
               borderRadius: 'var(--r-md)',
               border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
             }}>
-              <span style={{ fontSize: '13px', color: isDark ? 'var(--gray-800)' : 'var(--gray-700)' }}>{a.desc}</span>
+              <span style={{ fontSize: '13px', color: isDark ? 'var(--gray-700)' : 'var(--gray-700)' }}>{a.desc}</span>
               <kbd style={{
                 background: isDark ? 'var(--gray-700)' : 'var(--gray-800)',
                 color: 'white',

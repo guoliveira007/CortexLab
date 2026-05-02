@@ -1,3 +1,4 @@
+// src/components/Dashboard.jsx
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { db } from '../database';
 import CadernoErros from './CadernoErros';
@@ -7,6 +8,7 @@ import {
   BookMarked, Brain, ClipboardList, CalendarDays, Trophy,
   Lightbulb, ArrowRight, CheckCircle2,
 } from 'lucide-react';
+import { useDark } from '../hooks/useDark';
 
 /* ─── Heatmap ──────────────────────────────────────────────── */
 const TAMANHO = 11;
@@ -14,7 +16,7 @@ const GAP     = 2;
 const PASSO   = TAMANHO + GAP;
 
 const getCor = (count, isDark) => {
-  if (!count) return isDark ? '#1e293b' : '#ebedf0';
+  if (!count) return isDark ? '#2d3d50' : '#ebedf0'; // Célula vazia visível no dark
   if (count <= 3)  return '#c7d2fe';
   if (count <= 8)  return '#818cf8';
   if (count <= 15) return '#4f46e5';
@@ -29,7 +31,6 @@ const Heatmap = memo(() => {
   const [tooltip, setTooltip] = useState(null);
   const [isDark, setIsDark]   = useState(() => document.body.classList.contains('dark'));
 
-  // Reage quando o usuário troca o tema (light ↔ dark)
   useEffect(() => {
     const observer = new MutationObserver(() =>
       setIsDark(document.body.classList.contains('dark'))
@@ -192,6 +193,7 @@ const Dashboard = ({ onNavigate }) => {
   const [revisoesHoje, setRevisoesHoje] = useState(0);
   const [errosCount, setErrosCount]     = useState(0);
   const lastFetchRef = React.useRef(0);
+  const isDark = useDark();
 
   useEffect(() => {
     loadStats();
@@ -378,13 +380,13 @@ const Dashboard = ({ onNavigate }) => {
       </div>
 
       {/* ── Heatmap ── */}
-      <div className="card mb-20">
+      <div className="card mb-20" style={{ background: isDark ? 'var(--surface-card)' : 'white' }}>
         <Heatmap />
       </div>
 
       {/* ── Empty state ── */}
       {stats.totalQuestoes === 0 && (
-        <div className="card dashboard-empty">
+        <div className="card dashboard-empty" style={{ background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb' }}>
           <div className="dashboard-empty__inner">
             <span className="dashboard-empty__icon">
               <Lightbulb size={32} strokeWidth={1.5} />

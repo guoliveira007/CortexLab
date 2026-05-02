@@ -1,3 +1,5 @@
+/* src/components/PainelFiltros.module.css */
+
 /* Container principal */
 .container {
   display: flex;
@@ -9,12 +11,10 @@
   margin-bottom: 12px;
 }
 
-/* Label da busca */
 .buscaLabel {
   composes: field-label from global;
 }
 
-/* Input de busca */
 .buscaInput {
   composes: input-modern from global;
 }
@@ -33,18 +33,17 @@
   position: relative;
 }
 
-/* Label do dropdown */
 .dropdownLabel {
   composes: field-label from global;
 }
 
-/* Botão do dropdown (substitui o estilo inline principal) */
+/* Botão do dropdown */
 .dropdownButton {
   width: 100%;
   padding: 8px 12px;
   border: 1.5px solid var(--gray-200);
   border-radius: var(--r-md);
-  background: white;
+  background: var(--surface-card);
   color: var(--gray-700);
   cursor: pointer;
   display: flex;
@@ -110,7 +109,7 @@
   top: calc(100% + 4px);
   left: 0;
   z-index: 9999;
-  background: white;
+  background: var(--surface-card);
   border: 1.5px solid var(--gray-200);
   border-radius: var(--r-lg);
   box-shadow: 0 8px 28px rgba(0,0,0,0.15);
@@ -136,6 +135,11 @@
   user-select: none;
 }
 
+body.dark .opcaoLimpar {
+  background: rgba(239,68,68,0.15);
+  border-bottom-color: var(--gray-200);
+}
+
 /* Item de opção */
 .opcaoItem {
   display: flex;
@@ -148,6 +152,12 @@
   font-weight: 400;
   transition: background 0.1s;
   user-select: none;
+  color: var(--gray-700);
+}
+
+body.dark .opcaoItem {
+  border-bottom-color: var(--gray-200);
+  color: var(--gray-800);
 }
 
 .opcaoItemSelecionada {
@@ -156,13 +166,18 @@
   font-weight: 600;
 }
 
+body.dark .opcaoItemSelecionada {
+  background: rgba(99,102,241,0.15);
+  color: #a5b4fc;
+}
+
 /* Checkbox customizado */
 .checkbox {
   width: 16px;
   height: 16px;
   border-radius: 4px;
   border: 2px solid var(--gray-300);
-  background: white;
+  background: var(--surface-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,6 +203,11 @@
   margin-bottom: 10px;
 }
 
+body.dark .chipsContainer {
+  background: rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.2);
+}
+
 .chipsLabel {
   font-size: 12px;
   color: var(--gray-500);
@@ -198,13 +218,19 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: white;
+  background: var(--surface-card);
   border: 1.5px solid var(--brand-200);
   color: var(--brand-600);
   padding: 2px 10px;
   border-radius: var(--r-full);
   font-size: 12px;
   font-weight: 600;
+}
+
+body.dark .chip {
+  background: var(--gray-100);
+  border-color: rgba(99,102,241,0.3);
+  color: #a5b4fc;
 }
 
 .chipLabel {

@@ -1,3 +1,4 @@
+// src/components/Conquistas.jsx
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { db } from '../database';
 import {
@@ -30,10 +31,6 @@ const CATEGORIAS = [
   { id: 'secreto',     label: 'Secretas',   Icon: Eye       },
 ];
 
-// ✅ Renomeado para CONQUISTAS_BASE — sec_colecao é adicionada separadamente
-// logo abaixo, após CONQUISTAS_PARA_COLECAO ser definida. Isso elimina a
-// necessidade de filtrar TODAS_CONQUISTAS dentro de check/progresso a cada
-// chamada, e torna estruturalmente impossível qualquer autorreferência.
 const CONQUISTAS_BASE = [
   // ── QUESTÕES ──
   { id: 'q10',   cat: 'questoes', raridade: 'comum',    icone: '🌱', nome: 'Primeiros Passos', desc: 'Respondeu 10 questões',                     check: s => s.total >= 10,   progresso: s => Math.min(s.total / 10, 1),   detalhe: s => `${Math.min(s.total, 10)}/10` },
@@ -180,7 +177,6 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
         cursor: 'pointer',
       }} onClick={fechar}>
 
-        {/* Ícone da medalha (mantém emoji) */}
         <div style={{
           width: '52px', height: '52px', borderRadius: '12px', flexShrink: 0,
           background: c.raridade === 'lendario' ? '#2d1f0a'
@@ -196,7 +192,6 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Label topo com ícone Lucide */}
           <div style={{
             fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em',
             color: r.cor, marginBottom: '3px', textTransform: 'uppercase',
@@ -230,7 +225,6 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
             {c.desc}
           </div>
 
-          {/* Badge raridade */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '4px',
             marginTop: '6px', padding: '2px 8px',
@@ -242,14 +236,12 @@ const NotificacaoConquista = ({ conquistas, onDismiss }) => {
           </div>
         </div>
 
-        {/* Botão fechar */}
         <button onClick={e => { e.stopPropagation(); fechar(); }} style={{
           position: 'absolute', top: '8px', right: '10px',
           background: 'none', border: 'none', cursor: 'pointer',
           fontSize: '16px', color: 'var(--gray-400)', lineHeight: 1,
         }}>×</button>
 
-        {/* Contador se tiver múltiplas */}
         {conquistas.length > 1 && (
           <div style={{
             position: 'absolute', bottom: '8px', right: '12px',
@@ -306,6 +298,16 @@ const TUTORIAL_STEPS = [
 
 const TutorialModal = ({ onFechar }) => {
   const [step, setStep] = useState(0);
+  const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark'));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setIsDark(document.body.classList.contains('dark'))
+    );
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
   const total = TUTORIAL_STEPS.length;
   const s = TUTORIAL_STEPS[step];
   const ultimo = step === total - 1;
@@ -317,7 +319,9 @@ const TutorialModal = ({ onFechar }) => {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }} onClick={onFechar}>
       <div style={{
-        background: 'white', borderRadius: '20px',
+        background: isDark ? 'var(--surface-card)' : 'white',
+        color: isDark ? 'var(--gray-800)' : 'inherit',
+        borderRadius: '20px',
         padding: '36px 32px 28px',
         maxWidth: '460px', width: '92%',
         boxShadow: '0 32px 80px rgba(0,0,0,0.3)',
@@ -331,38 +335,34 @@ const TutorialModal = ({ onFechar }) => {
           }
         `}</style>
 
-        {/* Indicador de steps */}
         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '24px' }}>
           {TUTORIAL_STEPS.map((_, i) => (
             <div key={i} style={{
               width: i === step ? '24px' : '8px', height: '8px',
               borderRadius: '99px', transition: 'all 0.3s ease',
-              background: i === step ? 'var(--brand-500)' : 'var(--gray-200)',
+              background: i === step ? 'var(--brand-500)' : (isDark ? 'var(--gray-300)' : 'var(--gray-200)'),
             }} />
           ))}
         </div>
 
-        {/* Ícone Lucide */}
         <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
           <s.Icon size={52} strokeWidth={1.25} color="var(--brand-500)" />
         </div>
 
-        {/* Conteúdo */}
         <h3 style={{
           fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700,
-          color: 'var(--gray-900)', textAlign: 'center', marginBottom: '12px',
+          color: isDark ? 'var(--gray-900)' : 'var(--gray-900)', textAlign: 'center', marginBottom: '12px',
         }}>
           {s.titulo}
         </h3>
         <p style={{
-          fontSize: '14px', color: 'var(--gray-500)', textAlign: 'center',
+          fontSize: '14px', color: isDark ? 'var(--gray-500)' : 'var(--gray-500)', textAlign: 'center',
           lineHeight: '1.6', marginBottom: '4px',
         }}>
           {s.desc}
         </p>
         {s.extra && s.extra}
 
-        {/* Botões de navegação */}
         <div style={{ display: 'flex', gap: '10px', marginTop: '28px' }}>
           {step > 0 && (
             <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setStep(s => s - 1)}>
@@ -378,7 +378,6 @@ const TutorialModal = ({ onFechar }) => {
           </button>
         </div>
 
-        {/* Pular */}
         {!ultimo && (
           <button onClick={onFechar} style={{
             display: 'block', margin: '12px auto 0', background: 'none', border: 'none',
@@ -436,7 +435,6 @@ const ConquistaCard = memo(({ conquista, desbloqueada, pct, detalhe, dataDesbloq
       </div>
 
       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginTop: '2px' }}>
-        {/* Ícone: emoji da medalha quando desbloqueada, Lucide Lock quando bloqueada */}
         <div style={{
           width: '44px', height: '44px', borderRadius: 'var(--r-md)',
           background: desbloqueada ? (conquista.raridade === 'secreto' ? '#1e293b' : r.bg) : 'var(--gray-100)',
