@@ -8,7 +8,7 @@ import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
-   OPÇÕES DE CUSTOMIZAÇÃO — DiceBear Avataaars (CORRIGIDO FINAL)
+   OPÇÕES DE CUSTOMIZAÇÃO — DiceBear Avataaars
    ════════════════════════════════════════════════════ */
 const OPCOES = {
   topo: [
@@ -72,7 +72,7 @@ const OPCOES = {
     { valor: 'sleep',   rotulo: 'Sonolento' },
   ],
   oculos: [
-    { valor: '',       rotulo: 'Sem óculos' },   // ← string vazia
+    { valor: '',       rotulo: 'Sem óculos' },
     { valor: 'round',  rotulo: 'Redondo' },
     { valor: 'square', rotulo: 'Quadrado' },
   ],
@@ -107,16 +107,15 @@ const gerarDataUri = (config, size = 128) => {
     seed: 'cortexlab',
     size,
     backgroundColor: ['f0f0f0', 'e8f4f8', 'f5f5dc', 'ffe4e1', 'e6e6fa'],
-    // Mapeamento CORRIGIDO
     top: config.topo,
     hairColor: config.corCabelo,
-    skinColor: config.corPele,          // ← era "skin"
-    facialHairType: config.barba,       // ← era "facialHair"
+    skinColor: config.corPele,
+    facialHairType: config.barba,
     facialHairColor: config.corBarba,
     clothes: config.roupa,
     clothesColor: config.corRoupa,
     eyes: config.olhos,
-    accessories: config.oculos === 'none' ? '' : config.oculos,  // segurança extra
+    accessories: config.oculos,
     mouth: config.boca,
   };
 
@@ -170,16 +169,28 @@ const SeletorOpcao = React.memo(({ opcoes, valorAtual, onChange, tipo = 'cor' })
 ));
 SeletorOpcao.displayName = 'SeletorOpcao';
 
-/* ─── Modal de edição de perfil (sem botão Gerar Preview) ─── */
+/* ─── Modal de edição de perfil ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
   const [curso, setCurso] = useState(perfil.curso || '');
   const [config, setConfig] = useState(perfil.avatarConfig || CONFIG_PADRAO);
+  const [previewUri, setPreviewUri] = useState(() => gerarDataUri(perfil.avatarConfig || CONFIG_PADRAO, 120));
+  const [imgKey, setImgKey] = useState(0);
 
-  const dataUriPreview = useMemo(() => gerarDataUri(config, 120), [config]);
+  useEffect(() => {
+    const novaUri = gerarDataUri(config, 120);
+    setPreviewUri(novaUri);
+    setImgKey(prev => prev + 1);
+  }, [config]);
 
-  const salvar = () => { onSalvar({ nome, curso, avatarConfig: config }); onFechar(); };
-  const atualizar = useCallback((campo, valor) => setConfig(prev => ({ ...prev, [campo]: valor })), []);
+  const salvar = () => {
+    onSalvar({ nome, curso, avatarConfig: config });
+    onFechar();
+  };
+
+  const atualizar = useCallback((campo, valor) => {
+    setConfig(prev => ({ ...prev, [campo]: valor }));
+  }, []);
 
   return (
     <>
@@ -188,11 +199,11 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
         @keyframes pm-bg { from { opacity:0; } to { opacity:1; } }
       `}</style>
       <div onClick={onFechar} style={{ position:'fixed',inset:0,zIndex:9100,background:'rgba(10,15,30,0.65)',backdropFilter:'blur(6px)',animation:'pm-bg 0.2s ease' }} />
-      <div onClick={e=>e.stopPropagation()} style={{ position:'fixed',inset:0,zIndex:9101,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',pointerEvents:'none' }}>
+      <div onClick={e => e.stopPropagation()} style={{ position:'fixed',inset:0,zIndex:9101,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',pointerEvents:'none' }}>
         <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'600px',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
           <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
             <div style={{ width:'100px',height:'100px',borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)',background:'#fff' }}>
-              <img src={dataUriPreview} alt="Preview" style={{ width:'100%',height:'100%' }} draggable={false} />
+              <img key={imgKey} src={previewUri} alt="Preview" style={{ width:'100%',height:'100%' }} draggable={false} />
             </div>
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
@@ -210,7 +221,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
             <p style={{ fontSize:'12px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--gray-400)',marginBottom:'16px' }}>
               Personalizar avatar
             </p>
-            {/* Opções */}
             <div style={{ marginBottom:'16px' }}><label className="field-label" style={{ marginBottom:'6px' }}>Topo da cabeça</label><SeletorOpcao opcoes={OPCOES.topo} valorAtual={config.topo} onChange={v=>atualizar('topo',v)} tipo="texto" /></div>
             <div style={{ marginBottom:'16px' }}><label className="field-label" style={{ marginBottom:'6px' }}>Cor do cabelo</label><SeletorOpcao opcoes={OPCOES.corCabelo} valorAtual={config.corCabelo} onChange={v=>atualizar('corCabelo',v)} tipo="cor" /></div>
             <div style={{ marginBottom:'16px' }}><label className="field-label" style={{ marginBottom:'6px' }}>Cor da pele</label><SeletorOpcao opcoes={OPCOES.corPele} valorAtual={config.corPele} onChange={v=>atualizar('corPele',v)} tipo="cor" /></div>
@@ -232,7 +242,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   );
 };
 
-/* ─── Componente principal (idêntico) ─── */
+/* ─── Componente principal ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [perfilData, setPerfilData] = useState(() => getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
