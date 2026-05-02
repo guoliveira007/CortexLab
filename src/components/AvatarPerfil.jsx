@@ -1,5 +1,5 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
@@ -8,77 +8,76 @@ import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
-   OPÇÕES COMPLETAS DE CUSTOMIZAÇÃO (DiceBear avataaars)
+   OPÇÕES — DiceBear avataaars v7 (valores em camelCase exato)
    ════════════════════════════════════════════════════ */
 const OPCOES = {
-  skinColor: ['Tanned','Yellow','Pale','Light','Brown','DarkBrown','Black'],
+  skinColor: ['tanned','yellow','pale','light','brown','darkBrown','black'],
   top: [
-    'NoHair','Eyepatch','Hat','Hijab','Turban',
-    'WinterHat1','WinterHat2','WinterHat3','WinterHat4',
-    'LongHairBigHair','LongHairBob','LongHairBun','LongHairCurly','LongHairCurvy',
-    'LongHairDreads','LongHairFrida','LongHairFro','LongHairFroBand',
-    'LongHairNotTooLong','LongHairShavedSides','LongHairMiaWallace',
-    'LongHairStraight','LongHairStraight2','LongHairStraightStrand',
-    'ShortHairDreads01','ShortHairDreads02','ShortHairFrizzle',
-    'ShortHairShaggyMullet','ShortHairShortCurly','ShortHairShortFlat',
-    'ShortHairShortRound','ShortHairShortWaved','ShortHairSides',
-    'ShortHairTheCaesar','ShortHairTheCaesarSidePart',
+    'noHair','eyepatch','hat','hijab','turban',
+    'winterHat1','winterHat2','winterHat3','winterHat4',
+    'longHairBigHair','longHairBob','longHairBun','longHairCurly','longHairCurvy',
+    'longHairDreads','longHairFrida','longHairFro','longHairFroBand',
+    'longHairNotTooLong','longHairShavedSides','longHairMiaWallace',
+    'longHairStraight','longHairStraight2','longHairStraightStrand',
+    'shortHairDreads01','shortHairDreads02','shortHairFrizzle',
+    'shortHairShaggyMullet','shortHairShortCurly','shortHairShortFlat',
+    'shortHairShortRound','shortHairShortWaved','shortHairSides',
+    'shortHairTheCaesar','shortHairTheCaesarSidePart',
   ],
   hairColor: [
-    'Auburn','Black','Blonde','BlondeGolden','Brown','BrownDark',
-    'PastelPink','Platinum','Red','SilverGray',
+    'auburn','black','blonde','blondeGolden','brown','brownDark',
+    'pastelPink','platinum','red','silverGray',
   ],
-  accessories: ['','Kurt','Prescription01','Prescription02','Round','Sunglasses','Wayfarers'],
-  facialHair: ['','BeardMedium','BeardLight','BeardMajestic','MoustacheFancy','MoustacheMagnum'],
-  facialHairColor: ['Auburn','Black','Blonde','BlondeGolden','Brown','BrownDark','Platinum','Red'],
+  accessories: ['','kurt','prescription01','prescription02','round','sunglasses','wayfarers'],
+  facialHair: ['','beardMedium','beardLight','beardMajestic','moustacheFancy','moustacheMagnum'],
+  facialHairColor: ['auburn','black','blonde','blondeGolden','brown','brownDark','platinum','red'],
   clothes: [
-    'BlazerShirt','BlazerSweater','CollarSweater','GraphicShirt',
-    'Hoodie','Overall','ShirtCrewNeck','ShirtScoopNeck','ShirtVNeck',
+    'blazerShirt','blazerSweater','collarSweater','graphicShirt',
+    'hoodie','overall','shirtCrewNeck','shirtScoopNeck','shirtVNeck',
   ],
   clothesColor: [
-    'Black','Blue01','Blue02','Blue03','Gray01','Gray02','Heather',
-    'PastelBlue','PastelGreen','PastelOrange','PastelRed','PastelYellow',
-    'Pink','Red','White',
+    'black','blue01','blue02','blue03','gray01','gray02','heather',
+    'pastelBlue','pastelGreen','pastelOrange','pastelRed','pastelYellow',
+    'pink','red','white',
   ],
   eyes: [
-    'Close','Cry','Default','Dizzy','EyeRoll','Happy','Hearts',
-    'Side','Squint','Surprised','Wink','WinkWacky',
+    'close','cry','default','dizzy','eyeRoll','happy','hearts',
+    'side','squint','surprised','wink','winkWacky',
   ],
   eyebrows: [
-    'Angry','AngryNatural','Default','DefaultNatural','FlatNatural',
-    'RaisedExcited','RaisedExcitedNatural','SadConcerned','SadConcernedNatural',
-    'UnibrowNatural','UpDown','UpDownNatural',
+    'angry','angryNatural','default','defaultNatural','flatNatural',
+    'raisedExcited','raisedExcitedNatural','sadConcerned','sadConcernedNatural',
+    'unibrowNatural','upDown','upDownNatural',
   ],
   mouth: [
-    'Concerned','Default','Disbelief','Eating','Grimace','Sad',
-    'ScreamOpen','Serious','Smile','Tongue','Twinkle','Vomit',
+    'concerned','default','disbelief','eating','grimace','sad',
+    'screamOpen','serious','smile','tongue','twinkle','vomit',
   ],
 };
 
 const CONFIG_PADRAO = {
-  skinColor: 'Light',
-  top: 'ShortHairShortFlat',
-  hairColor: 'Black',
+  skinColor: 'light',
+  top: 'shortHairShortFlat',
+  hairColor: 'black',
   accessories: '',
   facialHair: '',
-  facialHairColor: 'Black',
-  clothes: 'Hoodie',
-  clothesColor: 'Blue01',
-  eyes: 'Default',
-  eyebrows: 'Default',
-  mouth: 'Smile',
+  facialHairColor: 'black',
+  clothes: 'hoodie',
+  clothesColor: 'blue01',
+  eyes: 'default',
+  eyebrows: 'default',
+  mouth: 'smile',
 };
 
 /* ─── Cache de imagens geradas ─── */
 const AVATAR_CACHE = new Map();
-
-// DiceBear v7+ → toDataUri() é ASYNC e as opções devem ser arrays
-const gerarDataUri = async (config, size = 128) => {
+const gerarDataUri = (config, size = 128) => {
   const chave = JSON.stringify({ ...config, size });
   if (AVATAR_CACHE.has(chave)) return AVATAR_CACHE.get(chave);
 
-  const opcoes = {
-    seed: 'fixed',          // seed fixa → resultado determinístico (não aleatório)
+  // DiceBear v7: opções como arrays; toString() retorna SVG síncrono
+  const avatar = createAvatar(avataaars, {
+    seed: 'cortexlab-fixed',
     size,
     backgroundColor: ['f0f0f0'],
     skinColor:       [config.skinColor],
@@ -92,24 +91,11 @@ const gerarDataUri = async (config, size = 128) => {
     eyes:            [config.eyes],
     eyebrows:        [config.eyebrows],
     mouth:           [config.mouth],
-  };
+  });
 
-  const avatar = createAvatar(avataaars, opcoes);
-  const uri = await avatar.toDataUri();   // ← era síncrono; v7+ é assíncrono
+  const svg = avatar.toString();
+  const uri = `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
   AVATAR_CACHE.set(chave, uri);
-  return uri;
-};
-
-// Hook que resolve a Promise e devolve a string do data URI
-const useAvatarUri = (config, size = 128) => {
-  const [uri, setUri] = useState('');
-  const chave = JSON.stringify(config);
-  useEffect(() => {
-    let cancelado = false;
-    gerarDataUri(config, size).then(u => { if (!cancelado) setUri(u); });
-    return () => { cancelado = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chave, size]);
   return uri;
 };
 
@@ -160,7 +146,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [curso, setCurso] = useState(perfil.curso || '');
   const [config, setConfig] = useState(perfil.avatarConfig || CONFIG_PADRAO);
 
-  const dataUriPreview = useAvatarUri(config, 120);
+  const dataUriPreview = useMemo(() => gerarDataUri(config, 120), [config]);
 
   const atualizar = useCallback((chave, valor) => {
     setConfig(prev => ({ ...prev, [chave]: valor }));
@@ -238,7 +224,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const isOwner = useIsOwner();
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
-  const dataUriAtual = useAvatarUri(avatarConfig, 46);
+  const dataUriAtual = useMemo(() => gerarDataUri(avatarConfig, 46), [avatarConfig]);
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
