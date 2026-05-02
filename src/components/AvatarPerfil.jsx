@@ -2,14 +2,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
+import { User, Settings, HardDrive, LogOut, Check, Target, X, RefreshCw } from 'lucide-react';
 import { useIsOwner } from '../hooks/useIsOwner';
 import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
    OPÇÕES DE CUSTOMIZAÇÃO — estilo Avataaars
-   Cada array define as possibilidades para um atributo.
    ════════════════════════════════════════════════════ */
 const OPCOES = {
   sexo: [
@@ -91,7 +90,6 @@ const OPCOES = {
   ],
 };
 
-// Configuração padrão (primeiro acesso)
 const CONFIG_PADRAO = {
   sexo: 'man',
   corPele: 'light',
@@ -115,7 +113,7 @@ const gerarDataUri = (config, size = 128) => {
   if (AVATAR_CACHE.has(chave)) return AVATAR_CACHE.get(chave);
 
   const opcoesDiceBear = {
-    seed: 'cortexlab', // seed fixa para consistência, opções sobrescrevem
+    seed: 'cortexlab',
     size,
     backgroundColor: ['f0f0f0', 'e8f4f8', 'f5f5dc', 'ffe4e1', 'e6e6fa'],
     sex: config.sexo,
@@ -175,7 +173,6 @@ const SeletorOpcao = React.memo(({ opcoes, valorAtual, onChange, tipo = 'cor' })
             />
           );
         }
-        // tipo texto (para estilos de cabelo, barba, etc.)
         return (
           <button
             key={op.valor}
@@ -207,6 +204,21 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [curso, setCurso] = useState(perfil.curso || '');
   const [config, setConfig] = useState(perfil.avatarConfig || CONFIG_PADRAO);
 
+  // Estado para a URI da preview, atualizado automaticamente e também via botão "Gerar"
+  const [previewUri, setPreviewUri] = useState(() => gerarDataUri(perfil.avatarConfig || CONFIG_PADRAO, 120));
+
+  // Sempre que config mudar, atualiza a preview automaticamente
+  useEffect(() => {
+    setPreviewUri(gerarDataUri(config, 120));
+  }, [config]);
+
+  // Força a regeneração da preview (botão "Gerar")
+  const gerarPreview = () => {
+    // Limpa o cache para essa configuração? Não necessário, queremos forçar nova URI
+    // Podemos simplesmente chamar setPreviewUri com nova chamada
+    setPreviewUri(gerarDataUri(config, 120));
+  };
+
   const salvar = () => {
     onSalvar({ nome, curso, avatarConfig: config });
     onFechar();
@@ -215,8 +227,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const atualizar = useCallback((campo, valor) => {
     setConfig((prev) => ({ ...prev, [campo]: valor }));
   }, []);
-
-  const dataUriPreview = useMemo(() => gerarDataUri(config, 120), [config]);
 
   return (
     <>
@@ -269,7 +279,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               border: '3px solid rgba(255,255,255,0.4)',
               background: '#fff',
             }}>
-              <img src={dataUriPreview} alt="Preview" style={{ width: '100%', height: '100%' }} draggable={false} />
+              <img src={previewUri} alt="Preview" style={{ width: '100%', height: '100%' }} draggable={false} />
             </div>
             <div>
               <p style={{ color: 'white', fontWeight: 800, fontSize: '16px', fontFamily: 'var(--font-display)' }}>
@@ -330,12 +340,22 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               </div>
             </div>
 
-            <p style={{
-              fontSize: '12px', fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.08em', color: 'var(--gray-400)', marginBottom: '16px',
-            }}>
-              Personalizar avatar
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <p style={{
+                fontSize: '12px', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.08em', color: 'var(--gray-400)', margin: 0,
+              }}>
+                Personalizar avatar
+              </p>
+              {/* Botão Gerar Preview */}
+              <button
+                onClick={gerarPreview}
+                className="btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px' }}
+              >
+                <RefreshCw size={14} /> Gerar Preview
+              </button>
+            </div>
 
             {/* Sexo */}
             <div style={{ marginBottom: '16px' }}>
@@ -432,7 +452,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   );
 };
 
-/* ─── Componente principal ─── */
+/* ─── Componente principal (sem alterações) ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [perfilData, setPerfilData] = useState(() => getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
