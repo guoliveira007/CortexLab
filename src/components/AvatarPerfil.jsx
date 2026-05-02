@@ -1,10 +1,11 @@
+// src/components/AvatarPerfil.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
+import { useIsOwner } from '../hooks/useIsOwner';
 
 export const AVATARES = [
-  // Estudantes graduação — tons variados
   { id: 'av_01', emoji: '👩🏻‍🎓', label: 'Estudante' },
   { id: 'av_02', emoji: '👩🏼‍🎓', label: 'Estudante' },
   { id: 'av_03', emoji: '👩🏽‍🎓', label: 'Estudante' },
@@ -15,27 +16,22 @@ export const AVATARES = [
   { id: 'av_08', emoji: '👨🏽‍🎓', label: 'Estudante' },
   { id: 'av_09', emoji: '👨🏾‍🎓', label: 'Estudante' },
   { id: 'av_10', emoji: '👨🏿‍🎓', label: 'Estudante' },
-  // Tech
   { id: 'av_11', emoji: '👩🏻‍💻', label: 'Dev' },
   { id: 'av_12', emoji: '👩🏽‍💻', label: 'Dev' },
   { id: 'av_13', emoji: '👩🏿‍💻', label: 'Dev' },
   { id: 'av_14', emoji: '👨🏼‍💻', label: 'Dev' },
   { id: 'av_15', emoji: '👨🏾‍💻', label: 'Dev' },
-  // Ciência / Lab
   { id: 'av_16', emoji: '👩🏻‍🔬', label: 'Cientista' },
   { id: 'av_17', emoji: '👩🏽‍🔬', label: 'Cientista' },
   { id: 'av_18', emoji: '👨🏼‍🔬', label: 'Cientista' },
   { id: 'av_19', emoji: '👨🏾‍🔬', label: 'Cientista' },
   { id: 'av_20', emoji: '👨🏿‍🔬', label: 'Cientista' },
-  // Professores
   { id: 'av_21', emoji: '👩🏻‍🏫', label: 'Professora' },
   { id: 'av_22', emoji: '👩🏼‍🏫', label: 'Professora' },
   { id: 'av_23', emoji: '👨🏽‍🏫', label: 'Professor' },
   { id: 'av_24', emoji: '👨🏾‍🏫', label: 'Professor' },
-  // Loiras/loiros explícitos (tom de pele claro)
   { id: 'av_25', emoji: '👱🏻‍♀️', label: 'Loira' },
   { id: 'av_26', emoji: '👱🏻‍♂️', label: 'Loiro' },
-  // Médicas e médicos
   { id: 'av_27', emoji: '👩🏻‍⚕️', label: 'Médica' },
   { id: 'av_28', emoji: '👩🏼‍⚕️', label: 'Médica' },
   { id: 'av_29', emoji: '👩🏽‍⚕️', label: 'Médica' },
@@ -46,7 +42,6 @@ export const AVATARES = [
   { id: 'av_34', emoji: '👨🏽‍⚕️', label: 'Médico' },
   { id: 'av_35', emoji: '👨🏾‍⚕️', label: 'Médico' },
   { id: 'av_36', emoji: '👨🏿‍⚕️', label: 'Médico' },
-  // Extras divertidos
   { id: 'av_37', emoji: '🧑🏻‍🎨', label: 'Artista' },
   { id: 'av_38', emoji: '🧑🏾‍🎨', label: 'Artista' },
 ];
@@ -125,6 +120,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [modalAberto, setModalAberto] = useState(false);
   const containerRef = useRef(null);
   const avatar = AVATARES.find(a => a.id === perfilData.avatarId) || AVATARES[0];
+  const isOwner = useIsOwner(); // ← Hook que verifica se é o dono
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
@@ -154,13 +150,30 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
             <div className="dark-modal" style={{ position:'absolute',top:'calc(100% + 10px)',right:0,background:'var(--surface-card)',borderRadius:'16px',boxShadow:'0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)',minWidth:'220px',overflow:'hidden',zIndex:8000,animation:'dd-in 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
               <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px' }}>
                 <div style={{ width:'42px',height:'42px',borderRadius:'50%',background:'rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px',flexShrink:0,border:'2px solid rgba(255,255,255,0.3)' }}>{avatar.emoji}</div>
-                <div style={{ overflow:'hidden' }}>
+                <div style={{ overflow:'hidden', flex: 1 }}>
                   <p style={{ color:'white',fontWeight:700,fontSize:'14px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{nomeExibido}</p>
                   {perfilData.curso
                     ? <p style={{ color:'rgba(255,255,255,0.7)',fontSize:'12px',marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:'4px' }}><Target size={11} />{perfilData.curso}</p>
                     : userEmail && <p style={{ color:'rgba(255,255,255,0.55)',fontSize:'11px',marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{userEmail}</p>
                   }
                 </div>
+                {/* ─── TAG DE ADMINISTRADOR ─── */}
+                {isOwner && (
+                  <span style={{
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    color: 'white',
+                    fontSize: '9px',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                    flexShrink: 0,
+                    boxShadow: '0 2px 6px rgba(245,158,11,0.4)',
+                  }}>
+                    Admin
+                  </span>
+                )}
               </div>
 
               <div style={{ padding:'6px' }}>
