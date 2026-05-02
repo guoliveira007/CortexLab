@@ -13,8 +13,7 @@ const TAMANHO = 11;
 const GAP     = 2;
 const PASSO   = TAMANHO + GAP;
 
-const getCor = count => {
-  const isDark = document.body.classList.contains('dark');
+const getCor = (count, isDark) => {
   if (!count) return isDark ? '#1e293b' : '#ebedf0';
   if (count <= 3)  return '#c7d2fe';
   if (count <= 8)  return '#818cf8';
@@ -28,6 +27,16 @@ const DIAS_PT  = ['Dom','','Ter','','Qui','','Sáb'];
 const Heatmap = memo(() => {
   const [dados, setDados]     = useState({});
   const [tooltip, setTooltip] = useState(null);
+  const [isDark, setIsDark]   = useState(() => document.body.classList.contains('dark'));
+
+  // Reage quando o usuário troca o tema (light ↔ dark)
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setIsDark(document.body.classList.contains('dark'))
+    );
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     db.resultados.toArray().then(rs => {
@@ -139,7 +148,7 @@ const Heatmap = memo(() => {
                       style={{
                         width: TAMANHO,
                         height: TAMANHO,
-                        background: dia.futuro ? 'transparent' : getCor(dia.count),
+                        background: dia.futuro ? 'transparent' : getCor(dia.count, isDark),
                       }}
                     />
                   ))}
@@ -152,7 +161,7 @@ const Heatmap = memo(() => {
           <div className="heatmap-legend">
             <span>Menos</span>
             {[0, 3, 8, 15, 16].map((n, i) => (
-              <div key={i} style={{ width: TAMANHO, height: TAMANHO, borderRadius: 2, background: getCor(n) }} />
+              <div key={i} style={{ width: TAMANHO, height: TAMANHO, borderRadius: 2, background: getCor(n, isDark) }} />
             ))}
             <span>Mais</span>
           </div>
