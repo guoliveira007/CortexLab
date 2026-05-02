@@ -5,17 +5,17 @@ import { auth } from '../firebase';
 import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
 import { useIsOwner } from '../hooks/useIsOwner';
 import { createAvatar } from '@dicebear/core';
-import { lorelei } from '@dicebear/collection';
+import { openPeeps } from '@dicebear/collection';
 
 /* ════════════════════════════════════════════════════
-   100 AVATARES DIVERSOS — estilo Lorelei (DiceBear)
-   Cada seed gera um personagem único e determinístico.
-   Não há opções manuais: diversidade garantida automaticamente.
+   100 AVATARES DIVERSOS — estilo "Open Peeps"
+   Cada seed gera um personagem único, com variação
+   automática de tom de pele, cabelo e acessórios.
    ════════════════════════════════════════════════════ */
 const TOTAL_AVATARES = 100;
 const AVATARES = Array.from({ length: TOTAL_AVATARES }, (_, i) => ({
-  id: `lorelei-${String(i + 1).padStart(3, '0')}`,
-  seed: `cortexlab-lorelei-${i + 1}`, // seed determinística
+  id: `peep-${String(i + 1).padStart(3, '0')}`,
+  seed: `cortexlab-peep-${i + 1}`,
 }));
 
 /* ─── Armazenamento do perfil ─── */
@@ -25,24 +25,20 @@ export const getPerfil = () => {
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
-/* ─── Cache de avatares gerados ─── */
+/* ─── Cache de data URIs ─── */
 const AVATAR_CACHE = new Map();
 
 const gerarDataUri = (seed, size = 128) => {
   const chave = `${seed}-${size}`;
   if (AVATAR_CACHE.has(chave)) return AVATAR_CACHE.get(chave);
 
-  const avatar = createAvatar(lorelei, {
-    seed,
-    size,
-    // Sem opções manuais: o lorelei gera diversidade automaticamente
-  });
+  const avatar = createAvatar(openPeeps, { seed, size });
   const uri = avatar.toDataUri();
   AVATAR_CACHE.set(chave, uri);
   return uri;
 };
 
-/* ─── Modal de edição de perfil ─── */
+/* ─── Modal de escolha de avatar ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   const [nome, setNome] = useState(perfil.nome || '');
   const [curso, setCurso] = useState(perfil.curso || '');
@@ -80,7 +76,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.25)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.15)'}><X size={16} /></button>
           </div>
 
-          {/* Corpo com grade de avatares */}
+          {/* Grade de avatares */}
           <div style={{ flex:1,overflowY:'auto',padding:'20px 24px' }}>
             <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'18px' }}>
               <div><label className="field-label">Seu nome</label><input type="text" value={nome} onChange={e=>setNome(e.target.value)} placeholder="Ex: Maria, João..." maxLength={40} className="input-modern" /></div>
@@ -88,7 +84,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
             </div>
 
             <p style={{ fontSize:'12px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--gray-400)',marginBottom:'12px' }}>
-              Escolha seu avatar — {TOTAL_AVATARES} opções com diversidade
+              Escolha seu avatar — {TOTAL_AVATARES} opções diversas
             </p>
             <div style={{
               display: 'grid',
@@ -135,7 +131,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
   );
 };
 
-/* ─── Componente principal ─── */
+/* ─── Componente principal (sem mudanças) ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [perfilData, setPerfilData] = useState(() => getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
@@ -143,7 +139,6 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const containerRef = useRef(null);
   const isOwner = useIsOwner();
 
-  // Avatar atual salvo (ou o primeiro da lista)
   const avatarAtual = AVATARES.find(a => a.id === perfilData.avatarId) || AVATARES[0];
   const seedAtual = avatarAtual.seed;
   const dataUriAtual = useMemo(() => gerarDataUri(seedAtual, 46), [seedAtual]);
@@ -166,7 +161,6 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   return (
     <>
       <div ref={containerRef} style={{ position:'relative' }}>
-        {/* Botão do perfil */}
         <button onClick={()=>setDropdownAberto(d=>!d)} title="Perfil" style={{ width:'52px',height:'52px',borderRadius:'50%',background:dropdownAberto?'linear-gradient(135deg,#6366f1,#8b5cf6)':'linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))',border:dropdownAberto?'2.5px solid #6366f1':'2px solid rgba(99,102,241,0.25)',cursor:'pointer',overflow:'hidden',transition:'all 0.2s',flexShrink:0,boxShadow:dropdownAberto?'0 0 0 4px rgba(99,102,241,0.15)':'none',padding:'3px' }}
           onMouseEnter={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.5)'; }}}
           onMouseLeave={e=>{ if(!dropdownAberto){ e.currentTarget.style.background='linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.12))'; e.currentTarget.style.borderColor='rgba(99,102,241,0.25)'; }}}
@@ -174,7 +168,6 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
           <img src={dataUriAtual} alt="Avatar" style={{ width:'100%',height:'100%',display:'block' }} draggable={false} />
         </button>
 
-        {/* Dropdown do perfil */}
         {dropdownAberto && (
           <>
             <style>{`@keyframes dd-in { from { opacity:0; transform:translateY(-8px) scale(0.96); } to { opacity:1; transform:none; } }`}</style>
