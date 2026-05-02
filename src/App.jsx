@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from '@vercel/analytics/react';
 import { useAuth } from './AuthContext';
 import { aplicarTema, getTema } from './components/Configuracoes';
 
@@ -170,6 +171,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <Analytics />
       <Toaster position="top-right" toastOptions={{ style: { marginTop: '38px' } }} />
 
       <aside className="sidebar">
