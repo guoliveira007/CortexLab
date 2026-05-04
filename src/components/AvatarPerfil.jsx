@@ -10,10 +10,6 @@ import { useIsOwner } from '../hooks/useIsOwner';
 
 const db = getFirestore(getApp());
 
-/* ════════════════════════════════════════════════════
-   SISTEMA DE AVATAR — Emoji SVG + react-nice-avatar
-   ════════════════════════════════════════════════════ */
-
 const EMOJIS = [
   '😀','😎','🤓','🧑','👩','👨','🧔','👱','🧕','🎓',
   '🥷','🧑‍💻','👩‍💻','👨‍💻','🧑‍🔬','👩‍🔬','👨‍🔬','🦸','🧙','🐱',
@@ -37,53 +33,70 @@ const CORES = [
 
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
-// Valores padrão COMPLETOS para o avatar personalizado
+// Valores padrão conforme documentação do react-nice-avatar
 const AVATAR_DEFAULTS = {
-  hairStyle: 'normal',
-  eyeType: 'circle',
-  eyebrowType: 'up',
-  mouthType: 'smile',
-  noseType: 'round',
-  glassesType: 'none',
-  facialHairType: 'none',
-  shirtType: 'hoody',
-  earRingType: 'none',
+  sex: 'man',
+  faceColor: '#F9C9B6',
   earSize: 'small',
+  eyeStyle: 'circle',
+  noseStyle: 'short',
+  mouthStyle: 'smile',
+  shirtStyle: 'hoody',
+  glassesStyle: 'none',
   hairColor: '#4A2E1A',
-  skinColor: '#F9C9B6',
+  hairStyle: 'normal',
+  hatStyle: 'none',
+  hatColor: '#4A2E1A',
   bgColor: '#6BD9E9',
   shirtColor: '#6366f1',
+  isGradient: false,
 };
 
-const HAIR_STYLES = ['normal','thick','mohawk','womanLong','womanShort','dannyPhantom','fonze','long','short','pixie','turban','hat'];
-const EYE_TYPES = ['circle','oval','smiling','base'];
-const EYEBROW_TYPES = ['up','eyelashesUp','eyelashesDown'];
-const MOUTH_TYPES = ['laugh','smile','peace','smirk','surprised','nervous','sad','pucker'];
-const NOSE_TYPES = ['short','long','round','curve'];
-const GLASSES_TYPES = ['none','round','square'];
-const FACIAL_HAIR_TYPES = ['none','beard','stubble'];
-const SHIRT_TYPES = ['hoody','short','polo','crew','collared','open'];
-const EAR_RING_TYPES = ['none','stud','loop'];
-const EAR_SIZE_TYPES = ['small','big'];
+// Listas de opções suportadas (valores originais em inglês, rótulos traduzidos abaixo)
+const SEX_OPTIONS = ['man', 'woman'];
+const EAR_SIZE_OPTIONS = ['small', 'big'];
+const HAIR_STYLES = ['normal', 'thick', 'mohawk', 'womanLong', 'womanShort'];
+const HAIR_COLORS = ['#2C1B18', '#4A2E1A', '#8D5524', '#C68642', '#F0C040', '#E8B4B8', '#9B59B6', '#2980B9', '#FFFFFF', '#000000'];
+const EYE_STYLES = ['circle', 'oval', 'smiling', 'round'];
+const NOSE_STYLES = ['short', 'long', 'round'];
+const MOUTH_STYLES = ['laugh', 'smile', 'peace', 'surprised', 'nervous', 'sad', 'pucker'];
+const SHIRT_STYLES = ['hoody', 'short', 'polo'];
+const GLASSES_STYLES = ['none', 'round', 'square'];
+const HAT_STYLES = ['none', 'beanie', 'turban'];
+const SHIRT_COLORS = ['#FFFFFF', '#F4D150', '#6BD9E9', '#6366f1', '#ec4899', '#10b981', '#ef4444', '#475569', '#1e293b', '#000000'];
+const BG_COLORS = ['#6BD9E9', '#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#1e293b', '#FFFFFF'];
+const FACE_COLORS = ['#F9C9B6', '#FDDBB4', '#F0C27F', '#C8A97E', '#A0724A', '#7B4F2E', '#4A2E1A'];
+const HAT_COLORS = ['#2C1B18', '#4A2E1A', '#8D5524', '#C68642', '#F0C040', '#E8B4B8', '#9B59B6', '#2980B9', '#FFFFFF', '#000000', '#6366f1', '#ef4444'];
 
-const COLOR_PALETTE = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#06b6d4','#ef4444','#f97316','#475569','#1e293b','#F9C9B6','#FDDBB4','#4A2E1A','#FFFFFF','#000000'];
-
-const labelsMap = {
-  hairStyle:       { label: 'Cabelo',       opts: HAIR_STYLES },
-  eyeType:         { label: 'Olhos',        opts: EYE_TYPES },
-  eyebrowType:     { label: 'Sobrancelhas', opts: EYEBROW_TYPES },
-  mouthType:       { label: 'Boca',         opts: MOUTH_TYPES },
-  noseType:        { label: 'Nariz',        opts: NOSE_TYPES },
-  glassesType:     { label: 'Óculos',       opts: GLASSES_TYPES },
-  facialHairType:  { label: 'Barba',        opts: FACIAL_HAIR_TYPES },
-  shirtType:       { label: 'Roupa',        opts: SHIRT_TYPES },
-  earRingType:     { label: 'Brinco',       opts: EAR_RING_TYPES },
-  earSize:         { label: 'Orelha',       opts: EAR_SIZE_TYPES },
-  hairColor:       { label: 'Cor do cabelo', type: 'color' },
-  skinColor:       { label: 'Tom de pele',   type: 'color' },
-  bgColor:         { label: 'Cor de fundo',  type: 'color' },
-  shirtColor:      { label: 'Cor da roupa',  type: 'color' },
+// Mapeamento de valores para exibição em português
+const TRADUCOES = {
+  sex: { man: 'Masculino', woman: 'Feminino' },
+  earSize: { small: 'Pequena', big: 'Grande' },
+  hairStyle: { normal: 'Normal', thick: 'Espesso', mohawk: 'Moicano', womanLong: 'Longo fem.', womanShort: 'Curto fem.' },
+  eyeStyle: { circle: 'Círculo', oval: 'Oval', smiling: 'Sorridente', round: 'Redondo' },
+  noseStyle: { short: 'Curto', long: 'Longo', round: 'Arredondado' },
+  mouthStyle: { laugh: 'Risada', smile: 'Sorriso', peace: 'Paz', surprised: 'Surpreso', nervous: 'Nervoso', sad: 'Triste', pucker: 'Beicinho' },
+  shirtStyle: { hoody: 'Moletom', short: 'Camiseta', polo: 'Polo' },
+  glassesStyle: { none: 'Nenhum', round: 'Redondo', square: 'Quadrado' },
+  hatStyle: { none: 'Nenhum', beanie: 'Touca', turban: 'Turbante' },
 };
+
+const labelsMap = [
+  { key: 'sex',         label: 'Sexo',           opts: SEX_OPTIONS,       type: 'option' },
+  { key: 'faceColor',   label: 'Tom de pele',    opts: FACE_COLORS,       type: 'color' },
+  { key: 'earSize',     label: 'Orelha',         opts: EAR_SIZE_OPTIONS,  type: 'option' },
+  { key: 'hairStyle',   label: 'Cabelo',         opts: HAIR_STYLES,       type: 'option' },
+  { key: 'hairColor',   label: 'Cor do cabelo',  opts: HAIR_COLORS,       type: 'color' },
+  { key: 'eyeStyle',    label: 'Olhos',          opts: EYE_STYLES,        type: 'option' },
+  { key: 'noseStyle',   label: 'Nariz',          opts: NOSE_STYLES,       type: 'option' },
+  { key: 'mouthStyle',  label: 'Boca',           opts: MOUTH_STYLES,      type: 'option' },
+  { key: 'shirtStyle',  label: 'Roupa',          opts: SHIRT_STYLES,      type: 'option' },
+  { key: 'shirtColor',  label: 'Cor da roupa',   opts: SHIRT_COLORS,      type: 'color' },
+  { key: 'glassesStyle',label: 'Óculos',         opts: GLASSES_STYLES,    type: 'option' },
+  { key: 'hatStyle',    label: 'Chapéu',         opts: HAT_STYLES,        type: 'option' },
+  { key: 'hatColor',    label: 'Cor do chapéu',  opts: HAT_COLORS,        type: 'color' },
+  { key: 'bgColor',     label: 'Cor de fundo',   opts: BG_COLORS,         type: 'color' },
+];
 
 /* ─── Avatar SVG (modo emoji) ─── */
 const AvatarSvg = ({ emoji, cor, size = 46 }) => (
@@ -106,7 +119,6 @@ const AvatarPersonalizado = ({ config, size = 46 }) => (
   </div>
 );
 
-/* ─── Componente unificado de avatar ─── */
 const AvatarAtual = ({ config, niceAvatarConfig, size = 46 }) => {
   if (niceAvatarConfig) return <AvatarPersonalizado config={niceAvatarConfig} size={size} />;
   return <AvatarSvg emoji={config.emoji} cor={config.cor} size={size} />;
@@ -168,27 +180,31 @@ const ColorPicker = ({ colors, value, onChange }) => (
   </div>
 );
 
-const OptionPicker = ({ options, value, onChange }) => (
-  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-    {options.map(opt => (
-      <button
-        key={opt}
-        onClick={() => onChange(opt)}
-        style={{
-          padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-          border: value === opt ? '1.5px solid #6366f1' : '1.5px solid var(--gray-200)',
-          background: value === opt ? 'var(--brand-50, #eef2ff)' : 'transparent',
-          color: value === opt ? '#6366f1' : 'var(--gray-600)',
-          transition: 'all 0.12s',
-        }}
-      >
-        {opt}
-      </button>
-    ))}
-  </div>
-);
+/* Opção com tradução */
+const OptionPicker = ({ options, value, onChange, traducoes }) => {
+  const getLabel = (opt) => traducoes?.[opt] || opt;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      {options.map(opt => (
+        <button
+          key={opt}
+          onClick={() => onChange(opt)}
+          style={{
+            padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+            border: value === opt ? '1.5px solid #6366f1' : '1.5px solid var(--gray-200)',
+            background: value === opt ? 'var(--brand-50, #eef2ff)' : 'transparent',
+            color: value === opt ? '#6366f1' : 'var(--gray-600)',
+            transition: 'all 0.12s',
+          }}
+        >
+          {getLabel(opt)}
+        </button>
+      ))}
+    </div>
+  );
+};
 
-/* ─── Modal de edição de perfil ─── */
+/* ─── Modal ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvatarConfig }) => {
   const [nome,     setNome]     = useState(perfil.nome  || '');
   const [curso,    setCurso]    = useState(perfil.curso || '');
@@ -196,15 +212,11 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
   const [abaAtiva, setAbaAtiva] = useState('emoji');
   const [avatarTemp, setAvatarTemp] = useState(null);
 
-  // Garante que avatarEdit SEMPRE tenha todas as chaves preenchidas
   const avatarEdit = { ...AVATAR_DEFAULTS, ...(niceAvatarConfig || {}), ...(avatarTemp || {}) };
   const corAtiva = avatarEdit.bgColor || '#6366f1';
 
   const atualizar = (chave, valor) => {
-    setAvatarTemp(prev => ({
-      ...(prev || {}),
-      [chave]: valor
-    }));
+    setAvatarTemp(prev => ({ ...(prev || {}), [chave]: valor }));
   };
 
   const salvar = async () => {
@@ -241,14 +253,13 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
       <div onClick={e=>e.stopPropagation()} style={{ position:'fixed',inset:0,zIndex:9101,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',pointerEvents:'none' }}>
         <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'560px',maxHeight:'92vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
 
-          {/* Header */}
           <div style={{ background:`linear-gradient(135deg, ${corAtiva}ee, ${corAtiva}99)`,padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
             <div style={{ width:80,height:80,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)' }}>
               <AvatarAtual config={config} niceAvatarConfig={avatarEdit} size={80} />
             </div>
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
-              {niceAvatarConfig && (
+              {(avatarEdit && niceAvatarConfig) && (
                 <span style={{ background:'rgba(255,255,255,0.2)',color:'white',fontSize:'10px',fontWeight:600,padding:'2px 8px',borderRadius:20,display:'inline-flex',alignItems:'center',gap:4,marginTop:4 }}>
                   <Sparkles size={10} /> Avatar personalizado
                 </span>
@@ -264,10 +275,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
             ><X size={16}/></button>
           </div>
 
-          {/* Corpo */}
           <div style={{ flex:1,overflowY:'auto',padding:'20px 24px',display:'flex',flexDirection:'column',gap:20 }}>
-
-            {/* Nome + Curso */}
             <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
               <div>
                 <label className="field-label">Seu nome</label>
@@ -279,7 +287,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
               </div>
             </div>
 
-            {/* Abas */}
             <div>
               <div style={{ display:'flex',gap:4,background:'var(--gray-50)',borderRadius:12,padding:4,marginBottom:16 }}>
                 {[['emoji','🎨 Emoji'], ['avatar','✨ Avatar']].map(([id, label]) => (
@@ -294,7 +301,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
                 ))}
               </div>
 
-              {/* ── Aba Emoji ── */}
               {abaAtiva === 'emoji' && (
                 <div>
                   <p className="field-label" style={{ marginBottom:10 }}>Cor do avatar</p>
@@ -320,7 +326,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
                 </div>
               )}
 
-              {/* ── Aba Avatar (react-nice-avatar) ── */}
               {abaAtiva === 'avatar' && (
                 <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
                   <div style={{ display:'flex',justifyContent:'center',alignItems:'center',gap:16,flexWrap:'wrap' }}>
@@ -335,15 +340,16 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
                     )}
                   </div>
 
-                  {Object.entries(labelsMap).map(([key, { label, type, opts }]) => {
-                    const value = avatarEdit[key] ?? (key === 'earSize' ? 'small' : (type === 'color' ? '#000000' : 'none'));
+                  {labelsMap.map(({ key, label, type, opts }) => {
+                    const value = avatarEdit[key] ?? (type === 'color' ? '#000000' : (key === 'earSize' ? 'small' : 'none'));
+                    const traducoes = TRADUCOES[key] || {};
                     return (
                       <div key={key}>
                         <p className="field-label" style={{ marginBottom:8 }}>{label}</p>
                         {type === 'color' ? (
-                          <ColorPicker colors={COLOR_PALETTE} value={value} onChange={v => atualizar(key, v)} />
+                          <ColorPicker colors={opts} value={value} onChange={v => atualizar(key, v)} />
                         ) : (
-                          <OptionPicker options={opts} value={value} onChange={v => atualizar(key, v)} />
+                          <OptionPicker options={opts} value={value} onChange={v => atualizar(key, v)} traducoes={traducoes} />
                         )}
                       </div>
                     );
@@ -353,7 +359,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
             </div>
           </div>
 
-          {/* Footer */}
           <div style={{ padding:'14px 24px 20px',display:'flex',gap:10,justifyContent:'flex-end',borderTop:'1px solid var(--gray-100)',flexShrink:0 }}>
             <button onClick={onFechar} className="btn-secondary" style={{ display:'flex',alignItems:'center',gap:6 }}><X size={15}/> Cancelar</button>
             <button onClick={salvar}   className="btn-primary"   style={{ display:'flex',alignItems:'center',gap:6 }}><Check size={15}/> Salvar</button>
