@@ -4,14 +4,14 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles } from 'lucide-react';
-import renderNiceAvatar from '../lib/niceAvatarRender.mjs'; // ✅ importação direta (entry point corrigido)
+import NiceAvatar from 'react-nice-avatar';
 import { auth } from '../firebase';
 import { useIsOwner } from '../hooks/useIsOwner';
 
 const db = getFirestore(getApp());
 
 /* ════════════════════════════════════════════════════
-   SISTEMA DE AVATAR — Emoji SVG + Nice Avatar SVG 2D
+   SISTEMA DE AVATAR — Emoji SVG + react-nice-avatar
    ════════════════════════════════════════════════════ */
 
 const EMOJIS = [
@@ -37,44 +37,6 @@ const CORES = [
 
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
-/* ─── Opções do Nice Avatar ─── */
-const NICE_OPCOES = {
-  skinColor:  ['#F9C9B6', '#FDDBB4', '#F0C27F', '#C8A97E', '#A0724A', '#7B4F2E', '#4A2E1A'],
-  hairColor:  ['#2C1B18', '#4A2E1A', '#8D5524', '#C68642', '#F0C040', '#E8B4B8', '#9B59B6', '#2980B9', '#FFFFFF'],
-  bgColor:    ['#6BD9E9', '#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#1e293b'],
-  shirtColor: ['#FFFFFF', '#F4D150', '#6BD9E9', '#6366f1', '#ec4899', '#10b981', '#ef4444', '#475569', '#1e293b'],
-};
-
-const NICE_AVATAR_PADRAO = {
-  bgColor:         '#6BD9E9',
-  skinColor:       '#F9C9B6',
-  hairColor:       '#4A2E1A',
-  hairStyle:       'normal',
-  eyesStyle:       'smiling',
-  eyebrowsStyle:   'up',
-  mouthStyle:      'smile',
-  noseStyle:       'round',
-  glassesStyle:    'none',
-  facialHairStyle: 'none',
-  shirtStyle:      'hoody',
-  shirtColor:      '#6366f1',
-  earRing:         'none',
-  earSize:         'small',
-};
-
-const NICE_LABELS = {
-  hairStyle:       { label: 'Cabelo',       options: { normal:'Normal', thick:'Espesso', mohawk:'Moicano', womanLong:'Feminino longo', womanShort:'Feminino curto', dannyPhantom:'Danny Phantom', fonze:'Fonzie', pixie:'Pixie', turban:'Turbante', hat:'Chapéu' } },
-  eyesStyle:       { label: 'Olhos',        options: { circle:'Círculo', oval:'Oval', smiling:'Sorridente', base:'Base' } },
-  eyebrowsStyle:   { label: 'Sobrancelhas', options: { up:'Para cima', eyelashesUp:'Cílios cima', eyelashesDown:'Cílios baixo' } },
-  mouthStyle:      { label: 'Boca',         options: { laugh:'Gargalhada', smile:'Sorriso', peace:'Paz', smirk:'Irônico', surprised:'Surpreso', nervous:'Nervoso', sad:'Triste', pucker:'Beicinho' } },
-  noseStyle:       { label: 'Nariz',        options: { short:'Curto', long:'Longo', round:'Redondo', curve:'Curvado' } },
-  glassesStyle:    { label: 'Óculos',       options: { none:'Nenhum', round:'Redondo', square:'Quadrado' } },
-  facialHairStyle: { label: 'Barba',        options: { none:'Nenhuma', beard:'Barba', stubble:'Cavanhaque' } },
-  shirtStyle:      { label: 'Roupa',        options: { hoody:'Moletom', short:'Camiseta', polo:'Polo', crew:'Careca', collared:'Gola', open:'Aberta' } },
-  earRing:         { label: 'Brinco',       options: { none:'Nenhum', stud:'Piercing', loop:'Argola' } },
-  earSize:         { label: 'Orelha',       options: { small:'Pequena', big:'Grande' } },
-};
-
 /* ─── Avatar SVG (modo emoji) ─── */
 const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   <svg
@@ -89,33 +51,19 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── Avatar Nice (renderizado a partir de string SVG) ─── */
-const AvatarNice = ({ config, size = 46 }) => {
-  const [svgString, setSvgString] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    renderNiceAvatar(config).then((svg) => {
-      if (!cancelled) setSvgString(svg);
-    });
-    return () => { cancelled = true; };
-  }, [config]);
-
-  if (!svgString) {
-    return <div style={{ width: size, height: size, borderRadius: '50%', background: config.bgColor || '#6BD9E9', flexShrink: 0 }} />;
-  }
-
-  return (
-    <div
-      style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}
-      dangerouslySetInnerHTML={{ __html: svgString }}
+/* ─── Avatar React-Nice-Avatar ─── */
+const AvatarPersonalizado = ({ config, size = 46 }) => (
+  <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+    <NiceAvatar
+      style={{ width: size, height: size }}
+      {...config}
     />
-  );
-};
+  </div>
+);
 
 /* ─── Componente unificado de avatar ─── */
 const AvatarAtual = ({ config, niceAvatarConfig, size = 46 }) => {
-  if (niceAvatarConfig) return <AvatarNice config={niceAvatarConfig} size={size} />;
+  if (niceAvatarConfig) return <AvatarPersonalizado config={niceAvatarConfig} size={size} />;
   return <AvatarSvg emoji={config.emoji} cor={config.cor} size={size} />;
 };
 
@@ -126,16 +74,15 @@ export const getPerfil = () => {
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
-async function salvarNiceAvatarFirestore(uid, niceConfig) {
+async function salvarAvatarFirestore(uid, cfg) {
   await setDoc(
     doc(db, 'usuarios', uid),
-    { niceAvatarConfig: niceConfig, niceAvatarAt: new Date() },
+    { niceAvatarConfig: cfg, niceAvatarAt: new Date() },
     { merge: true }
   );
 }
 
-/* ─── Hook de sincronização do Firestore ─── */
-function useNiceAvatar() {
+function useAvatar() {
   const [niceAvatarConfig, setNiceAvatarConfig] = useState(null);
 
   useEffect(() => {
@@ -155,7 +102,37 @@ function useNiceAvatar() {
   return { niceAvatarConfig, setNiceAvatarConfig };
 }
 
-/* ─── ColorPicker ─── */
+/* ─── Opções de customização do react-nice-avatar ─── */
+const HAIR_STYLES = [
+  'normal', 'thick', 'mohawk', 'womanLong', 'womanShort',
+  'dannyPhantom', 'fonze', 'long', 'short', 'pixie', 'turban', 'hat',
+];
+const EYE_TYPES = ['circle', 'oval', 'smiling', 'base'];
+const EYEBROW_TYPES = ['up', 'eyelashesUp', 'eyelashesDown'];
+const MOUTH_TYPES = [
+  'laugh', 'smile', 'peace', 'smirk', 'surprised',
+  'nervous', 'sad', 'pucker',
+];
+const NOSE_TYPES = ['short', 'long', 'round', 'curve'];
+const GLASSES_TYPES = ['none', 'round', 'square'];
+const FACIAL_HAIR_TYPES = ['none', 'beard', 'stubble'];
+const SHIRT_TYPES = ['hoody', 'short', 'polo', 'crew', 'collared', 'open'];
+const EAR_RING_TYPES = ['none', 'stud', 'loop'];
+const EAR_SIZE_TYPES = ['small', 'big'];
+
+const labelsMap = {
+  hairStyle: { label: 'Cabelo', opts: HAIR_STYLES },
+  eyeType: { label: 'Olhos', opts: EYE_TYPES },
+  eyebrowType: { label: 'Sobrancelhas', opts: EYEBROW_TYPES },
+  mouthType: { label: 'Boca', opts: MOUTH_TYPES },
+  noseType: { label: 'Nariz', opts: NOSE_TYPES },
+  glassesType: { label: 'Óculos', opts: GLASSES_TYPES },
+  facialHairType: { label: 'Barba', opts: FACIAL_HAIR_TYPES },
+  shirtType: { label: 'Roupa', opts: SHIRT_TYPES },
+  earRingType: { label: 'Brinco', opts: EAR_RING_TYPES },
+  earSize: { label: 'Orelha', opts: EAR_SIZE_TYPES },
+};
+
 const ColorPicker = ({ colors, value, onChange }) => (
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
     {colors.map(c => (
@@ -176,22 +153,21 @@ const ColorPicker = ({ colors, value, onChange }) => (
   </div>
 );
 
-/* ─── OptionPicker ─── */
 const OptionPicker = ({ options, value, onChange }) => (
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-    {Object.entries(options).map(([key, label]) => (
+    {options.map(opt => (
       <button
-        key={key}
-        onClick={() => onChange(key)}
+        key={opt}
+        onClick={() => onChange(opt)}
         style={{
           padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-          border: value === key ? '1.5px solid #6366f1' : '1.5px solid var(--gray-200)',
-          background: value === key ? 'var(--brand-50, #eef2ff)' : 'transparent',
-          color: value === key ? '#6366f1' : 'var(--gray-600)',
+          border: value === opt ? '1.5px solid #6366f1' : '1.5px solid var(--gray-200)',
+          background: value === opt ? 'var(--brand-50, #eef2ff)' : 'transparent',
+          color: value === opt ? '#6366f1' : 'var(--gray-600)',
           transition: 'all 0.12s',
         }}
       >
-        {label}
+        {opt}
       </button>
     ))}
   </div>
@@ -203,18 +179,18 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
   const [curso,    setCurso]    = useState(perfil.curso || '');
   const [config,   setConfig]   = useState({ ...CONFIG_PADRAO, ...(perfil.avatarConfig || {}) });
   const [abaAtiva, setAbaAtiva] = useState('emoji');
-  const [niceTemp, setNiceTemp] = useState(null);
+  const [avatarTemp, setAvatarTemp] = useState(null);
 
-  const niceEdit = niceTemp || (niceAvatarConfig ? { ...niceAvatarConfig } : { ...NICE_AVATAR_PADRAO });
-  const corAtiva = (niceTemp || niceAvatarConfig) ? (niceEdit.bgColor || '#6366f1') : config.cor;
+  const avatarEdit = avatarTemp || (niceAvatarConfig ? { ...niceAvatarConfig } : {});
+  const corAtiva = niceAvatarConfig ? (avatarEdit.hairColor || '#6366f1') : config.cor;
 
-  const atualizarNice = (chave, valor) => setNiceTemp({ ...niceEdit, [chave]: valor });
+  const atualizar = (chave, valor) => setAvatarTemp({ ...avatarEdit, [chave]: valor });
 
   const salvar = async () => {
     const uid = auth.currentUser?.uid;
-    if (abaAtiva === 'avatar' && niceTemp && uid) {
-      await salvarNiceAvatarFirestore(uid, niceTemp);
-      setNiceAvatarConfig(niceTemp);
+    if (abaAtiva === 'avatar' && avatarTemp && uid) {
+      await salvarAvatarFirestore(uid, avatarTemp);
+      setNiceAvatarConfig(avatarTemp);
     }
     if (abaAtiva === 'emoji' && uid) {
       await setDoc(doc(db, 'usuarios', uid), { niceAvatarConfig: null }, { merge: true });
@@ -224,11 +200,11 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
     onFechar();
   };
 
-  const removerNice = async () => {
+  const remover = async () => {
     const uid = auth.currentUser?.uid;
     if (uid) await setDoc(doc(db, 'usuarios', uid), { niceAvatarConfig: null }, { merge: true });
     setNiceAvatarConfig(null);
-    setNiceTemp(null);
+    setAvatarTemp(null);
   };
 
   return (
@@ -246,11 +222,11 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
           {/* Header */}
           <div style={{ background:`linear-gradient(135deg, ${corAtiva}ee, ${corAtiva}99)`,padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
             <div style={{ width:80,height:80,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)' }}>
-              <AvatarAtual config={config} niceAvatarConfig={niceTemp || niceAvatarConfig} size={80} />
+              <AvatarAtual config={config} niceAvatarConfig={avatarTemp || niceAvatarConfig} size={80} />
             </div>
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
-              {(niceTemp || niceAvatarConfig) && (
+              {(avatarTemp || niceAvatarConfig) && (
                 <span style={{ background:'rgba(255,255,255,0.2)',color:'white',fontSize:'10px',fontWeight:600,padding:'2px 8px',borderRadius:20,display:'inline-flex',alignItems:'center',gap:4,marginTop:4 }}>
                   <Sparkles size={10} /> Avatar personalizado
                 </span>
@@ -322,47 +298,28 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
                 </div>
               )}
 
-              {/* ── Aba Avatar (Nice Avatar customizável) ── */}
+              {/* ── Aba Avatar (react-nice-avatar) ── */}
               {abaAtiva === 'avatar' && (
                 <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
                   <div style={{ display:'flex',justifyContent:'center',alignItems:'center',gap:16,flexWrap:'wrap' }}>
                     <div style={{ width:120,height:120,borderRadius:'50%',overflow:'hidden',border:'2px solid var(--gray-100)',flexShrink:0 }}>
-                      <AvatarNice config={niceEdit} size={120} />
+                      <AvatarPersonalizado config={avatarEdit} size={120} />
                     </div>
                     {niceAvatarConfig && (
-                      <button onClick={removerNice}
+                      <button onClick={remover}
                         style={{ padding:'7px 14px',borderRadius:10,border:'1.5px solid #fecaca',background:'#fef2f2',fontSize:12,fontWeight:600,color:'#ef4444',cursor:'pointer' }}>
                         Remover avatar
                       </button>
                     )}
                   </div>
 
-                  <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
-                    <div>
-                      <p className="field-label" style={{ marginBottom:8 }}>Cor de fundo</p>
-                      <ColorPicker colors={NICE_OPCOES.bgColor} value={niceEdit.bgColor} onChange={v=>atualizarNice('bgColor',v)} />
-                    </div>
-                    <div>
-                      <p className="field-label" style={{ marginBottom:8 }}>Tom de pele</p>
-                      <ColorPicker colors={NICE_OPCOES.skinColor} value={niceEdit.skinColor} onChange={v=>atualizarNice('skinColor',v)} />
-                    </div>
-                    <div>
-                      <p className="field-label" style={{ marginBottom:8 }}>Cor do cabelo</p>
-                      <ColorPicker colors={NICE_OPCOES.hairColor} value={niceEdit.hairColor} onChange={v=>atualizarNice('hairColor',v)} />
-                    </div>
-                    <div>
-                      <p className="field-label" style={{ marginBottom:8 }}>Cor da roupa</p>
-                      <ColorPicker colors={NICE_OPCOES.shirtColor} value={niceEdit.shirtColor} onChange={v=>atualizarNice('shirtColor',v)} />
-                    </div>
-                  </div>
-
-                  {['hairStyle','eyesStyle','eyebrowsStyle','mouthStyle','noseStyle','glassesStyle','facialHairStyle','shirtStyle','earRing','earSize'].map(chave => (
-                    <div key={chave}>
-                      <p className="field-label" style={{ marginBottom:8 }}>{NICE_LABELS[chave].label}</p>
+                  {Object.entries(labelsMap).map(([key, { label, opts }]) => (
+                    <div key={key}>
+                      <p className="field-label" style={{ marginBottom:8 }}>{label}</p>
                       <OptionPicker
-                        options={NICE_LABELS[chave].options}
-                        value={niceEdit[chave]}
-                        onChange={v=>atualizarNice(chave,v)}
+                        options={opts}
+                        value={avatarEdit[key] || (key === 'earSize' ? 'small' : 'none')}
+                        onChange={v => atualizar(key, v)}
                       />
                     </div>
                   ))}
@@ -390,11 +347,11 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const containerRef = useRef(null);
   const isOwner = useIsOwner();
 
-  const { niceAvatarConfig, setNiceAvatarConfig } = useNiceAvatar();
+  const { niceAvatarConfig, setNiceAvatarConfig } = useAvatar();
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
   const nomeExibido  = perfilData.nome || userEmail?.split('@')[0] || 'Meu perfil';
-  const corBorda     = niceAvatarConfig ? (niceAvatarConfig.bgColor || '#6366f1') : avatarConfig.cor;
+  const corBorda     = niceAvatarConfig ? (niceAvatarConfig.hairColor || '#6366f1') : avatarConfig.cor;
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
