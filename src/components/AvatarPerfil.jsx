@@ -77,7 +77,7 @@ const STORAGE_KEY = 'cortexlab_perfil';
    ═══════════════════════════════════════════════ */
 const injectStyles = () => {
   if (typeof document === 'undefined') return;
-  const id = '__avatar-animations-v4';
+  const id = '__avatar-animations-v6';
   if (document.getElementById(id)) return;
   const style = document.createElement('style');
   style.id = id;
@@ -90,7 +90,6 @@ const injectStyles = () => {
     @keyframes dotPulse { 0%,100%{transform:translate(-50%,-50%) scale(1); opacity:0.7} 50%{transform:translate(-50%,-50%) scale(1.4); opacity:1} }
     @keyframes elegantRotate { 0%{transform:translate(-50%,-50%) rotate(0deg)} 100%{transform:translate(-50%,-50%) rotate(360deg)} }
     @keyframes arcGlow { 0%,100%{opacity:0.5} 50%{opacity:0.9} }
-    @keyframes glassShine { 0%{opacity:0.2; transform:rotate(0deg)} 100%{opacity:0.5; transform:rotate(360deg)} }
 
     /* Admin premium */
     .moldura-admin {
@@ -177,12 +176,9 @@ const injectStyles = () => {
       border-radius: 50%;
       border: 2px solid transparent;
       border-bottom-color: currentColor;
-      border-left-color: transparent;
-      border-right-color: transparent;
       opacity: 0.4;
       animation: arcGlow 2s ease-in-out infinite;
       z-index: 0;
-      transform: rotate(-10deg);
     }
 
     /* Traço Elegante */
@@ -203,11 +199,11 @@ const injectStyles = () => {
       animation: elegantRotate 4s linear infinite;
       opacity: 0.6;
       z-index: 0;
-      transform: translate(-50%, -50%);
       top: 50%;
       left: 50%;
       width: calc(100% + 6px);
       height: calc(100% + 6px);
+      transform: translate(-50%, -50%);
     }
 
     /* Vidro (glass) */
@@ -252,52 +248,6 @@ const injectStyles = () => {
 };
 
 if (typeof window !== 'undefined') injectStyles();
-
-/* ═══════════════════════════════════════════════
-   COMPRESSÃO DE IMAGEM (canvas)
-   ═══════════════════════════════════════════════ */
-const compressImage = (file) => {
-  return new Promise((resolve, reject) => {
-    // Se for GIF e menor que 500KB, mantém original
-    if (file.type === 'image/gif' && file.size < 500 * 1024) {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let { width, height } = img;
-
-      // Redimensiona se maior que 200px
-      const MAX_SIZE = 200;
-      if (width > MAX_SIZE || height > MAX_SIZE) {
-        if (width > height) {
-          height *= MAX_SIZE / width;
-          width = MAX_SIZE;
-        } else {
-          width *= MAX_SIZE / height;
-          height = MAX_SIZE;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const quality = 0.6;
-      const mimeType = 'image/jpeg'; // fallback; se for GIF, tentamos manter original pequeno
-      const dataUrl = canvas.toDataURL(mimeType, quality);
-      resolve(dataUrl);
-    };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
-};
 
 /* ═══════════════════════════════════════════════
    COMPONENTES DE AVATAR
@@ -404,11 +354,10 @@ const AvatarMoldura = ({ children, moldura, isAdmin, color }) => {
   return children;
 };
 
-/* ─── Componente unificado ─── */
 const AvatarAtual = ({ config, nome, size = 46, isAdmin = false, syncEffect = false }) => {
   const tipo = config.tipo || 'emoji';
   const moldura = config.moldura || (isAdmin ? 'admin' : 'none');
-  const isGif = tipo === 'foto' && config.fotoUrl && config.fotoUrl.startsWith('data:image/gif');
+  const isGif = tipo === 'foto' && config.fotoUrl && (config.fotoUrl.includes('.gif') || config.fotoUrl.includes('gif'));
 
   let avatarContent;
   if (tipo === 'foto' && config.fotoUrl) {
@@ -462,6 +411,31 @@ function usePerfil() {
 }
 
 /* ═══════════════════════════════════════════════
+   UPLOAD PARA CLOUDINARY
+   ═══════════════════════════════════════════════ */
+const CLOUD_NAME = 'dfmeirevl'; // seu cloud name
+const UPLOAD_PRESET = 'avatar_preset'; // ⚠️ Altere para o nome do upload preset que você criou
+
+const uploadToCloudinary = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Upload failed');
+  }
+
+  const data = await response.json();
+  return data.secure_url; // URL pública da imagem/GIF
+};
+
+/* ═══════════════════════════════════════════════
    MODAL DE EDIÇÃO
    ═══════════════════════════════════════════════ */
 const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
@@ -471,22 +445,34 @@ const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
   const [categoria, setCategoria] = useState(Object.keys(EMOJI_CATEGORIES)[0]);
   const [busca, setBusca] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
-  const isGif = config.fotoUrl && config.fotoUrl.startsWith('data:image/gif');
+  const isGif = config.fotoUrl && (config.fotoUrl.includes('.gif') || config.fotoUrl.includes('gif'));
   const corAtiva = config.cor;
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 2 MB.');
+
+    // Limite generoso: 10 MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Arquivo muito grande. Máximo 10 MB.');
       return;
     }
+
+    setSalvando(true);
+    setUploadProgress(0);
+
     try {
-      const compressed = await compressImage(file);
-      setConfig(p => ({ ...p, tipo: 'foto', fotoUrl: compressed }));
-    } catch (err) {
-      alert('Erro ao processar imagem.');
+      setUploadProgress(30);
+      const url = await uploadToCloudinary(file);
+      setUploadProgress(100);
+      setConfig(p => ({ ...p, tipo: 'foto', fotoUrl: url }));
+    } catch (error) {
+      alert('Falha no upload. Verifique sua conexão e tente novamente.');
+      console.error(error);
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -642,9 +628,14 @@ const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
                     </button>
                   )}
                 </div>
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <div style={{ marginTop: 12, background: 'var(--gray-100)', borderRadius: 8, height: 4, overflow: 'hidden' }}>
+                    <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--brand-500)', transition: 'width 0.3s' }} />
+                  </div>
+                )}
                 {config.fotoUrl && (
                   <p style={{ color: isDark?'var(--gray-500)':'var(--gray-400)',fontSize:11,marginTop:10 }}>
-                    {isGif ? '✅ GIF animado carregado' : '✅ Imagem carregada'} (máx. 2 MB, será comprimido)
+                    {isGif ? '✅ GIF animado carregado' : '✅ Imagem carregada'}
                   </p>
                 )}
               </div>
@@ -728,7 +719,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
       try {
         await salvarPerfilFirestore(uid, d);
       } catch (e) {
-        alert('Erro ao sincronizar avatar. O arquivo pode ser grande demais. Tente um GIF menor ou uma foto comum.');
+        alert('Erro ao sincronizar perfil.');
       }
     }
   };
