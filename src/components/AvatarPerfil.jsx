@@ -357,7 +357,7 @@ const AvatarMoldura = ({ children, moldura, isAdmin, size }) => {
                 '--ey': `${Math.sin(i * 45 * Math.PI / 180) * 35}px`,
                 animationDelay: `${i * 0.3}s`,
                 top: '50%', left: '50%',
-              } as React.CSSProperties}
+              }}
             >
               ✨
             </span>
@@ -771,24 +771,6 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
               </div>
               {isOwner && (
                 <span style={{ background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'white',fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,textTransform:'uppercase' }}>Admin</span>
-              )}
-            </div>
-            <div style={{ padding:6 }}>
-              {menuItems.map((item, i) => (
-                <button key={i} onClick={item.action}
-                  style={{ width:'100%',padding:'10px 12px',background:'none',border:'none',borderRadius:10,display:'flex',alignItems:'center',gap:10,cursor:'pointer',textAlign:'left',fontSize:14,fontWeight:500,color:isDark?'var(--gray-700)':'var(--gray-700)',transition:'background 0.12s' }}
-                  onMouseEnter={e=>e.currentTarget.style.background=isDark?'var(--gray-200)':'var(--gray-50)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='none'}>
-                  <span style={{ width:20,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--gray-500)' }}>{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
-              <div style={{ borderTop: isDark?'1px solid var(--gray-200)':'1px solid var(--gray-100)',margin:'4px 0' }}/>
-              <button onClick={()=>{ setDropdownAberto(false); signOut(auth); }}
-                style={{ width:'100%',padding:'10px 12px',background:'none',border:'none',borderRadius:10,display:'flex',alignItems:'center',gap:10,cursor:'pointer',textAlign:'left',fontSize:14,fontWeight:500,color:'#ef4444',transition:'background 0.12s' }}
-                onMouseEnter={e=>e.currentTarget.style.background='#fef2f2'}
-                onMouseLeave={e=>e.currentTarget.style.background='none'}>
-                <span style={{ width:20:'2px 6px',borderRadius:4,textTransform:'uppercase' }}>Admin</span>
               )}
             </div>
             <div style={{ padding:6 }}>
