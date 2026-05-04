@@ -1,14 +1,13 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, Suspense, startTransition } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles } from 'lucide-react';
-import NiceAvatar from '@nice-avatar-svg/react';
+import renderNiceAvatar from '@nice-avatar-svg/render'; // ← NOVO: renderizador puro (string SVG)
 import { auth } from '../firebase';
 import { useIsOwner } from '../hooks/useIsOwner';
 
-// Usa getFirestore() para retornar a instância já inicializada (sem conflito)
 const db = getFirestore(getApp());
 
 /* ════════════════════════════════════════════════════
@@ -90,22 +89,30 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── FIX #1: Suspense boundary em torno do NiceAvatar ───────────────────────
-   @nice-avatar-svg/react pode suspender na primeira renderização (lazy load
-   de assets internos). Sem <Suspense>, o React lança o erro #525 e derruba
-   toda a árvore. O fallback exibe um círculo colorido simples enquanto carrega.
-   ──────────────────────────────────────────────────────────────────────────── */
-const NiceAvatarFallback = ({ size = 46, color = '#6BD9E9' }) => (
-  <div style={{ width: size, height: size, borderRadius: '50%', background: color, flexShrink: 0 }} />
-);
+/* ─── AVATAR NICE (usando @nice-avatar-svg/render) ─── */
+const AvatarNice = ({ config, size = 46 }) => {
+  const [svgString, setSvgString] = useState('');
 
-const AvatarNice = ({ config, size = 46 }) => (
-  <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-    <Suspense fallback={<NiceAvatarFallback size={size} color={config?.bgColor} />}>
-      <NiceAvatar style={{ width: size, height: size }} {...config} />
-    </Suspense>
-  </div>
-);
+  useEffect(() => {
+    let cancelled = false;
+    renderNiceAvatar(config).then((svg) => {
+      if (!cancelled) setSvgString(svg);
+    });
+    return () => { cancelled = true; };
+  }, [config]);
+
+  if (!svgString) {
+    // placeholder enquanto gera
+    return <div style={{ width: size, height: size, borderRadius: '50%', background: config.bgColor || '#6BD9E9', flexShrink: 0 }} />;
+  }
+
+  return (
+    <div
+      style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}
+      dangerouslySetInnerHTML={{ __html: svgString }}
+    />
+  );
+};
 
 /* ─── Componente unificado de avatar ─── */
 const AvatarAtual = ({ config, niceAvatarConfig, size = 46 }) => {
@@ -120,7 +127,6 @@ export const getPerfil = () => {
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
-// ⚠️ IMPORTANTE: usa 'usuarios' (com S) para bater com as regras do Firestore
 async function salvarNiceAvatarFirestore(uid, niceConfig) {
   await setDoc(
     doc(db, 'usuarios', uid),
@@ -129,11 +135,7 @@ async function salvarNiceAvatarFirestore(uid, niceConfig) {
   );
 }
 
-/* ─── FIX #2: useNiceAvatar APENAS em AvatarPerfil ───────────────────────────
-   Antes, o hook era chamado tanto em AvatarPerfil quanto em ModalPerfil,
-   criando duas subscriptions Firestore independentes. Agora o hook vive só
-   no componente raiz e o estado é passado como props para o modal.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ─── Hook de sincronização do Firestore ─── */
 function useNiceAvatar() {
   const [niceAvatarConfig, setNiceAvatarConfig] = useState(null);
 
@@ -154,7 +156,7 @@ function useNiceAvatar() {
   return { niceAvatarConfig, setNiceAvatarConfig };
 }
 
-/* ─── Seletor de cor circular ─── */
+/* ─── ColorPicker / OptionPicker (idênticos aos anteriores) ─── */
 const ColorPicker = ({ colors, value, onChange }) => (
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
     {colors.map(c => (
@@ -175,7 +177,6 @@ const ColorPicker = ({ colors, value, onChange }) => (
   </div>
 );
 
-/* ─── Seletor de opção (chips de texto) ─── */
 const OptionPicker = ({ options, value, onChange }) => (
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
     {Object.entries(options).map(([key, label]) => (
@@ -196,9 +197,7 @@ const OptionPicker = ({ options, value, onChange }) => (
   </div>
 );
 
-/* ─── Modal de edição de perfil ───────────────────────────────────────────────
-   Recebe niceAvatarConfig e setNiceAvatarConfig como props (não chama o hook)
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ─── MODAL DE EDIÇÃO ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvatarConfig }) => {
   const [nome,     setNome]     = useState(perfil.nome  || '');
   const [curso,    setCurso]    = useState(perfil.curso || '');
@@ -286,10 +285,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
             <div>
               <div style={{ display:'flex',gap:4,background:'var(--gray-50)',borderRadius:12,padding:4,marginBottom:16 }}>
                 {[['emoji','🎨 Emoji'], ['avatar','✨ Avatar']].map(([id, label]) => (
-                  // FIX #525: startTransition avisa ao React que essa atualização
-                  // pode ser adiada se NiceAvatar suspender durante a renderização.
-                  // Sem isso, React 18 lança erro #525 em interações síncronas.
-                  <button key={id} onClick={()=>startTransition(()=>setAbaAtiva(id))}
+                  <button key={id} onClick={() => setAbaAtiva(id)}
                     style={{ flex:1,padding:'8px 0',borderRadius:9,border:'none',cursor:'pointer',fontSize:13,fontWeight:600,transition:'all 0.15s',
                       background: abaAtiva===id ? 'var(--surface-card)' : 'transparent',
                       color: abaAtiva===id ? (id==='avatar'?'#6366f1':'var(--gray-800)') : 'var(--gray-400)',
@@ -326,11 +322,10 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
                 </div>
               )}
 
-              {/* ── Aba Avatar (Nice Avatar SVG) ── */}
+              {/* ── Aba Avatar (Nice Avatar) ── */}
               {abaAtiva === 'avatar' && (
                 <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
                   <div style={{ display:'flex',justifyContent:'center',alignItems:'center',gap:16,flexWrap:'wrap' }}>
-                    {/* FIX #1 aplicado: Suspense wrapping via AvatarNice */}
                     <div style={{ width:120,height:120,borderRadius:'50%',overflow:'hidden',border:'2px solid var(--gray-100)',flexShrink:0 }}>
                       <AvatarNice config={niceEdit} size={120} />
                     </div>
@@ -387,7 +382,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
   );
 };
 
-/* ─── Componente principal ─── */
+/* ─── COMPONENTE PRINCIPAL ─── */
 const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [perfilData,     setPerfilData]    = useState(() => getPerfil());
   const [dropdownAberto, setDropdownAberto] = useState(false);
@@ -395,7 +390,6 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const containerRef = useRef(null);
   const isOwner = useIsOwner();
 
-  // FIX #2: hook chamado apenas aqui, estado passado por props ao ModalPerfil
   const { niceAvatarConfig, setNiceAvatarConfig } = useNiceAvatar();
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
