@@ -4,16 +4,10 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles } from 'lucide-react';
-import { createAvatar } from '@dicebear/core';
-import { avataaars } from '@dicebear/collection';
 import { auth } from '../firebase';
 import { useIsOwner } from '../hooks/useIsOwner';
 
 const db = getFirestore(getApp());
-
-/* ════════════════════════════════════════════════════
-   SISTEMA DE AVATAR — Emoji SVG + DiceBear Avataaars
-   ════════════════════════════════════════════════════ */
 
 const EMOJIS = [
   '😀','😎','🤓','🧑','👩','👨','🧔','👱','🧕','🎓',
@@ -39,26 +33,21 @@ const CORES = [
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
 /* ════════════════════════════════════════════════════
-   DICEBEAR AVATAAARS — OPÇÕES
+   OPÇÕES DICEBEAR AVATAAARS (via URL)
    ════════════════════════════════════════════════════ */
 
 const AVATAR_DEFAULTS = {
-  top: ['shortWaved'],
-  topColor: '2c1b18',
-  skinColor: 'edb98a',
+  top: 'shortWaved',
   hairColor: '2c1b18',
-  eyebrows: 'default',
+  skinColor: 'edb98a',
   eyes: 'default',
+  eyebrows: 'default',
   mouth: 'smile',
-  nose: 'default',
   facialHair: 'beardMedium',
   facialHairColor: '2c1b18',
-  facialHairProbability: 0,
-  accessories: 'prescription02',
   clothe: 'hoodie',
   clotheColor: '3c4f5c',
   backgroundColor: '6BD9E9',
-  style: 'circle',
 };
 
 const TOP_OPTIONS = {
@@ -138,7 +127,7 @@ const BG_COLORS = [
 
 const labelsMap = [
   { key: 'top', label: 'Cabelo', type: 'option', opts: TOP_OPTIONS },
-  { key: 'topColor', label: 'Cor do cabelo', type: 'color', opts: HAIR_COLORS },
+  { key: 'hairColor', label: 'Cor do cabelo', type: 'color', opts: HAIR_COLORS },
   { key: 'skinColor', label: 'Tom de pele', type: 'color', opts: SKIN_COLORS },
   { key: 'eyes', label: 'Olhos', type: 'option', opts: EYES_OPTIONS },
   { key: 'eyebrows', label: 'Sobrancelhas', type: 'option', opts: EYEBROWS_OPTIONS },
@@ -162,28 +151,25 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── DiceBear Avataaars ─── */
-const AvatarDiceBear = ({ config }) => {
-  const svgString = useMemo(() => {
-    try {
-      return createAvatar(avataaars, {
-        ...config,
-        top: Array.isArray(config.top) ? config.top[0] : (config.top || 'shortWaved'),
-        topProbability: 0,
-        facialHairProbability: 0,
-        size: 200,
-      }).toString();
-    } catch {
-      return '';
-    }
-  }, [config]);
+/* ─── DiceBear via URL ─── */
+const buildDiceBearUrl = (config) => {
+  const params = new URLSearchParams();
+  Object.entries(config).forEach(([key, value]) => {
+    if (key === 'top' && Array.isArray(value)) value = value[0];
+    if (value) params.append(key, value);
+  });
+  return `https://api.dicebear.com/9.x/avataaars/svg?${params.toString()}`;
+};
 
-  if (!svgString) return null;
+const AvatarDiceBear = ({ config }) => {
+  const url = useMemo(() => buildDiceBearUrl(config), [config]);
 
   return (
-    <div
-      style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}
-      dangerouslySetInnerHTML={{ __html: svgString }}
+    <img
+      src={url}
+      alt="avatar"
+      style={{ width: '100%', height: '100%', borderRadius: '50%' }}
+      onError={(e) => { e.target.style.display = 'none'; }}
     />
   );
 };
