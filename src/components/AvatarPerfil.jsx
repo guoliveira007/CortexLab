@@ -59,11 +59,10 @@ const CORES = [
 
 const MOLDURAS = [
   { id: 'none', label: 'Nenhuma' },
-  { id: 'estrelas', label: '✨ Estrelas' },
-  { id: 'coracao', label: '❤️ Coração' },
-  { id: 'fogo', label: '🔥 Fogo' },
-  { id: 'neon', label: '💡 Neon' },
-  { id: 'arcoiris', label: '🌈 Arco-íris' },
+  { id: 'shadow', label: '🌑 Sombra' },
+  { id: 'ring', label: '💍 Anel' },
+  { id: 'glow', label: '✨ Brilho' },
+  { id: 'dots', label: '🔵 Pontos' },
 ];
 
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1', tipo: 'emoji', moldura: 'none' };
@@ -71,11 +70,11 @@ const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1', tipo: 'emoji', moldura: '
 const STORAGE_KEY = 'cortexlab_perfil';
 
 /* ═══════════════════════════════════════════════
-   ANIMAÇÕES CSS
+   ANIMAÇÕES CSS (leves)
    ═══════════════════════════════════════════════ */
 const injectStyles = () => {
   if (typeof document === 'undefined') return;
-  const id = '__avatar-animations-v3';
+  const id = '__avatar-animations-light';
   if (document.getElementById(id)) return;
   const style = document.createElement('style');
   style.id = id;
@@ -84,183 +83,98 @@ const injectStyles = () => {
     @keyframes emojiFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
     @keyframes emojiWave { 0%{transform:rotate(0) scale(1)} 25%{transform:rotate(-10deg) scale(1.1)} 75%{transform:rotate(10deg) scale(1.1)} 100%{transform:rotate(0) scale(1)} }
     @keyframes avatarPulse { 0%{transform:scale(1);opacity:0.5} 100%{transform:scale(1.2);opacity:0} }
-    @keyframes syncPulse { 0%{box-shadow:0 0 0 0 rgba(99,102,241,0.7)} 70%{box-shadow:0 0 0 12px rgba(99,102,241,0)} 100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} }
+    @keyframes syncPulse { 0%{box-shadow:0 0 0 0 rgba(99,102,241,0.7)} 70%{box-shadow:0 0 0 8px rgba(99,102,241,0)} 100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} }
 
-    /* ═══ MOLDURA ADMIN (ultra premium) ═══ */
-    .moldura-admin-wrapper {
+    /* Admin: borda dourada sutil com brilho */
+    .moldura-admin {
       position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
     }
-    .moldura-admin-outer {
+    .moldura-admin::before {
+      content: '';
       position: absolute;
-      inset: -6px;
+      inset: -3px;
       border-radius: 50%;
-      background: conic-gradient(from 0deg, #f59e0b, #d97706, #fbbf24, #f59e0b, #b45309, #f59e0b);
-      animation: adminSpin 3s linear infinite;
+      border: 2px solid #f59e0b;
+      opacity: 0.8;
+      animation: adminGlow 2s ease-in-out infinite;
       z-index: 0;
     }
-    .moldura-admin-inner {
+    @keyframes adminGlow { 0%,100%{box-shadow:0 0 4px rgba(245,158,11,0.4)} 50%{box-shadow:0 0 10px rgba(245,158,11,0.7)} }
+    .moldura-admin-crown {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      z-index: 2;
+      filter: drop-shadow(0 0 3px rgba(245,158,11,0.6));
+      animation: crownFloat 2s ease-in-out infinite;
+    }
+    @keyframes crownFloat { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-2px)} }
+
+    /* Sombra suave */
+    .moldura-shadow {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08);
+      border-radius: 50%;
+    }
+
+    /* Anel simples */
+    .moldura-ring {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .moldura-ring::before {
+      content: '';
       position: absolute;
       inset: -2px;
       border-radius: 50%;
-      background: transparent;
-      border: 2px solid rgba(255,255,255,0.7);
-      z-index: 2;
-      animation: adminPulse 2s ease-in-out infinite;
-    }
-    @keyframes adminSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-    @keyframes adminPulse { 0%,100%{box-shadow:0 0 8px rgba(245,158,11,0.6), 0 0 20px rgba(245,158,11,0.3)} 50%{box-shadow:0 0 16px rgba(245,158,11,0.9), 0 0 32px rgba(245,158,11,0.6)} }
-    .moldura-admin-crown {
-      position: absolute;
-      top: -18px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 24px;
-      z-index: 3;
-      animation: crownFloat 2s ease-in-out infinite;
-      filter: drop-shadow(0 0 6px rgba(245,158,11,0.8));
-    }
-    @keyframes crownFloat { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-4px)} }
-    .moldura-admin-sparkles {
-      position: absolute;
-      inset: -10px;
-      border-radius: 50%;
-      z-index: 1;
-      pointer-events: none;
-    }
-    .moldura-admin-sparkle {
-      position: absolute;
-      font-size: 14px;
-      animation: sparkleFloat 2s ease-in-out infinite;
-    }
-    @keyframes sparkleFloat {
-      0%{opacity:0; transform:translate(0,0) scale(0)}
-      50%{opacity:1; transform:translate(var(--sx), var(--sy)) scale(1.2)}
-      100%{opacity:0; transform:translate(var(--ex), var(--ey)) scale(0)}
-    }
-
-    /* ═══ MOLDURA ESTRELAS ═══ */
-    .moldura-estrelas-wrapper {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    .moldura-estrelas-ring {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 2px dashed gold;
-      animation: estrelasSpin 8s linear infinite;
+      border: 2px solid currentColor;
+      opacity: 0.3;
       z-index: 0;
     }
-    .moldura-estrelas-star {
-      position: absolute;
-      font-size: 18px;
-      z-index: 2;
-      animation: estrelaFloat 3s ease-in-out infinite;
-      filter: drop-shadow(0 0 4px gold);
-    }
-    @keyframes estrelasSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-    @keyframes estrelaFloat { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.3)} }
 
-    /* ═══ MOLDURA CORAÇÃO ═══ */
-    .moldura-coracao-wrapper {
+    /* Brilho pulsante */
+    .moldura-glow {
       position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
     }
-    .moldura-coracao-ring {
+    .moldura-glow::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      box-shadow: 0 0 6px currentColor;
+      opacity: 0.5;
+      animation: glowPulse 2s ease-in-out infinite;
+      z-index: 0;
+    }
+    @keyframes glowPulse { 0%,100%{opacity:0.3; transform:scale(1)} 50%{opacity:0.6; transform:scale(1.02)} }
+
+    /* Pontos giratórios sutis */
+    .moldura-dots {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .moldura-dots::before {
+      content: '';
       position: absolute;
       inset: -4px;
       border-radius: 50%;
-      border: 2px solid #ec4899;
-      animation: coracaoPulse 1.5s ease-in-out infinite;
+      border: 2px dotted currentColor;
+      opacity: 0.4;
+      animation: dotsSpin 20s linear infinite;
       z-index: 0;
     }
-    @keyframes coracaoPulse { 0%,100%{transform:scale(1); opacity:0.8} 50%{transform:scale(1.08); opacity:1} }
-    .moldura-coracao-hearts {
-      position: absolute;
-      top: -20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 18px;
-      z-index: 2;
-      animation: heartsFloat 2s ease-in-out infinite;
-    }
-    @keyframes heartsFloat { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-6px)} }
-
-    /* ═══ MOLDURA FOGO ═══ */
-    .moldura-fogo-wrapper {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      animation: fogoFlicker 0.1s infinite alternate;
-    }
-    @keyframes fogoFlicker { from{filter:drop-shadow(0 0 8px #f97316) drop-shadow(0 0 16px #ef4444)} to{filter:drop-shadow(0 0 12px #fbbf24) drop-shadow(0 0 24px #f97316)} }
-    .moldura-fogo-flame {
-      position: absolute;
-      font-size: 24px;
-      z-index: 2;
-      animation: flameMove 0.8s ease-in-out infinite alternate;
-    }
-    @keyframes flameMove { 0%{transform:translate(-50%,-50%) rotate(-5deg)} 100%{transform:translate(-50%,-50%) rotate(5deg)} }
-
-    /* ═══ MOLDURA NEON ═══ */
-    .moldura-neon-wrapper {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    .moldura-neon-ring {
-      position: absolute;
-      inset: -4px;
-      border-radius: 50%;
-      border: 3px solid transparent;
-      background: conic-gradient(from 0deg, #06b6d4, #3b82f6, #8b5cf6, #06b6d4) border-box;
-      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-      mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      animation: neonSpin 4s linear infinite;
-      z-index: 0;
-    }
-    @keyframes neonSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-
-    /* ═══ MOLDURA ARCO-ÍRIS ═══ */
-    .moldura-arcoiris-wrapper {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    .moldura-arcoiris-ring {
-      position: absolute;
-      inset: -4px;
-      border-radius: 50%;
-      background: conic-gradient(red, orange, yellow, green, blue, indigo, violet, red);
-      animation: arcoirisSpin 5s linear infinite;
-      z-index: 0;
-    }
-    .moldura-arcoiris-inner {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: inherit;
-      z-index: 1;
-    }
-    @keyframes arcoirisSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    @keyframes dotsSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
   `;
   document.head.appendChild(style);
 };
@@ -299,11 +213,11 @@ const AvatarAnimado = ({ emoji, cor, size = 46 }) => {
         animation: 'avatarGradient 3s ease infinite',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-        transform: hover ? 'scale(1.12)' : 'scale(1)',
+        transform: hover ? 'scale(1.08)' : 'scale(1)',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: hover ? `0 0 20px ${cor}66, 0 8px 24px rgba(0,0,0,0.15)` : 'none',
+        boxShadow: hover ? `0 0 14px ${cor}44, 0 4px 14px rgba(0,0,0,0.1)` : 'none',
       }}
     >
       <span style={{
@@ -313,13 +227,6 @@ const AvatarAnimado = ({ emoji, cor, size = 46 }) => {
       }}>
         {emoji}
       </span>
-      {hover && (
-        <span style={{
-          position: 'absolute', inset: -4, borderRadius: '50%',
-          border: '2px solid white', opacity: 0.3,
-          animation: 'avatarPulse 1s ease-out infinite',
-        }} />
-      )}
     </div>
   );
 };
@@ -328,102 +235,54 @@ const AvatarFoto = ({ src, size = 46, isGif = false }) => (
   <div style={{ position: 'relative', width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
     <img src={src} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
     {isGif && (
-      <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6 }}>GIF</span>
+      <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6 }}>GIF</span>
     )}
   </div>
 );
 
 /* ═══════════════════════════════════════════════
-   MOLDURA WRAPPER (APLICADA AO AVATAR)
+   MOLDURA WRAPPER (SUTIL)
    ═══════════════════════════════════════════════ */
-const AvatarMoldura = ({ children, moldura, isAdmin, size }) => {
+const AvatarMoldura = ({ children, moldura, isAdmin, color }) => {
   if (!moldura || moldura === 'none') return children;
 
   if (isAdmin && moldura === 'admin') {
     return (
-      <div className="moldura-admin-wrapper" style={{ width: size + 16, height: size + 16 }}>
-        <div className="moldura-admin-outer" />
-        <div className="moldura-admin-inner" />
+      <div className="moldura-admin" style={{ color: '#f59e0b' }}>
         <div className="moldura-admin-crown">👑</div>
-        <div className="moldura-admin-sparkles">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <span
-              key={i}
-              className="moldura-admin-sparkle"
-              style={{
-                '--sx': `${Math.cos(i * 45 * Math.PI / 180) * 20}px`,
-                '--sy': `${Math.sin(i * 45 * Math.PI / 180) * 20}px`,
-                '--ex': `${Math.cos(i * 45 * Math.PI / 180) * 35}px`,
-                '--ey': `${Math.sin(i * 45 * Math.PI / 180) * 35}px`,
-                animationDelay: `${i * 0.3}s`,
-                top: '50%', left: '50%',
-              }}
-            >
-              ✨
-            </span>
-          ))}
-        </div>
-        <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
-      </div>
-    );
-  }
-
-  if (moldura === 'estrelas') {
-    return (
-      <div className="moldura-estrelas-wrapper" style={{ width: size + 16, height: size + 16 }}>
-        <div className="moldura-estrelas-ring" />
-        {['⭐', '🌟', '✨'].map((s, i) => (
-          <span key={i} className="moldura-estrelas-star" style={{
-            top: `${25 + Math.sin(i * 2.1) * 30}%`,
-            left: `${25 + Math.cos(i * 2.1) * 30}%`,
-            animationDelay: `${i * 0.4}s`,
-          }}>{s}</span>
-        ))}
         <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
       </div>
     );
   }
 
-  if (moldura === 'coracao') {
+  if (moldura === 'shadow') {
     return (
-      <div className="moldura-coracao-wrapper" style={{ width: size + 16, height: size + 16 }}>
-        <div className="moldura-coracao-ring" />
-        <div className="moldura-coracao-hearts">❤️💕💗</div>
-        <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
+      <div className="moldura-shadow" style={{ color }}>
+        {children}
       </div>
     );
   }
 
-  if (moldura === 'fogo') {
+  if (moldura === 'ring') {
     return (
-      <div className="moldura-fogo-wrapper" style={{ width: size + 16, height: size + 16 }}>
-        {['🔥', '🔥'].map((f, i) => (
-          <span key={i} className="moldura-fogo-flame" style={{
-            top: i === 0 ? '10%' : '85%',
-            left: i === 0 ? '15%' : '80%',
-            animationDelay: `${i * 0.3}s`,
-          }}>{f}</span>
-        ))}
-        <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
+      <div className="moldura-ring" style={{ color }}>
+        {children}
       </div>
     );
   }
 
-  if (moldura === 'neon') {
+  if (moldura === 'glow') {
     return (
-      <div className="moldura-neon-wrapper" style={{ width: size + 16, height: size + 16 }}>
-        <div className="moldura-neon-ring" />
-        <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
+      <div className="moldura-glow" style={{ color }}>
+        {children}
       </div>
     );
   }
 
-  if (moldura === 'arcoiris') {
+  if (moldura === 'dots') {
     return (
-      <div className="moldura-arcoiris-wrapper" style={{ width: size + 16, height: size + 16 }}>
-        <div className="moldura-arcoiris-ring" />
-        <div style={{ position: 'absolute', inset: 2, borderRadius: '50%', background: 'white', zIndex: 1 }} />
-        <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
+      <div className="moldura-dots" style={{ color }}>
+        {children}
       </div>
     );
   }
@@ -431,7 +290,7 @@ const AvatarMoldura = ({ children, moldura, isAdmin, size }) => {
   return children;
 };
 
-/* ─── Componente unificado com moldura ─── */
+/* ─── Componente unificado ─── */
 const AvatarAtual = ({ config, nome, size = 46, isAdmin = false, syncEffect = false }) => {
   const tipo = config.tipo || 'emoji';
   const moldura = config.moldura || (isAdmin ? 'admin' : 'none');
@@ -451,7 +310,7 @@ const AvatarAtual = ({ config, nome, size = 46, isAdmin = false, syncEffect = fa
       borderRadius: '50%',
       animation: syncEffect ? 'syncPulse 1.5s ease-out' : undefined,
     }}>
-      <AvatarMoldura moldura={moldura} isAdmin={isAdmin} size={size}>
+      <AvatarMoldura moldura={moldura} isAdmin={isAdmin} color={config.cor}>
         {avatarContent}
       </AvatarMoldura>
     </div>
@@ -667,7 +526,7 @@ const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
                 {isOwner && <span style={{ fontSize:10, marginLeft:6, background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'white',padding:'2px 8px',borderRadius:12,fontWeight:700 }}>👑 Admin</span>}
               </p>
               <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
-                {(isOwner ? [{ id: 'admin', label: '👑 Premium' }, ...MOLDURAS] : MOLDURAS).map(m => (
+                {(isOwner ? [{ id: 'admin', label: '👑 Dourada' }, ...MOLDURAS] : MOLDURAS).map(m => (
                   <button key={m.id} onClick={()=>setConfig(p=>({...p,moldura:m.id}))}
                     style={{
                       padding:'5px 12px', borderRadius:12,
