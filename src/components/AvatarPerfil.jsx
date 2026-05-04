@@ -1,8 +1,13 @@
 // src/components/AvatarPerfil.jsx
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { signOut } from 'firebase/auth';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
+import { getApp } from 'firebase/app';
+import { auth } from '../firebase';
+
+// db inicializado localmente — firebase.js exporta só auth para evitar
+// conflito com a persistência offline configurada em database.js
+const db = getFirestore(getApp());
 import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles, RotateCcw } from 'lucide-react';
 import { useIsOwner } from '../hooks/useIsOwner';
 import { Canvas, useFrame } from '@react-three/fiber';
