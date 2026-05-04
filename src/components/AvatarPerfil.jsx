@@ -111,9 +111,10 @@ export const getPerfil = () => {
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
+// ⚠️ IMPORTANTE: usa 'usuarios' (com S) para bater com as regras do Firestore
 async function salvarNiceAvatarFirestore(uid, niceConfig) {
   await setDoc(
-    doc(db, 'users', uid),
+    doc(db, 'usuarios', uid),
     { niceAvatarConfig: niceConfig, niceAvatarAt: new Date() },
     { merge: true }
   );
@@ -128,9 +129,12 @@ function useNiceAvatar() {
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (unsubSnap) { unsubSnap(); unsubSnap = null; }
       if (!user) { setNiceAvatarConfig(null); return; }
-      unsubSnap = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-        setNiceAvatarConfig(snap.data()?.niceAvatarConfig ?? null);
-      });
+      // Usa 'usuarios' para bater com as Firestore Rules
+      unsubSnap = onSnapshot(
+        doc(db, 'usuarios', user.uid),
+        (snap) => { setNiceAvatarConfig(snap.data()?.niceAvatarConfig ?? null); },
+        (err) => { console.warn('[AvatarPerfil] onSnapshot erro:', err.code); }
+      );
     });
     return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
   }, []);
@@ -201,7 +205,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
       setNiceAvatarConfig(niceTemp);
     }
     if (abaAtiva === 'emoji' && uid) {
-      await setDoc(doc(db, 'users', uid), { niceAvatarConfig: null }, { merge: true });
+      await setDoc(doc(db, 'usuarios', uid), { niceAvatarConfig: null }, { merge: true });
       setNiceAvatarConfig(null);
     }
     onSalvar({ nome, curso, avatarConfig: config });
@@ -210,7 +214,7 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
 
   const removerNice = async () => {
     const uid = auth.currentUser?.uid;
-    if (uid) await setDoc(doc(db, 'users', uid), { niceAvatarConfig: null }, { merge: true });
+    if (uid) await setDoc(doc(db, 'usuarios', uid), { niceAvatarConfig: null }, { merge: true });
     setNiceAvatarConfig(null);
     setNiceTemp(null);
   };
