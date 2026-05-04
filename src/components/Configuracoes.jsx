@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Palette, Settings, Lock, Save, Trash2, Sun, Moon, Check, X, ExternalLink } from 'lucide-react';
+import { salvarGroqKey, carregarGroqKey, removerGroqKey } from '../groqConfig';
+import { useIsOwner } from '../hooks/useIsOwner';
 
 const TEMA_KEY = 'cortexlab_tema';
 
@@ -11,26 +13,45 @@ export const aplicarTema = (tema) => {
 };
 
 const Configuracoes = ({ onFechar }) => {
-  const [aba, setAba] = useState('ia');
-  const [apiKey, setApiKey] = useState('');
-  const [feedback, setFeedback] = useState(null);
-  const [tema, setTema] = useState(getTema());
+  const isOwner = useIsOwner();
 
+  const [aba, setAba]           = useState(isOwner ? 'ia' : 'aparencia');
+  const [apiKey, setApiKey]     = useState('');
+  const [feedback, setFeedback] = useState(null); // 'salvo' | 'removido' | 'erro'
+  const [salvando, setSalvando] = useState(false);
+  const [tema, setTema]         = useState(getTema());
+
+  // Só carrega a chave se for o owner
   useEffect(() => {
-    setApiKey(localStorage.getItem('groq_api_key') || '');
-  }, []);
+    if (!isOwner) return;
+    carregarGroqKey().then((key) => setApiKey(key || ''));
+  }, [isOwner]);
 
-  const salvarKey = () => {
-    localStorage.setItem('groq_api_key', apiKey);
-    setFeedback('salvo');
-    setTimeout(() => setFeedback(null), 3000);
+  const salvarKey = async () => {
+    setSalvando(true);
+    try {
+      await salvarGroqKey(apiKey);
+      setFeedback('salvo');
+    } catch {
+      setFeedback('erro');
+    } finally {
+      setSalvando(false);
+      setTimeout(() => setFeedback(null), 3000);
+    }
   };
 
-  const removerKey = () => {
-    localStorage.removeItem('groq_api_key');
-    setApiKey('');
-    setFeedback('removido');
-    setTimeout(() => setFeedback(null), 3000);
+  const removerKey = async () => {
+    setSalvando(true);
+    try {
+      await removerGroqKey();
+      setApiKey('');
+      setFeedback('removido');
+    } catch {
+      setFeedback('erro');
+    } finally {
+      setSalvando(false);
+      setTimeout(() => setFeedback(null), 3000);
+    }
   };
 
   const mudarTema = (novoTema) => {
@@ -38,9 +59,10 @@ const Configuracoes = ({ onFechar }) => {
     aplicarTema(novoTema);
   };
 
+  // Aba de IA só aparece para o owner
   const abas = [
-    { id: 'ia',        label: 'IA',        Icon: Bot     },
-    { id: 'aparencia', label: 'Aparência',  Icon: Palette },
+    ...(isOwner ? [{ id: 'ia', label: 'IA', Icon: Bot }] : []),
+    { id: 'aparencia', label: 'Aparência', Icon: Palette },
   ];
 
   return (
@@ -71,11 +93,11 @@ const Configuracoes = ({ onFechar }) => {
         {/* Conteúdo */}
         <div style={{ padding:'24px' }}>
 
-          {/* ── ABA IA ── */}
-          {aba === 'ia' && (
+          {/* ── ABA IA (só owner) ── */}
+          {aba === 'ia' && isOwner && (
             <div>
               <p style={{ fontSize:'14px',color:'var(--gray-600)',marginBottom:'16px',lineHeight:'1.6' }}>
-                Configure sua chave da API GroqCloud para usar as explicações com IA quando você errar uma questão.
+                Configure a chave da API GroqCloud. Ela será usada por todos os usuários da plataforma.
                 <br /><br />
                 <strong style={{ display:'flex',alignItems:'center',gap:'5px' }}><ExternalLink size={13} /> Como obter (grátis, 14.400 req/dia):</strong><br />
                 1. Acesse <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" style={{ color:'var(--brand-500)' }}>console.groq.com</a><br />
@@ -86,36 +108,37 @@ const Configuracoes = ({ onFechar }) => {
 
               <div style={{ display:'flex',gap:'10px',alignItems:'flex-start',background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'var(--r-md)',padding:'10px 14px',marginBottom:'18px',fontSize:'12px',color:'#92400e',lineHeight:'1.5' }}>
                 <Lock size={14} style={{ flexShrink:0,marginTop:'1px' }} />
-                <span>Sua chave é salva <strong>apenas localmente neste navegador</strong> e nunca enviada para servidores externos.</span>
+                <span>A chave é salva no <strong>Firestore</strong> em um documento global protegido. Apenas você pode alterá-la. Todos os usuários autenticados podem lê-la para usar a IA.</span>
               </div>
 
               <div style={{ marginBottom:'20px' }}>
                 <label style={{ fontSize:'13px',fontWeight:600,color:'var(--gray-700)',display:'block',marginBottom:'6px' }}>Chave da API GroqCloud</label>
-                <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="gsk_..." style={{ width:'100%',padding:'12px 14px',borderRadius:'var(--r-md)',border:'1.5px solid var(--gray-200)',fontSize:'14px',fontFamily:'monospace',background:'var(--surface-card)',color:'var(--gray-800)',outline:'none',boxSizing:'border-box' }} onFocus={e=>e.target.style.borderColor='#6366f1'} onBlur={e=>e.target.style.borderColor='var(--gray-200)'} />
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder="gsk_..."
+                  style={{ width:'100%',padding:'12px 14px',borderRadius:'var(--r-md)',border:'1.5px solid var(--gray-200)',fontSize:'14px',fontFamily:'monospace',background:'var(--surface-card)',color:'var(--gray-800)',outline:'none',boxSizing:'border-box' }}
+                  onFocus={e => e.target.style.borderColor='#6366f1'}
+                  onBlur={e  => e.target.style.borderColor='var(--gray-200)'}
+                />
               </div>
 
-              {feedback === 'salvo'    && (
-                <div style={{ background:'#ecfdf5',color:'#065f46',padding:'10px',borderRadius:'var(--r-md)',fontSize:'13px',marginBottom:'16px',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px' }}>
-                  <Check size={14} /> Chave salva!
-                </div>
-              )}
-              {feedback === 'removido' && (
-                <div style={{ background:'#fef2f2',color:'#991b1b',padding:'10px',borderRadius:'var(--r-md)',fontSize:'13px',marginBottom:'16px',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px' }}>
-                  <Trash2 size={14} /> Chave removida.
-                </div>
-              )}
+              {feedback === 'salvo'    && <div style={{ background:'#ecfdf5',color:'#065f46',padding:'10px',borderRadius:'var(--r-md)',fontSize:'13px',marginBottom:'16px',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px' }}><Check size={14}/> Chave salva com sucesso!</div>}
+              {feedback === 'removido' && <div style={{ background:'#fef2f2',color:'#991b1b',padding:'10px',borderRadius:'var(--r-md)',fontSize:'13px',marginBottom:'16px',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px' }}><Trash2 size={14}/> Chave removida.</div>}
+              {feedback === 'erro'     && <div style={{ background:'#fef2f2',color:'#991b1b',padding:'10px',borderRadius:'var(--r-md)',fontSize:'13px',marginBottom:'16px',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px' }}>⚠️ Erro ao salvar. Verifique sua conexão.</div>}
 
               <div style={{ display:'flex',gap:'10px',justifyContent:'flex-end' }}>
                 {apiKey && (
-                  <button onClick={removerKey} style={{ padding:'10px 20px',background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:'var(--r-md)',color:'#dc2626',fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px' }}>
-                    <Trash2 size={15} /> Remover
+                  <button onClick={removerKey} disabled={salvando} style={{ padding:'10px 20px',background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:'var(--r-md)',color:'#dc2626',fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',opacity:salvando?0.6:1 }}>
+                    <Trash2 size={15}/> Remover
                   </button>
                 )}
                 <button onClick={onFechar} style={{ padding:'10px 20px',background:'var(--gray-100)',border:'none',borderRadius:'var(--r-md)',color:'var(--gray-600)',fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px' }}>
-                  <X size={15} /> Cancelar
+                  <X size={15}/> Cancelar
                 </button>
-                <button onClick={salvarKey} style={{ padding:'10px 24px',background:'linear-gradient(135deg,var(--brand-500),var(--brand-600))',border:'none',borderRadius:'var(--r-md)',color:'white',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px' }}>
-                  <Save size={15} /> Salvar
+                <button onClick={salvarKey} disabled={salvando} style={{ padding:'10px 24px',background:'linear-gradient(135deg,var(--brand-500),var(--brand-600))',border:'none',borderRadius:'var(--r-md)',color:'white',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',opacity:salvando?0.7:1 }}>
+                  <Save size={15}/> {salvando ? 'Salvando…' : 'Salvar'}
                 </button>
               </div>
             </div>
@@ -127,7 +150,6 @@ const Configuracoes = ({ onFechar }) => {
               <p style={{ fontSize:'14px',color:'var(--gray-600)',marginBottom:'20px',lineHeight:'1.6' }}>
                 Escolha o tema visual da plataforma. A preferência é salva no seu navegador.
               </p>
-
               <div style={{ display:'flex',flexDirection:'column',gap:'12px',marginBottom:'28px' }}>
                 {[
                   { valor:'claro',  Icon: Sun,  titulo:'Modo Claro',  desc:'Fundo branco, ideal para ambientes bem iluminados.' },
@@ -149,10 +171,9 @@ const Configuracoes = ({ onFechar }) => {
                   </button>
                 ))}
               </div>
-
               <div style={{ display:'flex',justifyContent:'flex-end' }}>
                 <button onClick={onFechar} style={{ padding:'10px 24px',background:'linear-gradient(135deg,var(--brand-500),var(--brand-600))',border:'none',borderRadius:'var(--r-md)',color:'white',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px' }}>
-                  <Check size={15} /> Fechar
+                  <Check size={15}/> Fechar
                 </button>
               </div>
             </div>

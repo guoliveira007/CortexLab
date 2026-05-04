@@ -1,14 +1,8 @@
 // src/components/ExplicacaoIA.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDark } from '../hooks/useDark';
+import { carregarGroqKey } from '../groqConfig';
 
-/**
- * ExplicacaoIA — Botão "💡 Entender com IA" + Modal de explicação com streaming.
- * Usa GroqCloud (gratuito, 14.400 req/dia com Llama 3.1 8B).
- */
-
-// FIX: style movido para fora do componente — era reinjetado no DOM a cada
-// re-render de TextoExplicacao durante o streaming (a cada chunk recebido).
 const CURSOR_STYLE = `@keyframes piscar { 0%,100%{opacity:1} 50%{opacity:0} }`;
 if (typeof document !== 'undefined') {
   const existing = document.getElementById('__ia-piscar-style');
@@ -80,11 +74,9 @@ const chamarGroqStream = async (prompt, apiKey, onChunk) => {
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split('\n');
     buffer = lines.pop();
-
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue;
       const data = line.slice(6).trim();
@@ -93,9 +85,7 @@ const chamarGroqStream = async (prompt, apiKey, onChunk) => {
         const parsed = JSON.parse(data);
         const chunk  = parsed.choices?.[0]?.delta?.content || '';
         if (chunk) onChunk(chunk);
-      } catch {
-        // ignora linhas malformadas do SSE
-      }
+      } catch { /* ignora linhas malformadas do SSE */ }
     }
   }
 };
@@ -151,17 +141,27 @@ const TextoExplicacao = ({ texto, streamando, isDark }) => (
 );
 
 /* ─── Modal de Explicação ─── */
-const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
+const ModalExplicacao = ({ questao, respostaUsuario, onFechar }) => {
   const [status, setStatus]         = useState('idle');
   const [explicacao, setExplicacao] = useState('');
   const [erro, setErro]             = useState('');
+  const [apiKey, setApiKey]         = useState(null);
   const isDark = useDark();
 
   const gabarito = questao.gabarito?.toUpperCase() || '?';
 
+  // Carrega a chave do Firestore global ao abrir o modal
+  useEffect(() => {
+    carregarGroqKey().then(key => {
+      setApiKey(key);
+    });
+  }, []);
+
   const buscarExplicacao = useCallback(async () => {
+    if (apiKey === null) return; // ainda carregando
+
     if (!apiKey) {
-      setErro('Chave da API não configurada. Salve-a em Configurações.');
+      setErro('A explicação por IA não está disponível no momento.');
       setStatus('erro');
       return;
     }
@@ -189,7 +189,10 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
     }
   }, [apiKey, questao, respostaUsuario]);
 
-  React.useEffect(() => { buscarExplicacao(); }, [buscarExplicacao]);
+  // Dispara a busca assim que a chave estiver disponível
+  useEffect(() => {
+    if (apiKey !== null) buscarExplicacao();
+  }, [apiKey, buscarExplicacao]);
 
   const mostraTexto = status === 'streamando' || status === 'pronto';
 
@@ -281,14 +284,11 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
 
         {/* Corpo */}
         <div style={{ overflowY: 'auto', padding: '20px 24px', flex: 1 }}>
-
-          {status === 'carregando' && (
+          {(status === 'idle' || status === 'carregando') && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>🤖</div>
               <p style={{ color: 'var(--gray-500)', fontSize: '14px' }}>Conectando à IA...</p>
-              <p style={{ color: 'var(--gray-400)', fontSize: '12px', marginTop: '6px' }}>
-                Preparando a explicação
-              </p>
+              <p style={{ color: 'var(--gray-400)', fontSize: '12px', marginTop: '6px' }}>Preparando a explicação</p>
             </div>
           )}
 
@@ -300,14 +300,16 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
             }}>
               <p style={{ color: isDark ? '#fca5a5' : '#991b1b', fontWeight: 600, marginBottom: '8px' }}>⚠️ Não foi possível gerar a explicação</p>
               <p style={{ color: isDark ? '#fca5a5' : '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>{erro}</p>
-              <button
-                onClick={buscarExplicacao}
-                style={{
-                  background: '#ef4444', color: 'white', border: 'none',
-                  borderRadius: 'var(--r-md)', padding: '8px 16px',
-                  fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-                }}
-              >Tentar novamente</button>
+              {apiKey && (
+                <button
+                  onClick={buscarExplicacao}
+                  style={{
+                    background: '#ef4444', color: 'white', border: 'none',
+                    borderRadius: 'var(--r-md)', padding: '8px 16px',
+                    fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+                  }}
+                >Tentar novamente</button>
+              )}
             </div>
           )}
 
@@ -341,7 +343,10 @@ const ModalExplicacao = ({ questao, respostaUsuario, apiKey, onFechar }) => {
 };
 
 /* ─── Botão principal ─── */
-const ExplicacaoIA = ({ questao, respostaUsuario, apiKey, style = {} }) => {
+// Nota: a prop apiKey foi removida — a chave é carregada internamente pelo
+// ModalExplicacao via Firestore. Qualquer código que ainda passe apiKey como
+// prop pode continuar passando (será ignorada), sem quebrar nada.
+const ExplicacaoIA = ({ questao, respostaUsuario, style = {} }) => {
   const [aberto, setAberto] = useState(false);
 
   const gabarito = questao?.gabarito?.toUpperCase();
@@ -349,8 +354,6 @@ const ExplicacaoIA = ({ questao, respostaUsuario, apiKey, style = {} }) => {
   const errou    = gabarito && resp !== gabarito;
 
   if (!errou) return null;
-
-  const chave = apiKey || localStorage.getItem('groq_api_key');
 
   return (
     <>
@@ -377,7 +380,6 @@ const ExplicacaoIA = ({ questao, respostaUsuario, apiKey, style = {} }) => {
         <ModalExplicacao
           questao={questao}
           respostaUsuario={resp || ''}
-          apiKey={chave}
           onFechar={() => setAberto(false)}
         />
       )}

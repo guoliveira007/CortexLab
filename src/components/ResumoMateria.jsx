@@ -2,12 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../database';
 import { useDark } from '../hooks/useDark';
-
-/**
- * ResumoMateria — Gera um resumo inteligente de uma matéria
- * analisando as questões que o usuário mais erra.
- * Usa Groq / Llama 3.1 8B com streaming.
- */
+import { carregarGroqKey } from '../groqConfig';
 
 const chamarGroqStream = async (prompt, apiKey, onChunk) => {
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -57,7 +52,6 @@ const montarPrompt = (materia, questoesErradas, totalQuestoes) => {
   const topicosErrados = [...new Set(questoesErradas.map(q => q.topico).filter(Boolean))];
   const conteudosErrados = [...new Set(questoesErradas.map(q => q.conteudo).filter(Boolean))];
 
-  // Pega até 5 questões erradas como exemplos
   const exemplos = questoesErradas.slice(0, 5).map((q, i) =>
     `Questão ${i + 1} (${q.topico || q.conteudo || 'sem tópico'}):\n"${(q.comando || q.enunciado || '').substring(0, 200)}"`
   ).join('\n\n');
@@ -140,7 +134,6 @@ const TextoResumo = ({ texto, streamando, isDark }) => (
     {texto.split('\n').map((linha, i) => {
       if (!linha.trim()) return <div key={i} style={{ height: '6px' }} />;
 
-      // Seções numeradas (ex: "1. **Conceitos-chave**")
       if (/^\d+\.\s\*\*/.test(linha)) {
         const semMd = linha.replace(/\*\*/g, '');
         return (
@@ -155,7 +148,6 @@ const TextoResumo = ({ texto, streamando, isDark }) => (
         );
       }
 
-      // Negrito inline
       const partes = linha.split(/\*\*(.*?)\*\*/g);
       const ultima = i === texto.split('\n').length - 1;
 
@@ -184,12 +176,16 @@ const TextoResumo = ({ texto, streamando, isDark }) => (
 const ResumoMateria = () => {
   const [materias, setMaterias]       = useState([]);
   const [selecionada, setSelecionada] = useState(null);
-  const [status, setStatus]           = useState('idle'); // idle | carregando | streamando | pronto | erro
+  const [status, setStatus]           = useState('idle');
   const [resumo, setResumo]           = useState('');
   const [erro, setErro]               = useState('');
+  const [apiKey, setApiKey]           = useState(null);
   const isDark = useDark();
 
-  const apiKey = localStorage.getItem('groq_api_key');
+  // Carrega a chave do Firestore global uma vez ao montar
+  useEffect(() => {
+    carregarGroqKey().then(setApiKey);
+  }, []);
 
   useEffect(() => { carregarMaterias(); }, []);
 
@@ -218,7 +214,7 @@ const ResumoMateria = () => {
 
     const lista = Object.entries(stats)
       .map(([materia, s]) => ({ materia, ...s }))
-      .filter(m => m.total >= 3) // só mostra matérias com pelo menos 3 questões
+      .filter(m => m.total >= 3)
       .sort((a, b) => (b.erros / b.total) - (a.erros / a.total));
 
     setMaterias(lista);
@@ -230,7 +226,7 @@ const ResumoMateria = () => {
     setErro('');
 
     if (!apiKey) {
-      setErro('Configure sua chave Groq em Configurações para usar esta função.');
+      setErro('A geração de resumos por IA não está disponível no momento. Tente novamente mais tarde.');
       setStatus('erro');
       return;
     }
@@ -281,10 +277,7 @@ const ResumoMateria = () => {
           )}
         </div>
 
-        {/* Stats da matéria */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
           {[
             { label: 'Questões', valor: selecionada.total, emoji: '📝', cor: 'var(--brand-600)' },
             { label: 'Erros', valor: selecionada.erros, emoji: '❌', cor: '#ef4444' },
@@ -293,8 +286,7 @@ const ResumoMateria = () => {
             <div key={s.label} style={{
               background: isDark ? 'var(--surface-card)' : 'white',
               color: isDark ? 'var(--gray-800)' : 'inherit',
-              borderRadius: 'var(--r-xl)', padding: '18px',
-              textAlign: 'center',
+              borderRadius: 'var(--r-xl)', padding: '18px', textAlign: 'center',
               border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
               boxShadow: 'var(--shadow-sm)',
             }}>
@@ -339,8 +331,7 @@ const ResumoMateria = () => {
                 <div style={{
                   width: '36px', height: '36px', borderRadius: 'var(--r-md)',
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '18px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
                 }}>🧠</div>
                 <div>
                   <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', color: isDark ? 'var(--gray-900)' : 'inherit' }}>
@@ -357,9 +348,7 @@ const ResumoMateria = () => {
                     color: isDark ? '#a5b4fc' : 'var(--brand-600)',
                     padding: '4px 10px', borderRadius: 'var(--r-full)',
                     fontSize: '12px', fontWeight: 600,
-                  }}>
-                    ✍️ Escrevendo...
-                  </span>
+                  }}>✍️ Escrevendo...</span>
                 )}
               </div>
               <TextoResumo texto={resumo} streamando={status === 'streamando'} isDark={isDark} />
@@ -387,9 +376,7 @@ const ResumoMateria = () => {
           <div className="empty-state">
             <div className="empty-state-icon">📚</div>
             <p className="empty-state-title">Nenhuma matéria com dados suficientes</p>
-            <p className="empty-state-desc">
-              Responda pelo menos 3 questões de uma matéria para gerar o resumo.
-            </p>
+            <p className="empty-state-desc">Responda pelo menos 3 questões de uma matéria para gerar o resumo.</p>
           </div>
         </div>
       ) : (
@@ -397,8 +384,7 @@ const ResumoMateria = () => {
           <div style={{
             background: isDark ? 'rgba(245,158,11,0.08)' : 'linear-gradient(135deg, #fffbeb, #fef3c7)',
             border: isDark ? '1px solid rgba(245,158,11,0.3)' : '1px solid #f59e0b',
-            borderRadius: 'var(--r-xl)',
-            padding: '14px 20px', marginBottom: '20px',
+            borderRadius: 'var(--r-xl)', padding: '14px 20px', marginBottom: '20px',
             display: 'flex', gap: '10px', alignItems: 'center',
           }}>
             <span style={{ fontSize: '20px' }}>💡</span>
