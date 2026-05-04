@@ -37,6 +37,54 @@ const CORES = [
 
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
+// Valores padrão COMPLETOS para o avatar personalizado
+const AVATAR_DEFAULTS = {
+  hairStyle: 'normal',
+  eyeType: 'circle',
+  eyebrowType: 'up',
+  mouthType: 'smile',
+  noseType: 'round',
+  glassesType: 'none',
+  facialHairType: 'none',
+  shirtType: 'hoody',
+  earRingType: 'none',
+  earSize: 'small',
+  hairColor: '#4A2E1A',
+  skinColor: '#F9C9B6',
+  bgColor: '#6BD9E9',
+  shirtColor: '#6366f1',
+};
+
+const HAIR_STYLES = ['normal','thick','mohawk','womanLong','womanShort','dannyPhantom','fonze','long','short','pixie','turban','hat'];
+const EYE_TYPES = ['circle','oval','smiling','base'];
+const EYEBROW_TYPES = ['up','eyelashesUp','eyelashesDown'];
+const MOUTH_TYPES = ['laugh','smile','peace','smirk','surprised','nervous','sad','pucker'];
+const NOSE_TYPES = ['short','long','round','curve'];
+const GLASSES_TYPES = ['none','round','square'];
+const FACIAL_HAIR_TYPES = ['none','beard','stubble'];
+const SHIRT_TYPES = ['hoody','short','polo','crew','collared','open'];
+const EAR_RING_TYPES = ['none','stud','loop'];
+const EAR_SIZE_TYPES = ['small','big'];
+
+const COLOR_PALETTE = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#06b6d4','#ef4444','#f97316','#475569','#1e293b','#F9C9B6','#FDDBB4','#4A2E1A','#FFFFFF','#000000'];
+
+const labelsMap = {
+  hairStyle:       { label: 'Cabelo',       opts: HAIR_STYLES },
+  eyeType:         { label: 'Olhos',        opts: EYE_TYPES },
+  eyebrowType:     { label: 'Sobrancelhas', opts: EYEBROW_TYPES },
+  mouthType:       { label: 'Boca',         opts: MOUTH_TYPES },
+  noseType:        { label: 'Nariz',        opts: NOSE_TYPES },
+  glassesType:     { label: 'Óculos',       opts: GLASSES_TYPES },
+  facialHairType:  { label: 'Barba',        opts: FACIAL_HAIR_TYPES },
+  shirtType:       { label: 'Roupa',        opts: SHIRT_TYPES },
+  earRingType:     { label: 'Brinco',       opts: EAR_RING_TYPES },
+  earSize:         { label: 'Orelha',       opts: EAR_SIZE_TYPES },
+  hairColor:       { label: 'Cor do cabelo', type: 'color' },
+  skinColor:       { label: 'Tom de pele',   type: 'color' },
+  bgColor:         { label: 'Cor de fundo',  type: 'color' },
+  shirtColor:      { label: 'Cor da roupa',  type: 'color' },
+};
+
 /* ─── Avatar SVG (modo emoji) ─── */
 const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   <svg
@@ -51,13 +99,10 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── Avatar React-Nice-Avatar ─── */
+/* ─── Avatar Personalizado ─── */
 const AvatarPersonalizado = ({ config, size = 46 }) => (
   <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-    <NiceAvatar
-      style={{ width: size, height: size }}
-      {...config}
-    />
+    <NiceAvatar style={{ width: size, height: size }} {...config} />
   </div>
 );
 
@@ -67,7 +112,7 @@ const AvatarAtual = ({ config, niceAvatarConfig, size = 46 }) => {
   return <AvatarSvg emoji={config.emoji} cor={config.cor} size={size} />;
 };
 
-/* ─── Armazenamento: localStorage + Firestore ─── */
+/* ─── Armazenamento ─── */
 const STORAGE_KEY = 'cortexlab_perfil';
 export const getPerfil = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
@@ -102,37 +147,7 @@ function useAvatar() {
   return { niceAvatarConfig, setNiceAvatarConfig };
 }
 
-/* ─── Opções de customização do react-nice-avatar ─── */
-const HAIR_STYLES = [
-  'normal', 'thick', 'mohawk', 'womanLong', 'womanShort',
-  'dannyPhantom', 'fonze', 'long', 'short', 'pixie', 'turban', 'hat',
-];
-const EYE_TYPES = ['circle', 'oval', 'smiling', 'base'];
-const EYEBROW_TYPES = ['up', 'eyelashesUp', 'eyelashesDown'];
-const MOUTH_TYPES = [
-  'laugh', 'smile', 'peace', 'smirk', 'surprised',
-  'nervous', 'sad', 'pucker',
-];
-const NOSE_TYPES = ['short', 'long', 'round', 'curve'];
-const GLASSES_TYPES = ['none', 'round', 'square'];
-const FACIAL_HAIR_TYPES = ['none', 'beard', 'stubble'];
-const SHIRT_TYPES = ['hoody', 'short', 'polo', 'crew', 'collared', 'open'];
-const EAR_RING_TYPES = ['none', 'stud', 'loop'];
-const EAR_SIZE_TYPES = ['small', 'big'];
-
-const labelsMap = {
-  hairStyle: { label: 'Cabelo', opts: HAIR_STYLES },
-  eyeType: { label: 'Olhos', opts: EYE_TYPES },
-  eyebrowType: { label: 'Sobrancelhas', opts: EYEBROW_TYPES },
-  mouthType: { label: 'Boca', opts: MOUTH_TYPES },
-  noseType: { label: 'Nariz', opts: NOSE_TYPES },
-  glassesType: { label: 'Óculos', opts: GLASSES_TYPES },
-  facialHairType: { label: 'Barba', opts: FACIAL_HAIR_TYPES },
-  shirtType: { label: 'Roupa', opts: SHIRT_TYPES },
-  earRingType: { label: 'Brinco', opts: EAR_RING_TYPES },
-  earSize: { label: 'Orelha', opts: EAR_SIZE_TYPES },
-};
-
+/* ─── Seletores ─── */
 const ColorPicker = ({ colors, value, onChange }) => (
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
     {colors.map(c => (
@@ -181,16 +196,23 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
   const [abaAtiva, setAbaAtiva] = useState('emoji');
   const [avatarTemp, setAvatarTemp] = useState(null);
 
-  const avatarEdit = avatarTemp || (niceAvatarConfig ? { ...niceAvatarConfig } : {});
-  const corAtiva = niceAvatarConfig ? (avatarEdit.hairColor || '#6366f1') : config.cor;
+  // Garante que avatarEdit SEMPRE tenha todas as chaves preenchidas
+  const avatarEdit = { ...AVATAR_DEFAULTS, ...(niceAvatarConfig || {}), ...(avatarTemp || {}) };
+  const corAtiva = avatarEdit.bgColor || '#6366f1';
 
-  const atualizar = (chave, valor) => setAvatarTemp({ ...avatarEdit, [chave]: valor });
+  const atualizar = (chave, valor) => {
+    setAvatarTemp(prev => ({
+      ...(prev || {}),
+      [chave]: valor
+    }));
+  };
 
   const salvar = async () => {
     const uid = auth.currentUser?.uid;
     if (abaAtiva === 'avatar' && avatarTemp && uid) {
-      await salvarAvatarFirestore(uid, avatarTemp);
-      setNiceAvatarConfig(avatarTemp);
+      const cfgFinal = { ...AVATAR_DEFAULTS, ...(niceAvatarConfig || {}), ...avatarTemp };
+      await salvarAvatarFirestore(uid, cfgFinal);
+      setNiceAvatarConfig(cfgFinal);
     }
     if (abaAtiva === 'emoji' && uid) {
       await setDoc(doc(db, 'usuarios', uid), { niceAvatarConfig: null }, { merge: true });
@@ -222,11 +244,11 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
           {/* Header */}
           <div style={{ background:`linear-gradient(135deg, ${corAtiva}ee, ${corAtiva}99)`,padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
             <div style={{ width:80,height:80,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)' }}>
-              <AvatarAtual config={config} niceAvatarConfig={avatarTemp || niceAvatarConfig} size={80} />
+              <AvatarAtual config={config} niceAvatarConfig={avatarEdit} size={80} />
             </div>
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
-              {(avatarTemp || niceAvatarConfig) && (
+              {niceAvatarConfig && (
                 <span style={{ background:'rgba(255,255,255,0.2)',color:'white',fontSize:'10px',fontWeight:600,padding:'2px 8px',borderRadius:20,display:'inline-flex',alignItems:'center',gap:4,marginTop:4 }}>
                   <Sparkles size={10} /> Avatar personalizado
                 </span>
@@ -313,16 +335,19 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
                     )}
                   </div>
 
-                  {Object.entries(labelsMap).map(([key, { label, opts }]) => (
-                    <div key={key}>
-                      <p className="field-label" style={{ marginBottom:8 }}>{label}</p>
-                      <OptionPicker
-                        options={opts}
-                        value={avatarEdit[key] || (key === 'earSize' ? 'small' : 'none')}
-                        onChange={v => atualizar(key, v)}
-                      />
-                    </div>
-                  ))}
+                  {Object.entries(labelsMap).map(([key, { label, type, opts }]) => {
+                    const value = avatarEdit[key] ?? (key === 'earSize' ? 'small' : (type === 'color' ? '#000000' : 'none'));
+                    return (
+                      <div key={key}>
+                        <p className="field-label" style={{ marginBottom:8 }}>{label}</p>
+                        {type === 'color' ? (
+                          <ColorPicker colors={COLOR_PALETTE} value={value} onChange={v => atualizar(key, v)} />
+                        ) : (
+                          <OptionPicker options={opts} value={value} onChange={v => atualizar(key, v)} />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -351,7 +376,7 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
   const nomeExibido  = perfilData.nome || userEmail?.split('@')[0] || 'Meu perfil';
-  const corBorda     = niceAvatarConfig ? (niceAvatarConfig.hairColor || '#6366f1') : avatarConfig.cor;
+  const corBorda     = niceAvatarConfig ? (niceAvatarConfig.bgColor || '#6366f1') : avatarConfig.cor;
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
