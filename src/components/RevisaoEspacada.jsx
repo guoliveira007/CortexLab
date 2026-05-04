@@ -1,4 +1,3 @@
-// src/components/RevisaoEspacada.jsx
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
@@ -11,12 +10,11 @@ import ExplicacaoIA from './ExplicacaoIA';
 import ProgressBar from './ProgressBar';
 import BotaoGrau from './BotaoGrau';
 import Alternativas from './Alternativas';
-import { useDark } from '../hooks/useDark';
 
-const TelaInicio = memo(({ total, onIniciar, onFechar, isDark }) => (
+const TelaInicio = memo(({ total, onIniciar, onFechar }) => (
   <div style={{ textAlign: 'center', padding: '48px 32px' }}>
     <div style={{ fontSize: '64px', marginBottom: '16px' }}>🧠</div>
-    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 800, marginBottom: '8px', color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>
+    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 800, marginBottom: '8px', color: 'var(--gray-900)' }}>
       Revisão Espaçada
     </h2>
     <p style={{ color: 'var(--gray-500)', fontSize: '15px', marginBottom: '32px', lineHeight: '1.6' }}>
@@ -28,12 +26,11 @@ const TelaInicio = memo(({ total, onIniciar, onFechar, isDark }) => (
 
     {total > 0 && (
       <div style={{
-        background: isDark ? 'rgba(99,102,241,0.1)' : 'var(--brand-50)',
-        border: isDark ? '1px solid rgba(99,102,241,0.25)' : '1px solid var(--brand-200)',
+        background: 'var(--brand-50)', border: '1px solid var(--brand-200)',
         borderRadius: 'var(--r-lg)', padding: '14px 20px',
         marginBottom: '28px', textAlign: 'left', maxWidth: '380px', margin: '0 auto 28px',
       }}>
-        <p style={{ fontSize: '12px', color: isDark ? '#a5b4fc' : 'var(--brand-600)', fontWeight: 700, marginBottom: '6px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--brand-600)', fontWeight: 700, marginBottom: '6px' }}>
           ⚡ Como funciona
         </p>
         {[
@@ -41,7 +38,7 @@ const TelaInicio = memo(({ total, onIniciar, onFechar, isDark }) => (
           'Revele o gabarito e avalie sua resposta',
           'O sistema agenda a próxima revisão automaticamente',
         ].map((t, i) => (
-          <p key={i} style={{ fontSize: '12px', color: isDark ? '#c7d2fe' : 'var(--brand-500)', lineHeight: '1.6' }}>
+          <p key={i} style={{ fontSize: '12px', color: 'var(--brand-500)', lineHeight: '1.6' }}>
             {i + 1}. {t}
           </p>
         ))}
@@ -52,13 +49,9 @@ const TelaInicio = memo(({ total, onIniciar, onFechar, isDark }) => (
       <button
         onClick={onFechar}
         style={{
-          padding: '12px 24px',
-          background: isDark ? 'var(--surface-card)' : 'white',
-          border: isDark ? '1.5px solid var(--gray-300)' : '1.5px solid var(--gray-200)',
-          borderRadius: 'var(--r-lg)',
-          fontWeight: 600, fontSize: '14px',
-          color: isDark ? 'var(--gray-600)' : 'var(--gray-600)',
-          cursor: 'pointer',
+          padding: '12px 24px', background: 'white',
+          border: '1.5px solid var(--gray-200)', borderRadius: 'var(--r-lg)',
+          fontWeight: 600, fontSize: '14px', color: 'var(--gray-600)', cursor: 'pointer',
         }}
       >Voltar</button>
       {total > 0 && (
@@ -121,14 +114,16 @@ const TelaFim = memo(({ stats, onFechar }) => (
 TelaFim.displayName = 'TelaFim';
 
 const RevisaoEspacada = ({ onFechar }) => {
-  const [fase, setFase]         = useState('carregando');
+  const [fase, setFase]                   = useState('carregando');
   const [questoesDoDia, setQuestoesDoDia] = useState([]);
-  const [indiceAtual, setIndiceAtual] = useState(0);
-  const [revelado, setRevelado] = useState(false);
+  const [indiceAtual, setIndiceAtual]     = useState(0);
+  const [revelado, setRevelado]           = useState(false);
   const [respostaUsuario, setRespostaUsuario] = useState(null);
-  const [stats, setStats]       = useState({ total: 0, acertos: 0, erros: 0 });
-  const apiKey = localStorage.getItem('groq_api_key') || '';
-  const isDark = useDark();
+  const [stats, setStats]                 = useState({ total: 0, acertos: 0, erros: 0 });
+
+  // ✅ CORRIGIDO: apiKey removida daqui.
+  // O ExplicacaoIA agora carrega a chave internamente do Firestore (config/groq).
+  // Não há mais necessidade de ler do localStorage neste componente.
 
   useEffect(() => {
     const carregar = async () => {
@@ -234,21 +229,17 @@ const RevisaoEspacada = ({ onFechar }) => {
       zIndex: 1000, padding: '16px',
     }}>
       <div style={{
-        background: isDark ? 'var(--surface-card)' : 'white',
-        color: isDark ? 'var(--gray-800)' : 'inherit',
-        borderRadius: 'var(--r-2xl)',
+        background: 'white', borderRadius: 'var(--r-2xl)',
         width: '100%', maxWidth: '680px', maxHeight: '92vh',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
-        border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+        border: '1px solid var(--gray-100)',
       }}>
 
         <div style={{
-          padding: '18px 24px',
-          borderBottom: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+          padding: '18px 24px', borderBottom: '1px solid var(--gray-100)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          flexShrink: 0,
-          background: isDark ? 'var(--surface-elevated)' : 'linear-gradient(135deg, #fafafa, white)',
+          flexShrink: 0, background: 'linear-gradient(135deg, #fafafa, white)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -258,7 +249,7 @@ const RevisaoEspacada = ({ onFechar }) => {
               fontSize: '20px', boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
             }}>🧠</div>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '16px', color: isDark ? 'var(--gray-900)' : 'var(--gray-900)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '16px', color: 'var(--gray-900)' }}>
                 Revisão Espaçada
               </h3>
               {fase === 'revisando' && (
@@ -306,7 +297,6 @@ const RevisaoEspacada = ({ onFechar }) => {
               total={questoesDoDia.length}
               onIniciar={handleIniciar}
               onFechar={handleFechar}
-              isDark={isDark}
             />
           )}
 
@@ -321,20 +311,16 @@ const RevisaoEspacada = ({ onFechar }) => {
                 {[questaoAtual.banca, questaoAtual.ano, questaoAtual.materia, questaoAtual.topico]
                   .filter(Boolean).map((v, i) => (
                     <span key={i} style={{
-                      background: isDark ? 'rgba(99,102,241,0.15)' : 'var(--brand-50)',
-                      color: isDark ? '#a5b4fc' : 'var(--brand-600)',
+                      background: 'var(--brand-50)', color: 'var(--brand-600)',
                       borderRadius: '99px', padding: '2px 10px',
-                      fontSize: '11px', fontWeight: 600,
-                      border: isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--brand-200)',
+                      fontSize: '11px', fontWeight: 600, border: '1px solid var(--brand-200)',
                     }}>{v}</span>
                   ))}
                 {questaoAtual.sm2 && (
                   <span style={{
-                    background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4',
-                    color: isDark ? '#6ee7b7' : '#059669',
+                    background: '#f0fdf4', color: '#059669',
                     borderRadius: '99px', padding: '2px 10px',
-                    fontSize: '11px', fontWeight: 600,
-                    border: isDark ? '1px solid rgba(16,185,129,0.3)' : '1px solid #bbf7d0',
+                    fontSize: '11px', fontWeight: 600, border: '1px solid #bbf7d0',
                     marginLeft: 'auto',
                   }}>
                     {taxaAcerto(questaoAtual.sm2) !== null ? `${taxaAcerto(questaoAtual.sm2)}% de acerto` : 'Nova'}
@@ -343,18 +329,17 @@ const RevisaoEspacada = ({ onFechar }) => {
               </div>
 
               <div style={{
-                background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
-                borderRadius: 'var(--r-lg)',
+                background: 'var(--gray-50)', borderRadius: 'var(--r-lg)',
                 padding: '16px 18px', marginBottom: '16px',
-                border: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-100)',
+                border: '1px solid var(--gray-100)',
               }}>
-                <p style={{ fontSize: '14px', color: isDark ? 'var(--gray-700)' : 'var(--gray-700)', lineHeight: '1.7', marginBottom: questaoAtual.comando ? '10px' : 0 }}>
+                <p style={{ fontSize: '14px', color: 'var(--gray-700)', lineHeight: '1.7', marginBottom: questaoAtual.comando ? '10px' : 0 }}>
                   {questaoAtual.enunciado}
                 </p>
                 {questaoAtual.comando && (
                   <p style={{
-                    fontSize: '13px', color: isDark ? '#fcd34d' : '#92400e', fontWeight: 600,
-                    borderTop: isDark ? '1px solid var(--gray-200)' : '1px solid var(--gray-200)', paddingTop: '10px',
+                    fontSize: '13px', color: '#92400e', fontWeight: 600,
+                    borderTop: '1px solid var(--gray-200)', paddingTop: '10px',
                   }}>
                     {questaoAtual.comando}
                   </p>
@@ -395,11 +380,10 @@ const RevisaoEspacada = ({ onFechar }) => {
                 <div style={{ marginTop: '16px' }}>
                   {questaoAtual.explicacao && (
                     <div style={{
-                      background: isDark ? 'var(--gray-100)' : 'var(--gray-50)',
-                      borderRadius: 'var(--r-md)',
+                      background: 'var(--gray-50)', borderRadius: 'var(--r-md)',
                       padding: '12px 14px', marginBottom: '16px',
                       borderLeft: '3px solid var(--brand-300)',
-                      fontSize: '13px', color: isDark ? 'var(--gray-600)' : 'var(--gray-600)', lineHeight: '1.6',
+                      fontSize: '13px', color: 'var(--gray-600)', lineHeight: '1.6',
                     }}>
                       <strong style={{ color: 'var(--brand-600)', display: 'block', marginBottom: '4px' }}>💡 Explicação</strong>
                       {questaoAtual.explicacao}
@@ -407,10 +391,12 @@ const RevisaoEspacada = ({ onFechar }) => {
                   )}
 
                   <div style={{ marginBottom: '16px' }}>
+                    {/* ✅ CORRIGIDO: apiKey removida — ExplicacaoIA carrega
+                        a chave internamente do Firestore (config/groq).
+                        A prop pode ser omitida sem quebrar nada. */}
                     <ExplicacaoIA
                       questao={questaoAtual}
                       respostaUsuario={respostaUsuario || ''}
-                      apiKey={apiKey}
                       style={{ width: '100%', justifyContent: 'center' }}
                     />
                   </div>
@@ -427,8 +413,8 @@ const RevisaoEspacada = ({ onFechar }) => {
                       label="Errei"
                       emoji="😓"
                       cor="#dc2626"
-                      fundo={isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2'}
-                      borda={isDark ? 'rgba(239,68,68,0.4)' : '#fca5a5'}
+                      fundo="#fef2f2"
+                      borda="#fca5a5"
                       onClick={proximaQuestao}
                     />
                     <BotaoGrau
@@ -436,8 +422,8 @@ const RevisaoEspacada = ({ onFechar }) => {
                       label="Difícil"
                       emoji="😅"
                       cor="#d97706"
-                      fundo={isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb'}
-                      borda={isDark ? 'rgba(245,158,11,0.4)' : '#fde68a'}
+                      fundo="#fffbeb"
+                      borda="#fde68a"
                       onClick={proximaQuestao}
                     />
                     <BotaoGrau
@@ -445,8 +431,8 @@ const RevisaoEspacada = ({ onFechar }) => {
                       label="Fácil"
                       emoji="😄"
                       cor="#059669"
-                      fundo={isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5'}
-                      borda={isDark ? 'rgba(16,185,129,0.4)' : '#bbf7d0'}
+                      fundo="#ecfdf5"
+                      borda="#bbf7d0"
                       onClick={proximaQuestao}
                     />
                   </div>
