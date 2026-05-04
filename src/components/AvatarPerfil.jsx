@@ -1,5 +1,5 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
@@ -8,8 +8,7 @@ import NiceAvatar from '@nice-avatar-svg/react';
 import { auth } from '../firebase';
 import { useIsOwner } from '../hooks/useIsOwner';
 
-// db inicializado localmente — firebase.js exporta só auth para evitar
-// conflito com a persistência offline configurada em database.js
+// Usa getFirestore() para retornar a instância já inicializada (sem conflito)
 const db = getFirestore(getApp());
 
 /* ════════════════════════════════════════════════════
@@ -91,10 +90,20 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── Avatar 2D (Nice Avatar SVG) ─── */
+/* ─── FIX #1: Suspense boundary em torno do NiceAvatar ───────────────────────
+   @nice-avatar-svg/react pode suspender na primeira renderização (lazy load
+   de assets internos). Sem <Suspense>, o React lança o erro #525 e derruba
+   toda a árvore. O fallback exibe um círculo colorido simples enquanto carrega.
+   ──────────────────────────────────────────────────────────────────────────── */
+const NiceAvatarFallback = ({ size = 46, color = '#6BD9E9' }) => (
+  <div style={{ width: size, height: size, borderRadius: '50%', background: color, flexShrink: 0 }} />
+);
+
 const AvatarNice = ({ config, size = 46 }) => (
   <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-    <NiceAvatar style={{ width: size, height: size }} {...config} />
+    <Suspense fallback={<NiceAvatarFallback size={size} color={config?.bgColor} />}>
+      <NiceAvatar style={{ width: size, height: size }} {...config} />
+    </Suspense>
   </div>
 );
 
@@ -120,7 +129,11 @@ async function salvarNiceAvatarFirestore(uid, niceConfig) {
   );
 }
 
-/* ─── Hook: escuta niceAvatarConfig no Firestore (aguarda auth) ─── */
+/* ─── FIX #2: useNiceAvatar APENAS em AvatarPerfil ───────────────────────────
+   Antes, o hook era chamado tanto em AvatarPerfil quanto em ModalPerfil,
+   criando duas subscriptions Firestore independentes. Agora o hook vive só
+   no componente raiz e o estado é passado como props para o modal.
+   ──────────────────────────────────────────────────────────────────────────── */
 function useNiceAvatar() {
   const [niceAvatarConfig, setNiceAvatarConfig] = useState(null);
 
@@ -129,7 +142,6 @@ function useNiceAvatar() {
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (unsubSnap) { unsubSnap(); unsubSnap = null; }
       if (!user) { setNiceAvatarConfig(null); return; }
-      // Usa 'usuarios' para bater com as Firestore Rules
       unsubSnap = onSnapshot(
         doc(db, 'usuarios', user.uid),
         (snap) => { setNiceAvatarConfig(snap.data()?.niceAvatarConfig ?? null); },
@@ -184,14 +196,15 @@ const OptionPicker = ({ options, value, onChange }) => (
   </div>
 );
 
-/* ─── Modal de edição de perfil ─── */
-const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
+/* ─── Modal de edição de perfil ───────────────────────────────────────────────
+   Recebe niceAvatarConfig e setNiceAvatarConfig como props (não chama o hook)
+   ──────────────────────────────────────────────────────────────────────────── */
+const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvatarConfig }) => {
   const [nome,     setNome]     = useState(perfil.nome  || '');
   const [curso,    setCurso]    = useState(perfil.curso || '');
   const [config,   setConfig]   = useState({ ...CONFIG_PADRAO, ...(perfil.avatarConfig || {}) });
   const [abaAtiva, setAbaAtiva] = useState('emoji');
   const [niceTemp, setNiceTemp] = useState(null);
-  const { niceAvatarConfig, setNiceAvatarConfig } = useNiceAvatar();
 
   const niceEdit = niceTemp || (niceAvatarConfig ? { ...niceAvatarConfig } : { ...NICE_AVATAR_PADRAO });
   const corAtiva = (niceTemp || niceAvatarConfig) ? (niceEdit.bgColor || '#6366f1') : config.cor;
@@ -314,8 +327,9 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               {abaAtiva === 'avatar' && (
                 <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
                   <div style={{ display:'flex',justifyContent:'center',alignItems:'center',gap:16,flexWrap:'wrap' }}>
+                    {/* FIX #1 aplicado: Suspense wrapping via AvatarNice */}
                     <div style={{ width:120,height:120,borderRadius:'50%',overflow:'hidden',border:'2px solid var(--gray-100)',flexShrink:0 }}>
-                      <NiceAvatar style={{ width:120,height:120 }} {...niceEdit} />
+                      <AvatarNice config={niceEdit} size={120} />
                     </div>
                     {niceAvatarConfig && (
                       <button onClick={removerNice}
@@ -377,7 +391,9 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const [modalAberto,    setModalAberto]    = useState(false);
   const containerRef = useRef(null);
   const isOwner = useIsOwner();
-  const { niceAvatarConfig } = useNiceAvatar();
+
+  // FIX #2: hook chamado apenas aqui, estado passado por props ao ModalPerfil
+  const { niceAvatarConfig, setNiceAvatarConfig } = useNiceAvatar();
 
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
   const nomeExibido  = perfilData.nome || userEmail?.split('@')[0] || 'Meu perfil';
@@ -474,6 +490,8 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
           perfil={perfilData}
           onFechar={()=>setModalAberto(false)}
           onSalvar={handleSalvar}
+          niceAvatarConfig={niceAvatarConfig}
+          setNiceAvatarConfig={setNiceAvatarConfig}
         />
       )}
     </>
