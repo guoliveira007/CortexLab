@@ -1,5 +1,5 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, startTransition } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
@@ -286,7 +286,10 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
             <div>
               <div style={{ display:'flex',gap:4,background:'var(--gray-50)',borderRadius:12,padding:4,marginBottom:16 }}>
                 {[['emoji','🎨 Emoji'], ['avatar','✨ Avatar']].map(([id, label]) => (
-                  <button key={id} onClick={()=>setAbaAtiva(id)}
+                  // FIX #525: startTransition avisa ao React que essa atualização
+                  // pode ser adiada se NiceAvatar suspender durante a renderização.
+                  // Sem isso, React 18 lança erro #525 em interações síncronas.
+                  <button key={id} onClick={()=>startTransition(()=>setAbaAtiva(id))}
                     style={{ flex:1,padding:'8px 0',borderRadius:9,border:'none',cursor:'pointer',fontSize:13,fontWeight:600,transition:'all 0.15s',
                       background: abaAtiva===id ? 'var(--surface-card)' : 'transparent',
                       color: abaAtiva===id ? (id==='avatar'?'#6366f1':'var(--gray-800)') : 'var(--gray-400)',
