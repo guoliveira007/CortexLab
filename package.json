@@ -41,7 +41,7 @@
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
     "@dicebear/core": "^9.4.2",
-    "@nice-avatar-svg/react": "^0.0.5",
+    "@nice-avatar-svg/render": "^0.0.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@solar-icons/react": "^1.1.0",
