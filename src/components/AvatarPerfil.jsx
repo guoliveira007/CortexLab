@@ -307,11 +307,6 @@ const AvatarFoto = ({ src, size = 46, isGif = false }) => (
       style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
       onError={(e) => { e.target.style.display = 'none'; }}
     />
-    {isGif && (
-      <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6 }}>
-        GIF
-      </span>
-    )}
   </div>
 );
 
