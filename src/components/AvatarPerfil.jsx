@@ -1,13 +1,9 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
-import { getApp } from 'firebase/app';
-import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { signOut } from 'firebase/auth';
+import { User, Settings, HardDrive, LogOut, Check, Target, X } from 'lucide-react';
 import { auth } from '../firebase';
 import { useIsOwner } from '../hooks/useIsOwner';
-
-const db = getFirestore(getApp());
 
 const EMOJIS = [
   '😀','😎','🤓','🧑','👩','👨','🧔','👱','🧕','🎓',
@@ -32,130 +28,6 @@ const CORES = [
 
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
-/* ════════════════════════════════════════════════════
-   OPÇÕES DICEBEAR AVATAAARS
-   ════════════════════════════════════════════════════ */
-
-const AVATAR_DEFAULTS = {
-  top: 'shortWaved',
-  topColor: '2c1b18',        // cor do cabelo/chapéu
-  hatColor: '2c1b18',        // cor do chapéu se houver
-  hairColor: '2c1b18',
-  skinColor: 'edb98a',
-  eyes: 'default',
-  eyebrows: 'default',
-  mouth: 'smile',
-  facialHair: 'beardMedium',
-  facialHairColor: '2c1b18',
-  accessories: 'prescription02',
-  accessoriesColor: '2c1b18',
-  clothe: 'hoodie',
-  clotheColor: '3c4f5c',
-  backgroundColor: '6BD9E9',
-};
-
-const TOP_OPTIONS = {
-  bigHair: 'Cabelo volumoso', bob: 'Bob', bun: 'Coque', curly: 'Cacheado',
-  curvy: 'Ondulado', dreads: 'Dreads', dreads01: 'Dreads longos', dreads02: 'Dreads curtos',
-  frida: 'Tranças Frida', frizzle: 'Crespo', fro: 'Black Power', froBand: 'Black Power + bandana',
-  hat: 'Chapéu', hijab: 'Hijab', longButNotTooLong: 'Longo médio',
-  shaggy: 'Despojado', shaggyMullet: 'Mullet', shavedSides: 'Raspado dos lados',
-  shortCurly: 'Curto cacheado', shortFlat: 'Curto liso', shortRound: 'Curto redondo',
-  shortWaved: 'Curto ondulado', sides: 'Lateral', straight01: 'Liso 1', straight02: 'Liso 2',
-  straightAndStrand: 'Liso com franja', theCaesar: 'César', theCaesarAndSidePart: 'César lateral',
-  turban: 'Turbante', winterHat1: 'Gorro 1', winterHat02: 'Gorro 2',
-  winterHat03: 'Gorro 3', winterHat04: 'Gorro 4',
-};
-
-const HAIR_COLORS = [
-  { hex: '2c1b18', label: 'Preto' }, { hex: '4a312c', label: 'Castanho escuro' },
-  { hex: '724133', label: 'Castanho' }, { hex: 'a55728', label: 'Marrom' },
-  { hex: 'b58143', label: 'Caramelo' }, { hex: 'c93305', label: 'Ruivo' },
-  { hex: 'd6b370', label: 'Loiro escuro' }, { hex: 'e8e1e1', label: 'Loiro' },
-  { hex: 'ecdcbf', label: 'Loiro claro' }, { hex: 'ff59797', label: 'Rosa' },
-];
-
-const SKIN_COLORS = [
-  { hex: '614335', label: 'Negro' }, { hex: 'ae5d29', label: 'Moreno escuro' },
-  { hex: 'd08b5b', label: 'Moreno' }, { hex: 'edb98a', label: 'Bronzeado' },
-  { hex: 'f8d25c', label: 'Amarelo' }, { hex: 'fd9841', label: 'Queimado de sol' },
-  { hex: 'ffdbb4', label: 'Claro' },
-];
-
-const MOUTH_OPTIONS = {
-  concerned: 'Preocupado', default: 'Padrão', disbelief: 'Incrédulo',
-  eating: 'Comendo', grimace: 'Careta', sad: 'Triste',
-  screamOpen: 'Gritando', serious: 'Sério', smile: 'Sorriso',
-  tongue: 'Língua', twinkle: 'Brilho', vomit: 'Vômito',
-};
-
-const EYES_OPTIONS = {
-  closed: 'Fechados', cry: 'Chorando', default: 'Padrão', eyeRoll: 'Revirando',
-  happy: 'Feliz', hearts: 'Corações', side: 'Lateral', squint: 'Apertados',
-  surprised: 'Surpreso', wink: 'Piscando', winkWacky: 'Piscada louca', xDizzy: 'Tonto',
-};
-
-const EYEBROWS_OPTIONS = {
-  angry: 'Bravo', angryNatural: 'Bravo natural', default: 'Padrão',
-  defaultNatural: 'Natural', flatNatural: 'Reto', frownNatural: 'Franzido',
-  raisedExcited: 'Animado', raisedExcitedNatural: 'Animado natural',
-  sadConcerned: 'Triste', sadConcernedNatural: 'Triste natural',
-  unibrowNatural: 'Monocelha', upDown: 'Sobe e desce', upDownNatural: 'Sobe e desce natural',
-};
-
-const ACCESSORIES_OPTIONS = {
-  kurt: 'Óculos Kurt', prescription01: 'Óculos 1', prescription02: 'Óculos 2',
-  round: 'Redondos', sunglasses: 'Óculos escuros', wayfarers: 'Wayfarers',
-};
-
-const FACIAL_HAIR_OPTIONS = {
-  beardLight: 'Barba leve', beardMagestic: 'Barba majestosa', beardMedium: 'Barba média',
-  moustacheFancy: 'Bigode chique', moustacheMagnum: 'Bigode Magnum',
-};
-
-const CLOTHE_OPTIONS = {
-  blazerShirt: 'Blazer', blazerSweater: 'Blazer + suéter', collarSweater: 'Suéter gola',
-  graphicShirt: 'Camiseta estampa', hoodie: 'Moletom', overall: 'Macacão',
-  shirtCrewNeck: 'Camiseta gola redonda', shirtScoopNeck: 'Camiseta decote',
-  shirtVNeck: 'Camiseta gola V',
-};
-
-const CLOTHE_COLORS = [
-  { hex: '3c4f5c', label: 'Azul escuro' }, { hex: '65c9ff', label: 'Azul claro' },
-  { hex: '262e33', label: 'Preto' }, { hex: '5199e4', label: 'Azul' },
-  { hex: '25557c', label: 'Marinho' }, { hex: '929598', label: 'Cinza' },
-  { hex: 'a7ffc4', label: 'Verde claro' }, { hex: 'b1e2ff', label: 'Azul bebê' },
-  { hex: 'e6e6e6', label: 'Branco' }, { hex: 'ff5c5c', label: 'Vermelho' },
-  { hex: 'ff488e', label: 'Rosa' }, { hex: 'ffafb9', label: 'Rosa claro' },
-  { hex: 'ffffb1', label: 'Amarelo' },
-];
-
-const BG_COLORS = [
-  { hex: '6BD9E9', label: 'Ciano' }, { hex: '6366f1', label: 'Índigo' },
-  { hex: '8b5cf6', label: 'Violeta' }, { hex: 'ec4899', label: 'Rosa' },
-  { hex: '10b981', label: 'Verde' }, { hex: 'f59e0b', label: 'Âmbar' },
-  { hex: 'ef4444', label: 'Vermelho' }, { hex: 'f97316', label: 'Laranja' },
-  { hex: '3b82f6', label: 'Azul' }, { hex: '1e293b', label: 'Escuro' },
-  { hex: 'ffffff', label: 'Branco' },
-];
-
-const labelsMap = [
-  { key: 'top', label: 'Cabelo/Chapéu', type: 'option', opts: TOP_OPTIONS },
-  { key: 'hairColor', label: 'Cor do cabelo', type: 'color', opts: HAIR_COLORS },
-  { key: 'hatColor', label: 'Cor do chapéu', type: 'color', opts: HAIR_COLORS },
-  { key: 'skinColor', label: 'Tom de pele', type: 'color', opts: SKIN_COLORS },
-  { key: 'eyes', label: 'Olhos', type: 'option', opts: EYES_OPTIONS },
-  { key: 'eyebrows', label: 'Sobrancelhas', type: 'option', opts: EYEBROWS_OPTIONS },
-  { key: 'mouth', label: 'Boca', type: 'option', opts: MOUTH_OPTIONS },
-  { key: 'accessories', label: 'Acessórios (óculos)', type: 'option', opts: ACCESSORIES_OPTIONS },
-  { key: 'accessoriesColor', label: 'Cor dos óculos', type: 'color', opts: HAIR_COLORS },
-  { key: 'facialHair', label: 'Barba/Bigode', type: 'option', opts: FACIAL_HAIR_OPTIONS },
-  { key: 'facialHairColor', label: 'Cor da barba', type: 'color', opts: HAIR_COLORS },
-  { key: 'clothe', label: 'Roupa', type: 'option', opts: CLOTHE_OPTIONS },
-  { key: 'clotheColor', label: 'Cor da roupa', type: 'color', opts: CLOTHE_COLORS },
-  { key: 'backgroundColor', label: 'Cor de fundo', type: 'color', opts: BG_COLORS },
-];
-
 /* ─── Avatar SVG (modo emoji) ─── */
 const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   <svg
@@ -170,155 +42,24 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── DiceBear via <img> ─── */
-const buildDiceBearUrl = (config) => {
-  const params = new URLSearchParams();
-  Object.entries(config).forEach(([key, value]) => {
-    if (key === 'top' && Array.isArray(value)) value = value[0];
-    if (value) {
-      // Adiciona '#' para cores se não tiver (API aceita ambos, mas garante compatibilidade)
-      if (['hairColor','skinColor','backgroundColor','clotheColor','accessoriesColor','facialHairColor','hatColor','topColor'].includes(key) && !value.startsWith('#')) {
-        params.append(key, '#' + value);
-      } else {
-        params.append(key, value);
-      }
-    }
-  });
-  return `https://api.dicebear.com/9.x/avataaars/svg?${params.toString()}`;
-};
-
-const AvatarDiceBear = ({ config }) => {
-  const url = useMemo(() => buildDiceBearUrl(config), [config]);
-
-  return (
-    <img
-      src={url}
-      alt="avatar"
-      style={{ width: '100%', height: '100%', borderRadius: '50%' }}
-      onError={(e) => { e.target.style.display = 'none'; }}
-    />
-  );
-};
-
-/* ─── Avatar unificado ─── */
-const AvatarAtual = ({ config, niceAvatarConfig, size = 46 }) => {
-  if (niceAvatarConfig) {
-    return (
-      <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'white' }}>
-        <AvatarDiceBear config={niceAvatarConfig} />
-      </div>
-    );
-  }
-  return <AvatarSvg emoji={config.emoji} cor={config.cor} size={size} />;
-};
-
-/* ─── Armazenamento ─── */
+/* ─── Armazenamento (apenas localStorage) ─── */
 const STORAGE_KEY = 'cortexlab_perfil';
 export const getPerfil = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
 };
 const salvarPerfil = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
-async function salvarAvatarFirestore(uid, cfg) {
-  await setDoc(
-    doc(db, 'usuarios', uid),
-    { niceAvatarConfig: cfg, niceAvatarAt: new Date() },
-    { merge: true }
-  );
-}
+/* ─── Modal (apenas nome, curso e emoji) ─── */
+const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
+  const [nome,   setNome]   = useState(perfil.nome  || '');
+  const [curso,  setCurso]  = useState(perfil.curso || '');
+  const [config, setConfig] = useState({ ...CONFIG_PADRAO, ...(perfil.avatarConfig || {}) });
 
-function useAvatar() {
-  const [niceAvatarConfig, setNiceAvatarConfig] = useState(null);
+  const corAtiva = config.cor;
 
-  useEffect(() => {
-    let unsubSnap = null;
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (unsubSnap) { unsubSnap(); unsubSnap = null; }
-      if (!user) { setNiceAvatarConfig(null); return; }
-      unsubSnap = onSnapshot(
-        doc(db, 'usuarios', user.uid),
-        (snap) => { setNiceAvatarConfig(snap.data()?.niceAvatarConfig ?? null); },
-        (err) => { console.warn('[AvatarPerfil] onSnapshot erro:', err.code); }
-      );
-    });
-    return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
-  }, []);
-
-  return { niceAvatarConfig, setNiceAvatarConfig };
-}
-
-/* ─── Seletores ─── */
-const OptionPicker = ({ options, value, onChange }) => {
-  const isObj = typeof Object.values(options)[0] === 'object';
-  const entries = Object.entries(options);
-
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-      {entries.map(([key, val]) => {
-        const label = isObj ? val.label : val;
-        const hex = isObj ? val.hex : null;
-        const selected = value === key;
-        return (
-          <button
-            key={key}
-            onClick={() => onChange(key)}
-            title={label}
-            style={{
-              padding: hex ? '4px 8px' : '5px 11px',
-              borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-              border: selected ? '1.5px solid #6366f1' : '1.5px solid var(--gray-200)',
-              background: selected ? 'var(--brand-50, #eef2ff)' : 'transparent',
-              color: selected ? '#6366f1' : 'var(--gray-600)',
-              transition: 'all 0.12s',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            {hex && (
-              <span style={{ width: 16, height: 16, borderRadius: '50%', background: `#${hex}`, flexShrink: 0, border: '1px solid rgba(0,0,0,0.1)' }} />
-            )}
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-/* ─── Modal ─── */
-const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvatarConfig }) => {
-  const [nome,     setNome]     = useState(perfil.nome  || '');
-  const [curso,    setCurso]    = useState(perfil.curso || '');
-  const [config,   setConfig]   = useState({ ...CONFIG_PADRAO, ...(perfil.avatarConfig || {}) });
-  const [abaAtiva, setAbaAtiva] = useState('emoji');
-  const [avatarTemp, setAvatarTemp] = useState(null);
-
-  const avatarEdit = { ...AVATAR_DEFAULTS, ...(niceAvatarConfig || {}), ...(avatarTemp || {}) };
-  const corAtiva = `#${avatarEdit.backgroundColor || '6BD9E9'}`;
-
-  const atualizar = (chave, valor) => {
-    setAvatarTemp(prev => ({ ...(prev || {}), [chave]: valor }));
-  };
-
-  const salvar = async () => {
-    const uid = auth.currentUser?.uid;
-    if (abaAtiva === 'avatar' && avatarTemp && uid) {
-      const cfgFinal = { ...AVATAR_DEFAULTS, ...(niceAvatarConfig || {}), ...avatarTemp };
-      await salvarAvatarFirestore(uid, cfgFinal);
-      setNiceAvatarConfig(cfgFinal);
-    }
-    if (abaAtiva === 'emoji' && uid) {
-      await setDoc(doc(db, 'usuarios', uid), { niceAvatarConfig: null }, { merge: true });
-      setNiceAvatarConfig(null);
-    }
+  const salvar = () => {
     onSalvar({ nome, curso, avatarConfig: config });
     onFechar();
-  };
-
-  const remover = async () => {
-    const uid = auth.currentUser?.uid;
-    if (uid) await setDoc(doc(db, 'usuarios', uid), { niceAvatarConfig: null }, { merge: true });
-    setNiceAvatarConfig(null);
-    setAvatarTemp(null);
   };
 
   return (
@@ -331,19 +72,12 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
       <div onClick={onFechar} style={{ position:'fixed',inset:0,zIndex:9100,background:'rgba(10,15,30,0.65)',backdropFilter:'blur(6px)',animation:'pm-bg 0.2s ease' }} />
 
       <div onClick={e=>e.stopPropagation()} style={{ position:'fixed',inset:0,zIndex:9101,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',pointerEvents:'none' }}>
-        <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'560px',maxHeight:'92vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
+        <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'480px',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
 
           <div style={{ background:`linear-gradient(135deg, ${corAtiva}ee, ${corAtiva}99)`,padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
-            <div style={{ width:80,height:80,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)',background:'white' }}>
-              <AvatarAtual config={config} niceAvatarConfig={avatarEdit} size={80} />
-            </div>
+            <AvatarSvg emoji={config.emoji} cor={config.cor} size={80} />
             <div>
               <p style={{ color:'white',fontWeight:800,fontSize:'16px',fontFamily:'var(--font-display)' }}>{nome || 'Meu perfil'}</p>
-              {niceAvatarConfig && (
-                <span style={{ background:'rgba(255,255,255,0.2)',color:'white',fontSize:'10px',fontWeight:600,padding:'2px 8px',borderRadius:20,display:'inline-flex',alignItems:'center',gap:4,marginTop:4 }}>
-                  <Sparkles size={10} /> Avatar personalizado
-                </span>
-              )}
               {curso
                 ? <p style={{ color:'rgba(255,255,255,0.75)',fontSize:'13px',marginTop:'4px',display:'flex',alignItems:'center',gap:5 }}><Target size={12}/>{curso}</p>
                 : <p style={{ color:'rgba(255,255,255,0.6)',fontSize:'12px',marginTop:'4px' }}>Sem curso alvo</p>}
@@ -368,66 +102,26 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
             </div>
 
             <div>
-              <div style={{ display:'flex',gap:4,background:'var(--gray-50)',borderRadius:12,padding:4,marginBottom:16 }}>
-                {[['emoji','🎨 Emoji'], ['avatar','✨ Avatar']].map(([id, label]) => (
-                  <button key={id} onClick={() => setAbaAtiva(id)}
-                    style={{ flex:1,padding:'8px 0',borderRadius:9,border:'none',cursor:'pointer',fontSize:13,fontWeight:600,transition:'all 0.15s',
-                      background: abaAtiva===id ? 'var(--surface-card)' : 'transparent',
-                      color: abaAtiva===id ? (id==='avatar'?'#6366f1':'var(--gray-800)') : 'var(--gray-400)',
-                      boxShadow: abaAtiva===id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                    }}>
-                    {label}
-                  </button>
+              <p className="field-label" style={{ marginBottom:10 }}>Cor do avatar</p>
+              <div style={{ display:'flex',flexWrap:'wrap',gap:8,marginBottom:20 }}>
+                {CORES.map(c => (
+                  <button key={c.bg} title={c.label} onClick={()=>setConfig(p=>({...p,cor:c.bg}))}
+                    style={{ width:32,height:32,borderRadius:'50%',background:c.bg,border:config.cor===c.bg?'3px solid var(--gray-900)':'2px solid transparent',outline:config.cor===c.bg?`3px solid ${c.bg}`:'none',outlineOffset:2,cursor:'pointer',transition:'transform 0.12s' }}
+                    onMouseEnter={e=>e.currentTarget.style.transform='scale(1.18)'}
+                    onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+                  />
                 ))}
               </div>
-
-              {abaAtiva === 'emoji' && (
-                <div>
-                  <p className="field-label" style={{ marginBottom:10 }}>Cor do avatar</p>
-                  <div style={{ display:'flex',flexWrap:'wrap',gap:8,marginBottom:20 }}>
-                    {CORES.map(c => (
-                      <button key={c.bg} title={c.label} onClick={()=>setConfig(p=>({...p,cor:c.bg}))}
-                        style={{ width:32,height:32,borderRadius:'50%',background:c.bg,border:config.cor===c.bg?'3px solid var(--gray-900)':'2px solid transparent',outline:config.cor===c.bg?`3px solid ${c.bg}`:'none',outlineOffset:2,cursor:'pointer',transition:'transform 0.12s' }}
-                        onMouseEnter={e=>e.currentTarget.style.transform='scale(1.18)'}
-                        onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-                      />
-                    ))}
-                  </div>
-                  <p className="field-label" style={{ marginBottom:10 }}>Ícone</p>
-                  <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
-                    {EMOJIS.map(em => (
-                      <button key={em} onClick={()=>setConfig(p=>({...p,emoji:em}))}
-                        style={{ width:44,height:44,borderRadius:10,fontSize:22,lineHeight:1,border:config.emoji===em?'2px solid #6366f1':'1.5px solid var(--gray-200)',background:config.emoji===em?'var(--brand-50)':'transparent',cursor:'pointer',transition:'all 0.12s',display:'flex',alignItems:'center',justifyContent:'center' }}
-                        onMouseEnter={e=>{ if(config.emoji!==em) e.currentTarget.style.background='var(--gray-50)'; }}
-                        onMouseLeave={e=>{ if(config.emoji!==em) e.currentTarget.style.background='transparent'; }}
-                      >{em}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {abaAtiva === 'avatar' && (
-                <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
-                  <div style={{ display:'flex',justifyContent:'center',alignItems:'center',gap:16,flexWrap:'wrap' }}>
-                    <div style={{ width:120,height:120,borderRadius:'50%',overflow:'hidden',border:'2px solid var(--gray-100)',flexShrink:0,background:'white' }}>
-                      <AvatarDiceBear config={avatarEdit} />
-                    </div>
-                    {niceAvatarConfig && (
-                      <button onClick={remover}
-                        style={{ padding:'7px 14px',borderRadius:10,border:'1.5px solid #fecaca',background:'#fef2f2',fontSize:12,fontWeight:600,color:'#ef4444',cursor:'pointer' }}>
-                        Remover avatar
-                      </button>
-                    )}
-                  </div>
-
-                  {labelsMap.map(({ key, label, type, opts }) => (
-                    <div key={key}>
-                      <p className="field-label" style={{ marginBottom:8 }}>{label}</p>
-                      <OptionPicker options={opts} value={avatarEdit[key] || ''} onChange={v => atualizar(key, v)} />
-                    </div>
-                  ))}
-                </div>
-              )}
+              <p className="field-label" style={{ marginBottom:10 }}>Ícone</p>
+              <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
+                {EMOJIS.map(em => (
+                  <button key={em} onClick={()=>setConfig(p=>({...p,emoji:em}))}
+                    style={{ width:44,height:44,borderRadius:10,fontSize:22,lineHeight:1,border:config.emoji===em?'2px solid #6366f1':'1.5px solid var(--gray-200)',background:config.emoji===em?'var(--brand-50)':'transparent',cursor:'pointer',transition:'all 0.12s',display:'flex',alignItems:'center',justifyContent:'center' }}
+                    onMouseEnter={e=>{ if(config.emoji!==em) e.currentTarget.style.background='var(--gray-50)'; }}
+                    onMouseLeave={e=>{ if(config.emoji!==em) e.currentTarget.style.background='transparent'; }}
+                  >{em}</button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -449,11 +143,9 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
   const containerRef = useRef(null);
   const isOwner = useIsOwner();
 
-  const { niceAvatarConfig, setNiceAvatarConfig } = useAvatar();
-
   const avatarConfig = { ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) };
   const nomeExibido  = perfilData.nome || userEmail?.split('@')[0] || 'Meu perfil';
-  const corBorda     = niceAvatarConfig ? `#${niceAvatarConfig.backgroundColor || '6366f1'}` : avatarConfig.cor;
+  const corBorda     = avatarConfig.cor;
 
   useEffect(() => {
     const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setDropdownAberto(false); };
@@ -487,26 +179,21 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
           onMouseEnter={e=>{ if(!dropdownAberto) e.currentTarget.style.borderColor=corBorda; }}
           onMouseLeave={e=>{ if(!dropdownAberto) e.currentTarget.style.borderColor=`${corBorda}55`; }}
         >
-          <AvatarAtual config={avatarConfig} niceAvatarConfig={niceAvatarConfig} size={46} />
+          <AvatarSvg emoji={avatarConfig.emoji} cor={avatarConfig.cor} size={46} />
         </button>
 
         {dropdownAberto && (
           <div className="dark-modal" style={{ position:'absolute',top:'calc(100% + 10px)',right:0,background:'var(--surface-card)',borderRadius:16,boxShadow:'0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)',minWidth:240,overflow:'hidden',zIndex:8000,animation:'dd-in 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
 
             <div style={{ background:`linear-gradient(135deg, ${corBorda}ee, ${corBorda}99)`,padding:'14px 16px',display:'flex',alignItems:'center',gap:12 }}>
-              <div style={{ width:42,height:42,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(255,255,255,0.3)',background:'white' }}>
-                <AvatarAtual config={avatarConfig} niceAvatarConfig={niceAvatarConfig} size={42} />
+              <div style={{ width:42,height:42,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'2px solid rgba(255,255,255,0.3)' }}>
+                <AvatarSvg emoji={avatarConfig.emoji} cor={avatarConfig.cor} size={42} />
               </div>
               <div style={{ overflow:'hidden',flex:1 }}>
                 <p style={{ color:'white',fontWeight:700,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{nomeExibido}</p>
                 {perfilData.curso
                   ? <p style={{ color:'rgba(255,255,255,0.7)',fontSize:12,marginTop:2,display:'flex',alignItems:'center',gap:4 }}><Target size={11}/>{perfilData.curso}</p>
                   : userEmail && <p style={{ color:'rgba(255,255,255,0.55)',fontSize:11,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{userEmail}</p>}
-                {niceAvatarConfig && (
-                  <span style={{ display:'inline-flex',alignItems:'center',gap:4,fontSize:10,color:'rgba(255,255,255,0.8)',marginTop:3 }}>
-                    <Sparkles size={10}/> Avatar personalizado
-                  </span>
-                )}
               </div>
               {isOwner && (
                 <span style={{ background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'white',fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,textTransform:'uppercase',flexShrink:0 }}>
@@ -546,8 +233,6 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
           perfil={perfilData}
           onFechar={()=>setModalAberto(false)}
           onSalvar={handleSalvar}
-          niceAvatarConfig={niceAvatarConfig}
-          setNiceAvatarConfig={setNiceAvatarConfig}
         />
       )}
     </>
