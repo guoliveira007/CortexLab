@@ -1,5 +1,5 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
@@ -33,7 +33,7 @@ const CORES = [
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
 /* ════════════════════════════════════════════════════
-   OPÇÕES DICEBEAR AVATAAARS (via URL)
+   OPÇÕES DICEBEAR AVATAAARS (via API fetch -> SVG inline)
    ════════════════════════════════════════════════════ */
 
 const AVATAR_DEFAULTS = {
@@ -151,25 +151,43 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── DiceBear via URL ─── */
-const buildDiceBearUrl = (config) => {
-  const params = new URLSearchParams();
-  Object.entries(config).forEach(([key, value]) => {
-    if (key === 'top' && Array.isArray(value)) value = value[0];
-    if (value) params.append(key, value);
-  });
-  return `https://api.dicebear.com/9.x/avataaars/svg?${params.toString()}`;
-};
-
+/* ─── DiceBear via fetch (SVG inline) ─── */
 const AvatarDiceBear = ({ config }) => {
-  const url = useMemo(() => buildDiceBearUrl(config), [config]);
+  const [svgString, setSvgString] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    Object.entries(config).forEach(([key, value]) => {
+      if (key === 'top' && Array.isArray(value)) value = value[0];
+      if (value) params.append(key, value);
+    });
+    const url = `https://api.dicebear.com/9.x/avataaars/svg?${params.toString()}`;
+
+    fetch(url)
+      .then(res => res.text())
+      .then(svg => {
+        if (!cancelled) setSvgString(svg);
+      })
+      .catch(() => {
+        if (!cancelled) setSvgString('');
+      });
+
+    return () => { cancelled = true; };
+  }, [config]);
+
+  if (!svgString) {
+    return (
+      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: 'var(--gray-400)' }}>
+        🎨
+      </div>
+    );
+  }
 
   return (
-    <img
-      src={url}
-      alt="avatar"
-      style={{ width: '100%', height: '100%', borderRadius: '50%' }}
-      onError={(e) => { e.target.style.display = 'none'; }}
+    <div
+      style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}
+      dangerouslySetInnerHTML={{ __html: svgString }}
     />
   );
 };
@@ -178,7 +196,7 @@ const AvatarDiceBear = ({ config }) => {
 const AvatarAtual = ({ config, niceAvatarConfig, size = 46 }) => {
   if (niceAvatarConfig) {
     return (
-      <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'white' }}>
         <AvatarDiceBear config={niceAvatarConfig} />
       </div>
     );
@@ -307,7 +325,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
       <div onClick={e=>e.stopPropagation()} style={{ position:'fixed',inset:0,zIndex:9101,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',pointerEvents:'none' }}>
         <div className="dark-modal" style={{ background:'var(--surface-card)',borderRadius:'24px',width:'100%',maxWidth:'560px',maxHeight:'92vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 32px 80px rgba(0,0,0,0.25)',animation:'pm-in 0.3s cubic-bezier(0.34,1.56,0.64,1)',pointerEvents:'all' }}>
 
-          {/* Header */}
           <div style={{ background:`linear-gradient(135deg, ${corAtiva}ee, ${corAtiva}99)`,padding:'20px 24px 18px',display:'flex',alignItems:'center',gap:'14px',position:'relative',flexShrink:0 }}>
             <div style={{ width:80,height:80,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,0.4)',background:'white' }}>
               <AvatarAtual config={config} niceAvatarConfig={avatarEdit} size={80} />
@@ -330,7 +347,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
             ><X size={16}/></button>
           </div>
 
-          {/* Corpo */}
           <div style={{ flex:1,overflowY:'auto',padding:'20px 24px',display:'flex',flexDirection:'column',gap:20 }}>
             <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
               <div>
@@ -407,7 +423,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar, niceAvatarConfig, setNiceAvat
             </div>
           </div>
 
-          {/* Footer */}
           <div style={{ padding:'14px 24px 20px',display:'flex',gap:10,justifyContent:'flex-end',borderTop:'1px solid var(--gray-100)',flexShrink:0 }}>
             <button onClick={onFechar} className="btn-secondary" style={{ display:'flex',alignItems:'center',gap:6 }}><X size={15}/> Cancelar</button>
             <button onClick={salvar}   className="btn-primary"   style={{ display:'flex',alignItems:'center',gap:6 }}><Check size={15}/> Salvar</button>
