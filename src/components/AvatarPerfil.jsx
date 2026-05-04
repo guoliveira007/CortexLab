@@ -3,7 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
-import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles, Camera, Trash2, Search } from 'lucide-react';
+import {
+  User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles,
+  Camera, Trash2, Search,
+} from 'lucide-react';
 import { auth } from '../firebase';
 import { useIsOwner } from '../hooks/useIsOwner';
 import { useDark } from '../hooks/useDark';
@@ -59,14 +62,14 @@ const CORES = [
 
 const MOLDURAS = [
   { id: 'none', label: 'Nenhuma' },
-  { id: 'shadow', label: '🌑 Sombra' },
-  { id: 'ring', label: '💍 Anel' },
-  { id: 'glow', label: '✨ Brilho' },
-  { id: 'dots', label: '🔵 Pontos' },
+  { id: 'double-ring', label: '⭕ Aro Duplo' },
+  { id: 'arc-bottom', label: '🌅 Arco Inferior' },
+  { id: 'elegant-stroke', label: '✨ Traço Elegante' },
+  { id: 'glass', label: '🧊 Vidro' },
+  { id: 'dot-highlight', label: '💠 Ponto de Destaque' },
 ];
 
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1', tipo: 'emoji', moldura: 'none' };
-
 const STORAGE_KEY = 'cortexlab_perfil';
 
 /* ═══════════════════════════════════════════════
@@ -74,7 +77,7 @@ const STORAGE_KEY = 'cortexlab_perfil';
    ═══════════════════════════════════════════════ */
 const injectStyles = () => {
   if (typeof document === 'undefined') return;
-  const id = '__avatar-animations-light';
+  const id = '__avatar-animations-v4';
   if (document.getElementById(id)) return;
   const style = document.createElement('style');
   style.id = id;
@@ -84,8 +87,12 @@ const injectStyles = () => {
     @keyframes emojiWave { 0%{transform:rotate(0) scale(1)} 25%{transform:rotate(-10deg) scale(1.1)} 75%{transform:rotate(10deg) scale(1.1)} 100%{transform:rotate(0) scale(1)} }
     @keyframes avatarPulse { 0%{transform:scale(1);opacity:0.5} 100%{transform:scale(1.2);opacity:0} }
     @keyframes syncPulse { 0%{box-shadow:0 0 0 0 rgba(99,102,241,0.7)} 70%{box-shadow:0 0 0 8px rgba(99,102,241,0)} 100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} }
+    @keyframes dotPulse { 0%,100%{transform:translate(-50%,-50%) scale(1); opacity:0.7} 50%{transform:translate(-50%,-50%) scale(1.4); opacity:1} }
+    @keyframes elegantRotate { 0%{transform:translate(-50%,-50%) rotate(0deg)} 100%{transform:translate(-50%,-50%) rotate(360deg)} }
+    @keyframes arcGlow { 0%,100%{opacity:0.5} 50%{opacity:0.9} }
+    @keyframes glassShine { 0%{opacity:0.2; transform:rotate(0deg)} 100%{opacity:0.5; transform:rotate(360deg)} }
 
-    /* Admin: borda dourada sutil com brilho */
+    /* Admin premium */
     .moldura-admin {
       position: relative;
       display: inline-flex;
@@ -97,12 +104,12 @@ const injectStyles = () => {
       position: absolute;
       inset: -3px;
       border-radius: 50%;
-      border: 2px solid #f59e0b;
+      background: conic-gradient(from 0deg, #f59e0b, #d97706, #fbbf24, #f59e0b);
       opacity: 0.8;
-      animation: adminGlow 2s ease-in-out infinite;
       z-index: 0;
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #fff calc(100% - 2px));
     }
-    @keyframes adminGlow { 0%,100%{box-shadow:0 0 4px rgba(245,158,11,0.4)} 50%{box-shadow:0 0 10px rgba(245,158,11,0.7)} }
     .moldura-admin-crown {
       position: absolute;
       top: -12px;
@@ -110,76 +117,187 @@ const injectStyles = () => {
       transform: translateX(-50%);
       font-size: 16px;
       z-index: 2;
-      filter: drop-shadow(0 0 3px rgba(245,158,11,0.6));
-      animation: crownFloat 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 2px rgba(245,158,11,0.6));
     }
-    @keyframes crownFloat { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-2px)} }
-
-    /* Sombra suave */
-    .moldura-shadow {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08);
-      border-radius: 50%;
-    }
-
-    /* Anel simples */
-    .moldura-ring {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .moldura-ring::before {
-      content: '';
+    .moldura-admin-check {
       position: absolute;
-      inset: -2px;
+      bottom: 2px;
+      right: 2px;
+      width: 16px;
+      height: 16px;
+      background: #f59e0b;
       border-radius: 50%;
-      border: 2px solid currentColor;
-      opacity: 0.3;
-      z-index: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      z-index: 3;
+      box-shadow: 0 0 4px rgba(245,158,11,0.5);
     }
 
-    /* Brilho pulsante */
-    .moldura-glow {
+    /* Aro Duplo */
+    .moldura-double-ring {
       position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
-    .moldura-glow::after {
-      content: '';
-      position: absolute;
-      inset: -2px;
-      border-radius: 50%;
-      box-shadow: 0 0 6px currentColor;
-      opacity: 0.5;
-      animation: glowPulse 2s ease-in-out infinite;
-      z-index: 0;
-    }
-    @keyframes glowPulse { 0%,100%{opacity:0.3; transform:scale(1)} 50%{opacity:0.6; transform:scale(1.02)} }
-
-    /* Pontos giratórios sutis */
-    .moldura-dots {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .moldura-dots::before {
+    .moldura-double-ring::before {
       content: '';
       position: absolute;
       inset: -4px;
       border-radius: 50%;
-      border: 2px dotted currentColor;
-      opacity: 0.4;
-      animation: dotsSpin 20s linear infinite;
+      border: 1px solid currentColor;
+      opacity: 0.25;
       z-index: 0;
     }
-    @keyframes dotsSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    .moldura-double-ring::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      opacity: 0.15;
+      z-index: 0;
+    }
+
+    /* Arco Inferior */
+    .moldura-arc-bottom {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .moldura-arc-bottom::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-bottom-color: currentColor;
+      border-left-color: transparent;
+      border-right-color: transparent;
+      opacity: 0.4;
+      animation: arcGlow 2s ease-in-out infinite;
+      z-index: 0;
+      transform: rotate(-10deg);
+    }
+
+    /* Traço Elegante */
+    .moldura-elegant-stroke {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .moldura-elegant-stroke::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-bottom-color: transparent;
+      animation: elegantRotate 4s linear infinite;
+      opacity: 0.6;
+      z-index: 0;
+      transform: translate(-50%, -50%);
+      top: 50%;
+      left: 50%;
+      width: calc(100% + 6px);
+      height: calc(100% + 6px);
+    }
+
+    /* Vidro (glass) */
+    .moldura-glass {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .moldura-glass::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.05));
+      backdrop-filter: blur(1px);
+      z-index: 0;
+    }
+
+    /* Ponto de destaque */
+    .moldura-dot-highlight {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .moldura-dot-highlight::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      background: currentColor;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: dotPulse 2s ease-in-out infinite;
+      z-index: 2;
+    }
   `;
   document.head.appendChild(style);
 };
 
 if (typeof window !== 'undefined') injectStyles();
+
+/* ═══════════════════════════════════════════════
+   COMPRESSÃO DE IMAGEM (canvas)
+   ═══════════════════════════════════════════════ */
+const compressImage = (file) => {
+  return new Promise((resolve, reject) => {
+    // Se for GIF e menor que 500KB, mantém original
+    if (file.type === 'image/gif' && file.size < 500 * 1024) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+
+      // Redimensiona se maior que 200px
+      const MAX_SIZE = 200;
+      if (width > MAX_SIZE || height > MAX_SIZE) {
+        if (width > height) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const quality = 0.6;
+      const mimeType = 'image/jpeg'; // fallback; se for GIF, tentamos manter original pequeno
+      const dataUrl = canvas.toDataURL(mimeType, quality);
+      resolve(dataUrl);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 /* ═══════════════════════════════════════════════
    COMPONENTES DE AVATAR
@@ -233,58 +351,54 @@ const AvatarAnimado = ({ emoji, cor, size = 46 }) => {
 
 const AvatarFoto = ({ src, size = 46, isGif = false }) => (
   <div style={{ position: 'relative', width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-    <img src={src} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+    <img
+      src={src}
+      alt="avatar"
+      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+      onError={(e) => { e.target.style.display = 'none'; }}
+    />
     {isGif && (
-      <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6 }}>GIF</span>
+      <span style={{ position: 'absolute', bottom: 2, right: 2, background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6 }}>
+        GIF
+      </span>
     )}
   </div>
 );
 
 /* ═══════════════════════════════════════════════
-   MOLDURA WRAPPER (SUTIL)
+   MOLDURA WRAPPER
    ═══════════════════════════════════════════════ */
 const AvatarMoldura = ({ children, moldura, isAdmin, color }) => {
   if (!moldura || moldura === 'none') return children;
 
   if (isAdmin && moldura === 'admin') {
     return (
-      <div className="moldura-admin" style={{ color: '#f59e0b' }}>
+      <div className="moldura-admin" style={{ color }}>
         <div className="moldura-admin-crown">👑</div>
+        <div className="moldura-admin-check">✓</div>
         <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
       </div>
     );
   }
 
-  if (moldura === 'shadow') {
-    return (
-      <div className="moldura-shadow" style={{ color }}>
-        {children}
-      </div>
-    );
+  if (moldura === 'double-ring') {
+    return <div className="moldura-double-ring" style={{ color }}>{children}</div>;
   }
 
-  if (moldura === 'ring') {
-    return (
-      <div className="moldura-ring" style={{ color }}>
-        {children}
-      </div>
-    );
+  if (moldura === 'arc-bottom') {
+    return <div className="moldura-arc-bottom" style={{ color }}>{children}</div>;
   }
 
-  if (moldura === 'glow') {
-    return (
-      <div className="moldura-glow" style={{ color }}>
-        {children}
-      </div>
-    );
+  if (moldura === 'elegant-stroke') {
+    return <div className="moldura-elegant-stroke" style={{ color }}>{children}</div>;
   }
 
-  if (moldura === 'dots') {
-    return (
-      <div className="moldura-dots" style={{ color }}>
-        {children}
-      </div>
-    );
+  if (moldura === 'glass') {
+    return <div className="moldura-glass">{children}</div>;
+  }
+
+  if (moldura === 'dot-highlight') {
+    return <div className="moldura-dot-highlight" style={{ color }}>{children}</div>;
   }
 
   return children;
@@ -318,7 +432,7 @@ const AvatarAtual = ({ config, nome, size = 46, isAdmin = false, syncEffect = fa
 };
 
 /* ═══════════════════════════════════════════════
-   ARMAZENAMENTO
+   ARMAZENAMENTO LOCAL + FIRESTORE
    ═══════════════════════════════════════════════ */
 export const getPerfil = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
@@ -348,7 +462,7 @@ function usePerfil() {
 }
 
 /* ═══════════════════════════════════════════════
-   MODAL
+   MODAL DE EDIÇÃO
    ═══════════════════════════════════════════════ */
 const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
   const [nome, setNome] = useState(perfilData.nome || '');
@@ -356,20 +470,37 @@ const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
   const [config, setConfig] = useState({ ...CONFIG_PADRAO, ...(perfilData.avatarConfig || {}) });
   const [categoria, setCategoria] = useState(Object.keys(EMOJI_CATEGORIES)[0]);
   const [busca, setBusca] = useState('');
+  const [salvando, setSalvando] = useState(false);
   const fileInputRef = useRef(null);
   const isGif = config.fotoUrl && config.fotoUrl.startsWith('data:image/gif');
   const corAtiva = config.cor;
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert('Arquivo muito grande. Máximo 5 MB.'); return; }
-    const reader = new FileReader();
-    reader.onload = () => setConfig(p => ({ ...p, tipo: 'foto', fotoUrl: reader.result }));
-    reader.readAsDataURL(file);
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Arquivo muito grande. Máximo 2 MB.');
+      return;
+    }
+    try {
+      const compressed = await compressImage(file);
+      setConfig(p => ({ ...p, tipo: 'foto', fotoUrl: compressed }));
+    } catch (err) {
+      alert('Erro ao processar imagem.');
+    }
   };
 
-  const salvar = () => { onSalvar({ nome, curso, avatarConfig: config }); onFechar(); };
+  const salvar = async () => {
+    setSalvando(true);
+    try {
+      onSalvar({ nome, curso, avatarConfig: config });
+      onFechar();
+    } catch (e) {
+      alert('Erro ao salvar.');
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   const emojisFiltrados = busca
     ? EMOJIS.filter(em => em.includes(busca))
@@ -513,7 +644,7 @@ const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
                 </div>
                 {config.fotoUrl && (
                   <p style={{ color: isDark?'var(--gray-500)':'var(--gray-400)',fontSize:11,marginTop:10 }}>
-                    {isGif ? '✅ GIF animado carregado' : '✅ Imagem carregada'} (máx. 5 MB)
+                    {isGif ? '✅ GIF animado carregado' : '✅ Imagem carregada'} (máx. 2 MB, será comprimido)
                   </p>
                 )}
               </div>
@@ -526,7 +657,7 @@ const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
                 {isOwner && <span style={{ fontSize:10, marginLeft:6, background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'white',padding:'2px 8px',borderRadius:12,fontWeight:700 }}>👑 Admin</span>}
               </p>
               <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
-                {(isOwner ? [{ id: 'admin', label: '👑 Dourada' }, ...MOLDURAS] : MOLDURAS).map(m => (
+                {(isOwner ? [{ id: 'admin', label: '👑 Premium' }, ...MOLDURAS] : MOLDURAS).map(m => (
                   <button key={m.id} onClick={()=>setConfig(p=>({...p,moldura:m.id}))}
                     style={{
                       padding:'5px 12px', borderRadius:12,
@@ -544,7 +675,9 @@ const ModalPerfil = ({ onFechar, perfilData, onSalvar, isDark, isOwner }) => {
 
           <div style={{ padding:'14px 24px 20px',display:'flex',gap:10,justifyContent:'flex-end',borderTop: isDark?'1px solid var(--gray-200)':'1px solid var(--gray-100)',flexShrink:0 }}>
             <button onClick={onFechar} className="btn-secondary" style={{ display:'flex',alignItems:'center',gap:6, background: isDark?'var(--gray-200)':undefined, color: isDark?'var(--gray-700)':undefined }}><X size={15}/> Cancelar</button>
-            <button onClick={salvar}   className="btn-primary"   style={{ display:'flex',alignItems:'center',gap:6 }}><Check size={15}/> Salvar</button>
+            <button onClick={salvar} disabled={salvando} className="btn-primary" style={{ display:'flex',alignItems:'center',gap:6, opacity: salvando ? 0.7 : 1 }}>
+              <Check size={15}/> {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
           </div>
         </div>
       </div>
@@ -591,7 +724,13 @@ const AvatarPerfil = ({ onAbrirConfig, onIrParaBackup, userEmail }) => {
     setLocalData(d);
     lastLocalSaveRef.current = Date.now();
     const uid = auth.currentUser?.uid;
-    if (uid) await salvarPerfilFirestore(uid, d);
+    if (uid) {
+      try {
+        await salvarPerfilFirestore(uid, d);
+      } catch (e) {
+        alert('Erro ao sincronizar avatar. O arquivo pode ser grande demais. Tente um GIF menor ou uma foto comum.');
+      }
+    }
   };
 
   const menuItems = [
