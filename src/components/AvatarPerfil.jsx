@@ -4,7 +4,7 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles } from 'lucide-react';
-import renderNiceAvatar from '@nice-avatar-svg/render/index.mjs'; // ✅ importação direta (entry point corrigido)
+import renderNiceAvatar from '../lib/niceAvatarRender.mjs'; // ✅ importação direta (entry point corrigido)
 import { auth } from '../firebase';
 import { useIsOwner } from '../hooks/useIsOwner';
 
