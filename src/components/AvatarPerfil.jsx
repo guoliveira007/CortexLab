@@ -1,17 +1,16 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { signOut } from 'firebase/auth';
+import React, { useState, useEffect, useRef } from 'react';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
-import { auth } from '../firebase';
+import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles } from 'lucide-react';
 import NiceAvatar from '@nice-avatar-svg/react';
+import { auth } from '../firebase';
+import { useIsOwner } from '../hooks/useIsOwner';
 
 // db inicializado localmente — firebase.js exporta só auth para evitar
 // conflito com a persistência offline configurada em database.js
 const db = getFirestore(getApp());
-
-import { User, Settings, HardDrive, LogOut, Check, Target, X, Sparkles } from 'lucide-react';
-import { useIsOwner } from '../hooks/useIsOwner';
 
 /* ════════════════════════════════════════════════════
    SISTEMA DE AVATAR — Emoji SVG + Nice Avatar SVG 2D
@@ -42,51 +41,40 @@ const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
 /* ─── Opções do Nice Avatar ─── */
 const NICE_OPCOES = {
-  skinColor:      ['#F9C9B6', '#FDDBB4', '#F0C27F', '#C8A97E', '#A0724A', '#7B4F2E', '#4A2E1A'],
-  hairColor:      ['#2C1B18', '#4A2E1A', '#8D5524', '#C68642', '#F0C040', '#E8B4B8', '#9B59B6', '#2980B9', '#FFFFFF'],
-  bgColor:        ['#6BD9E9', '#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#1e293b'],
-  shirtColor:     ['#FFFFFF', '#F4D150', '#6BD9E9', '#6366f1', '#ec4899', '#10b981', '#ef4444', '#475569', '#1e293b'],
-  hairStyle:      ['normal', 'thick', 'mohawk', 'womanLong', 'womanShort', 'dannyPhantom', 'fonze', 'pixie', 'turban', 'hat'],
-  eyesStyle:      ['circle', 'oval', 'smiling', 'base'],
-  eyebrowsStyle:  ['up', 'eyelashesUp', 'eyelashesDown'],
-  mouthStyle:     ['laugh', 'smile', 'peace', 'smirk', 'surprised', 'nervous', 'sad', 'pucker'],
-  noseStyle:      ['short', 'long', 'round', 'curve'],
-  glassesStyle:   ['none', 'round', 'square'],
-  facialHairStyle:['none', 'beard', 'stubble'],
-  shirtStyle:     ['hoody', 'short', 'polo', 'crew', 'collared', 'open'],
-  earRing:        ['none', 'stud', 'loop'],
-  earSize:        ['small', 'big'],
+  skinColor:  ['#F9C9B6', '#FDDBB4', '#F0C27F', '#C8A97E', '#A0724A', '#7B4F2E', '#4A2E1A'],
+  hairColor:  ['#2C1B18', '#4A2E1A', '#8D5524', '#C68642', '#F0C040', '#E8B4B8', '#9B59B6', '#2980B9', '#FFFFFF'],
+  bgColor:    ['#6BD9E9', '#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#1e293b'],
+  shirtColor: ['#FFFFFF', '#F4D150', '#6BD9E9', '#6366f1', '#ec4899', '#10b981', '#ef4444', '#475569', '#1e293b'],
 };
 
 const NICE_AVATAR_PADRAO = {
-  bgColor:        '#6BD9E9',
-  skinColor:      '#F9C9B6',
-  hairColor:      '#4A2E1A',
-  hairStyle:      'normal',
-  eyesStyle:      'smiling',
-  eyebrowsStyle:  'up',
-  mouthStyle:     'smile',
-  noseStyle:      'round',
-  glassesStyle:   'none',
-  facialHairStyle:'none',
-  shirtStyle:     'hoody',
-  shirtColor:     '#6366f1',
-  earRing:        'none',
-  earSize:        'small',
+  bgColor:         '#6BD9E9',
+  skinColor:       '#F9C9B6',
+  hairColor:       '#4A2E1A',
+  hairStyle:       'normal',
+  eyesStyle:       'smiling',
+  eyebrowsStyle:   'up',
+  mouthStyle:      'smile',
+  noseStyle:       'round',
+  glassesStyle:    'none',
+  facialHairStyle: 'none',
+  shirtStyle:      'hoody',
+  shirtColor:      '#6366f1',
+  earRing:         'none',
+  earSize:         'small',
 };
 
-/* ─── Labels em português ─── */
 const NICE_LABELS = {
-  hairStyle:       { label: 'Cabelo', options: { normal:'Normal', thick:'Espesso', mohawk:'Moicano', womanLong:'Feminino longo', womanShort:'Feminino curto', dannyPhantom:'Danny Phantom', fonze:'Fonzie', pixie:'Pixie', turban:'Turbante', hat:'Chapéu' } },
-  eyesStyle:       { label: 'Olhos', options: { circle:'Círculo', oval:'Oval', smiling:'Sorridente', base:'Base' } },
+  hairStyle:       { label: 'Cabelo',       options: { normal:'Normal', thick:'Espesso', mohawk:'Moicano', womanLong:'Feminino longo', womanShort:'Feminino curto', dannyPhantom:'Danny Phantom', fonze:'Fonzie', pixie:'Pixie', turban:'Turbante', hat:'Chapéu' } },
+  eyesStyle:       { label: 'Olhos',        options: { circle:'Círculo', oval:'Oval', smiling:'Sorridente', base:'Base' } },
   eyebrowsStyle:   { label: 'Sobrancelhas', options: { up:'Para cima', eyelashesUp:'Cílios cima', eyelashesDown:'Cílios baixo' } },
-  mouthStyle:      { label: 'Boca', options: { laugh:'Gargalhada', smile:'Sorriso', peace:'Paz', smirk:'Irônico', surprised:'Surpreso', nervous:'Nervoso', sad:'Triste', pucker:'Beicinho' } },
-  noseStyle:       { label: 'Nariz', options: { short:'Curto', long:'Longo', round:'Redondo', curve:'Curvado' } },
-  glassesStyle:    { label: 'Óculos', options: { none:'Nenhum', round:'Redondo', square:'Quadrado' } },
-  facialHairStyle: { label: 'Barba', options: { none:'Nenhuma', beard:'Barba', stubble:'Cavanhaque' } },
-  shirtStyle:      { label: 'Roupa', options: { hoody:'Moletom', short:'Camiseta', polo:'Polo', crew:'Careca', collared:'Gola', open:'Aberta' } },
-  earRing:         { label: 'Brinco', options: { none:'Nenhum', stud:'Piercing', loop:'Argola' } },
-  earSize:         { label: 'Orelha', options: { small:'Pequena', big:'Grande' } },
+  mouthStyle:      { label: 'Boca',         options: { laugh:'Gargalhada', smile:'Sorriso', peace:'Paz', smirk:'Irônico', surprised:'Surpreso', nervous:'Nervoso', sad:'Triste', pucker:'Beicinho' } },
+  noseStyle:       { label: 'Nariz',        options: { short:'Curto', long:'Longo', round:'Redondo', curve:'Curvado' } },
+  glassesStyle:    { label: 'Óculos',       options: { none:'Nenhum', round:'Redondo', square:'Quadrado' } },
+  facialHairStyle: { label: 'Barba',        options: { none:'Nenhuma', beard:'Barba', stubble:'Cavanhaque' } },
+  shirtStyle:      { label: 'Roupa',        options: { hoody:'Moletom', short:'Camiseta', polo:'Polo', crew:'Careca', collared:'Gola', open:'Aberta' } },
+  earRing:         { label: 'Brinco',       options: { none:'Nenhum', stud:'Piercing', loop:'Argola' } },
+  earSize:         { label: 'Orelha',       options: { small:'Pequena', big:'Grande' } },
 };
 
 /* ─── Avatar SVG (modo emoji) ─── */
@@ -131,16 +119,22 @@ async function salvarNiceAvatarFirestore(uid, niceConfig) {
   );
 }
 
+/* ─── Hook: escuta niceAvatarConfig no Firestore (aguarda auth) ─── */
 function useNiceAvatar() {
   const [niceAvatarConfig, setNiceAvatarConfig] = useState(null);
+
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
-    const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
-      setNiceAvatarConfig(snap.data()?.niceAvatarConfig ?? null);
+    let unsubSnap = null;
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (unsubSnap) { unsubSnap(); unsubSnap = null; }
+      if (!user) { setNiceAvatarConfig(null); return; }
+      unsubSnap = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+        setNiceAvatarConfig(snap.data()?.niceAvatarConfig ?? null);
+      });
     });
-    return () => unsub();
+    return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
   }, []);
+
   return { niceAvatarConfig, setNiceAvatarConfig };
 }
 
@@ -188,16 +182,14 @@ const OptionPicker = ({ options, value, onChange }) => (
 
 /* ─── Modal de edição de perfil ─── */
 const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
-  const [nome,        setNome]        = useState(perfil.nome  || '');
-  const [curso,       setCurso]       = useState(perfil.curso || '');
-  const [config,      setConfig]      = useState({ ...CONFIG_PADRAO, ...(perfil.avatarConfig || {}) });
-  const [abaAtiva,    setAbaAtiva]    = useState('emoji'); // 'emoji' | 'avatar'
-  const [niceTemp,    setNiceTemp]    = useState(null);    // config pendente antes de salvar
+  const [nome,     setNome]     = useState(perfil.nome  || '');
+  const [curso,    setCurso]    = useState(perfil.curso || '');
+  const [config,   setConfig]   = useState({ ...CONFIG_PADRAO, ...(perfil.avatarConfig || {}) });
+  const [abaAtiva, setAbaAtiva] = useState('emoji');
+  const [niceTemp, setNiceTemp] = useState(null);
   const { niceAvatarConfig, setNiceAvatarConfig } = useNiceAvatar();
 
-  // Ao abrir, pré-preenche o editor nice com config salva ou padrão
   const niceEdit = niceTemp || (niceAvatarConfig ? { ...niceAvatarConfig } : { ...NICE_AVATAR_PADRAO });
-
   const corAtiva = (niceTemp || niceAvatarConfig) ? (niceEdit.bgColor || '#6366f1') : config.cor;
 
   const atualizarNice = (chave, valor) => setNiceTemp({ ...niceEdit, [chave]: valor });
@@ -209,7 +201,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
       setNiceAvatarConfig(niceTemp);
     }
     if (abaAtiva === 'emoji' && uid) {
-      // Ao escolher emoji, limpa o nice avatar
       await setDoc(doc(db, 'users', uid), { niceAvatarConfig: null }, { merge: true });
       setNiceAvatarConfig(null);
     }
@@ -318,13 +309,11 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
               {/* ── Aba Avatar (Nice Avatar SVG) ── */}
               {abaAtiva === 'avatar' && (
                 <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
-
-                  {/* Preview do avatar */}
                   <div style={{ display:'flex',justifyContent:'center',alignItems:'center',gap:16,flexWrap:'wrap' }}>
                     <div style={{ width:120,height:120,borderRadius:'50%',overflow:'hidden',border:'2px solid var(--gray-100)',flexShrink:0 }}>
                       <NiceAvatar style={{ width:120,height:120 }} {...niceEdit} />
                     </div>
-                    {(niceAvatarConfig) && (
+                    {niceAvatarConfig && (
                       <button onClick={removerNice}
                         style={{ padding:'7px 14px',borderRadius:10,border:'1.5px solid #fecaca',background:'#fef2f2',fontSize:12,fontWeight:600,color:'#ef4444',cursor:'pointer' }}>
                         Remover avatar
@@ -332,7 +321,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
                     )}
                   </div>
 
-                  {/* Cores */}
                   <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
                     <div>
                       <p className="field-label" style={{ marginBottom:8 }}>Cor de fundo</p>
@@ -352,7 +340,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
                     </div>
                   </div>
 
-                  {/* Opções de estilo */}
                   {['hairStyle','eyesStyle','eyebrowsStyle','mouthStyle','noseStyle','glassesStyle','facialHairStyle','shirtStyle','earRing','earSize'].map(chave => (
                     <div key={chave}>
                       <p className="field-label" style={{ marginBottom:8 }}>{NICE_LABELS[chave].label}</p>
@@ -363,7 +350,6 @@ const ModalPerfil = ({ onFechar, perfil, onSalvar }) => {
                       />
                     </div>
                   ))}
-
                 </div>
               )}
             </div>
