@@ -1,5 +1,5 @@
 // src/components/AvatarPerfil.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
@@ -33,11 +33,13 @@ const CORES = [
 const CONFIG_PADRAO = { emoji: '😎', cor: '#6366f1' };
 
 /* ════════════════════════════════════════════════════
-   OPÇÕES DICEBEAR AVATAAARS (via API fetch -> SVG inline)
+   OPÇÕES DICEBEAR AVATAAARS
    ════════════════════════════════════════════════════ */
 
 const AVATAR_DEFAULTS = {
   top: 'shortWaved',
+  topColor: '2c1b18',        // cor do cabelo/chapéu
+  hatColor: '2c1b18',        // cor do chapéu se houver
   hairColor: '2c1b18',
   skinColor: 'edb98a',
   eyes: 'default',
@@ -45,6 +47,8 @@ const AVATAR_DEFAULTS = {
   mouth: 'smile',
   facialHair: 'beardMedium',
   facialHairColor: '2c1b18',
+  accessories: 'prescription02',
+  accessoriesColor: '2c1b18',
   clothe: 'hoodie',
   clotheColor: '3c4f5c',
   backgroundColor: '6BD9E9',
@@ -54,7 +58,7 @@ const TOP_OPTIONS = {
   bigHair: 'Cabelo volumoso', bob: 'Bob', bun: 'Coque', curly: 'Cacheado',
   curvy: 'Ondulado', dreads: 'Dreads', dreads01: 'Dreads longos', dreads02: 'Dreads curtos',
   frida: 'Tranças Frida', frizzle: 'Crespo', fro: 'Black Power', froBand: 'Black Power + bandana',
-  hat: 'Chapéu', hijab: 'Hijab', longButNotTooLong: 'Longo médio', miaWallace: 'Mia Wallace',
+  hat: 'Chapéu', hijab: 'Hijab', longButNotTooLong: 'Longo médio',
   shaggy: 'Despojado', shaggyMullet: 'Mullet', shavedSides: 'Raspado dos lados',
   shortCurly: 'Curto cacheado', shortFlat: 'Curto liso', shortRound: 'Curto redondo',
   shortWaved: 'Curto ondulado', sides: 'Lateral', straight01: 'Liso 1', straight02: 'Liso 2',
@@ -99,6 +103,16 @@ const EYEBROWS_OPTIONS = {
   unibrowNatural: 'Monocelha', upDown: 'Sobe e desce', upDownNatural: 'Sobe e desce natural',
 };
 
+const ACCESSORIES_OPTIONS = {
+  kurt: 'Óculos Kurt', prescription01: 'Óculos 1', prescription02: 'Óculos 2',
+  round: 'Redondos', sunglasses: 'Óculos escuros', wayfarers: 'Wayfarers',
+};
+
+const FACIAL_HAIR_OPTIONS = {
+  beardLight: 'Barba leve', beardMagestic: 'Barba majestosa', beardMedium: 'Barba média',
+  moustacheFancy: 'Bigode chique', moustacheMagnum: 'Bigode Magnum',
+};
+
 const CLOTHE_OPTIONS = {
   blazerShirt: 'Blazer', blazerSweater: 'Blazer + suéter', collarSweater: 'Suéter gola',
   graphicShirt: 'Camiseta estampa', hoodie: 'Moletom', overall: 'Macacão',
@@ -126,12 +140,17 @@ const BG_COLORS = [
 ];
 
 const labelsMap = [
-  { key: 'top', label: 'Cabelo', type: 'option', opts: TOP_OPTIONS },
+  { key: 'top', label: 'Cabelo/Chapéu', type: 'option', opts: TOP_OPTIONS },
   { key: 'hairColor', label: 'Cor do cabelo', type: 'color', opts: HAIR_COLORS },
+  { key: 'hatColor', label: 'Cor do chapéu', type: 'color', opts: HAIR_COLORS },
   { key: 'skinColor', label: 'Tom de pele', type: 'color', opts: SKIN_COLORS },
   { key: 'eyes', label: 'Olhos', type: 'option', opts: EYES_OPTIONS },
   { key: 'eyebrows', label: 'Sobrancelhas', type: 'option', opts: EYEBROWS_OPTIONS },
   { key: 'mouth', label: 'Boca', type: 'option', opts: MOUTH_OPTIONS },
+  { key: 'accessories', label: 'Acessórios (óculos)', type: 'option', opts: ACCESSORIES_OPTIONS },
+  { key: 'accessoriesColor', label: 'Cor dos óculos', type: 'color', opts: HAIR_COLORS },
+  { key: 'facialHair', label: 'Barba/Bigode', type: 'option', opts: FACIAL_HAIR_OPTIONS },
+  { key: 'facialHairColor', label: 'Cor da barba', type: 'color', opts: HAIR_COLORS },
   { key: 'clothe', label: 'Roupa', type: 'option', opts: CLOTHE_OPTIONS },
   { key: 'clotheColor', label: 'Cor da roupa', type: 'color', opts: CLOTHE_COLORS },
   { key: 'backgroundColor', label: 'Cor de fundo', type: 'color', opts: BG_COLORS },
@@ -151,43 +170,32 @@ const AvatarSvg = ({ emoji, cor, size = 46 }) => (
   </svg>
 );
 
-/* ─── DiceBear via fetch (SVG inline) ─── */
+/* ─── DiceBear via <img> ─── */
+const buildDiceBearUrl = (config) => {
+  const params = new URLSearchParams();
+  Object.entries(config).forEach(([key, value]) => {
+    if (key === 'top' && Array.isArray(value)) value = value[0];
+    if (value) {
+      // Adiciona '#' para cores se não tiver (API aceita ambos, mas garante compatibilidade)
+      if (['hairColor','skinColor','backgroundColor','clotheColor','accessoriesColor','facialHairColor','hatColor','topColor'].includes(key) && !value.startsWith('#')) {
+        params.append(key, '#' + value);
+      } else {
+        params.append(key, value);
+      }
+    }
+  });
+  return `https://api.dicebear.com/9.x/avataaars/svg?${params.toString()}`;
+};
+
 const AvatarDiceBear = ({ config }) => {
-  const [svgString, setSvgString] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams();
-    Object.entries(config).forEach(([key, value]) => {
-      if (key === 'top' && Array.isArray(value)) value = value[0];
-      if (value) params.append(key, value);
-    });
-    const url = `https://api.dicebear.com/9.x/avataaars/svg?${params.toString()}`;
-
-    fetch(url)
-      .then(res => res.text())
-      .then(svg => {
-        if (!cancelled) setSvgString(svg);
-      })
-      .catch(() => {
-        if (!cancelled) setSvgString('');
-      });
-
-    return () => { cancelled = true; };
-  }, [config]);
-
-  if (!svgString) {
-    return (
-      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: 'var(--gray-400)' }}>
-        🎨
-      </div>
-    );
-  }
+  const url = useMemo(() => buildDiceBearUrl(config), [config]);
 
   return (
-    <div
-      style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}
-      dangerouslySetInnerHTML={{ __html: svgString }}
+    <img
+      src={url}
+      alt="avatar"
+      style={{ width: '100%', height: '100%', borderRadius: '50%' }}
+      onError={(e) => { e.target.style.display = 'none'; }}
     />
   );
 };
